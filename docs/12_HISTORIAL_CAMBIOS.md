@@ -238,6 +238,12 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Incorporada una explicacion breve orientada a conversion y enlace directo a perfiles de artistas.
 - Aplicados estilos especificos para equilibrar impacto visual en escritorio y movil sin romper la estructura actual.
 
+### 2026-06-25 - Fase 2 - Limpieza de portada por feedback
+
+- Retirados de `index.php` los bloques de copy, botones y secciones de explicacion que no encajaban con la direccion visual deseada.
+- Simplificada la home a una cabecera minima con titulo principal, manteniendo menu, fondo e identidad de color.
+- Ajustado `assets/css/styles.css` para que el hero quede centrado y sin columna vacia tras la limpieza.
+
 ## Reglas y decisiones
 
 - Registrar cambios por fecha.

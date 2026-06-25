@@ -777,14 +777,14 @@ h3 {
 }
 
 .landing-hero-inner {
-    grid-template-columns: minmax(0, 1fr) minmax(320px, 620px);
+    grid-template-columns: 1fr;
     align-items: center;
     gap: clamp(24px, 3.2vw, 44px);
 }
 
 .landing-hero-copy {
     margin: 0;
-    text-align: left;
+    text-align: center;
 }
 
 .landing-title {
