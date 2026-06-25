@@ -26,11 +26,31 @@ $stylesVersion = (string) (@filemtime(__DIR__ . '/assets/css/styles.css') ?: tim
     <?php page_header('INICIO'); ?>
 
     <main>
-        <section id="inicio" class="hero-section" data-ad-category="INICIO">
+        <section id="inicio" class="hero-section home-hero" data-ad-category="INICIO">
             <div class="hero-inner landing-hero-inner">
                 <div class="hero-content landing-hero-copy">
                     <p class="section-kicker">Comunidad, revista y oportunidades reales</p>
                     <h1 class="landing-title" data-landing-title>Con Sabor Flamenco</h1>
+                </div>
+            </div>
+        </section>
+
+        <section class="story-slider-band" aria-label="Historia visual de Con Sabor Flamenco">
+            <div class="story-slider" data-story-slider>
+                <div class="story-slider-track" data-story-track>
+                    <?php require __DIR__ . '/slider/slider01.php'; ?>
+                    <?php require __DIR__ . '/slider/slider02.php'; ?>
+                    <?php require __DIR__ . '/slider/slider03.php'; ?>
+                </div>
+
+                <div class="story-slider-controls" aria-label="Controles del slider">
+                    <button class="story-slider-arrow" type="button" data-story-prev aria-label="Slide anterior">‹</button>
+                    <div class="story-slider-dots" data-story-dots>
+                        <button class="is-active" type="button" data-story-dot="0" aria-label="Ir al slide 1"></button>
+                        <button type="button" data-story-dot="1" aria-label="Ir al slide 2"></button>
+                        <button type="button" data-story-dot="2" aria-label="Ir al slide 3"></button>
+                    </div>
+                    <button class="story-slider-arrow" type="button" data-story-next aria-label="Slide siguiente">›</button>
                 </div>
             </div>
         </section>

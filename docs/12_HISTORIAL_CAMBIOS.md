@@ -250,6 +250,14 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Eliminado el limite de ancho compartido con secciones de contenido para el pie de pagina.
 - Adaptado el footer a formato de banda horizontal continua manteniendo su estilo visual.
 
+### 2026-06-25 - Fase 2 - Slider narrativo estatico en portada
+
+- Recolocado el titular principal de `index.php` mas cerca del navbar para priorizar jerarquia visual.
+- Anadida una banda full-width con slider de 3 slides para empezar la historia de la plataforma.
+- Creada la carpeta `slider/` con `slider01.php`, `slider02.php` y `slider03.php` como fuentes estaticas editables.
+- Definidos layouts alternos de imagen izquierda/derecha/izquierda y bloque de cuatro botones de color por slide.
+- Implementada navegacion de slider (anterior, siguiente, puntos) en `assets/js/landing-home.js`.
+
 ## Reglas y decisiones
 
 - Registrar cambios por fecha.

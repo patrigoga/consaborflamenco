@@ -797,6 +797,186 @@ h3 {
     transform: translateX(0);
 }
 
+.home-hero .hero-inner {
+    min-height: 0;
+    padding-top: clamp(28px, 4vw, 50px);
+    padding-bottom: clamp(18px, 3vw, 34px);
+}
+
+.home-hero .hero-content {
+    margin-top: 0;
+}
+
+.story-slider-band {
+    width: 100vw;
+    margin: 0 calc(50% - 50vw);
+    padding: clamp(14px, 2vw, 26px) clamp(12px, 2vw, 24px) clamp(26px, 3.5vw, 42px);
+    background: linear-gradient(180deg, rgba(16, 24, 33, 0.82), rgba(248, 243, 234, 0));
+}
+
+.story-slider {
+    width: min(100%, 1860px);
+    margin-inline: auto;
+}
+
+.story-slider-track {
+    position: relative;
+    min-height: clamp(360px, 44vw, 530px);
+}
+
+.story-slide {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: minmax(320px, 0.95fr) minmax(0, 1.05fr);
+    gap: clamp(16px, 2.2vw, 30px);
+    padding: clamp(14px, 1.8vw, 24px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: var(--section-radius);
+    background: linear-gradient(145deg, rgba(11, 15, 21, 0.93), rgba(30, 42, 55, 0.86));
+    box-shadow: 0 30px 70px rgba(4, 8, 14, 0.34);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(18px);
+    transition: opacity 0.35s ease, transform 0.35s ease, visibility 0.35s ease;
+}
+
+.story-slide.is-active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+}
+
+.story-slide-image-right {
+    grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+}
+
+.story-slide-image-right .story-slide-media {
+    order: 2;
+}
+
+.story-slide-image-right .story-slide-copy {
+    order: 1;
+}
+
+.story-slide-media {
+    border-radius: calc(var(--radius) + 4px);
+    overflow: hidden;
+    min-height: 300px;
+}
+
+.story-slide-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.story-slide-copy {
+    display: grid;
+    align-content: center;
+    gap: 10px;
+}
+
+.story-slide-kicker {
+    margin: 0;
+    color: #f1a5ae;
+    font-size: 0.74rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.story-slide-copy h2 {
+    color: var(--color-white);
+    font-size: clamp(1.7rem, 3.2vw, 3rem);
+}
+
+.story-slide-copy p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: clamp(0.95rem, 1.5vw, 1.08rem);
+}
+
+.story-slide-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.story-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    padding: 0 14px;
+    border-radius: 999px;
+    color: var(--color-white);
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.chip-red {
+    background: #c94f5c;
+}
+
+.chip-blue {
+    background: #5f8fb8;
+}
+
+.chip-gold {
+    background: #c9a45a;
+    color: #111114;
+}
+
+.chip-dark {
+    background: #111114;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.story-slider-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.story-slider-arrow {
+    width: 40px;
+    height: 40px;
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    border-radius: 999px;
+    color: var(--color-white);
+    background: rgba(17, 17, 20, 0.7);
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.story-slider-arrow:hover {
+    border-color: rgba(201, 79, 92, 0.8);
+    background: rgba(201, 79, 92, 0.34);
+}
+
+.story-slider-dots {
+    display: flex;
+    gap: 8px;
+}
+
+.story-slider-dots button {
+    width: 11px;
+    height: 11px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.32);
+    cursor: pointer;
+}
+
+.story-slider-dots button.is-active {
+    background: var(--color-red);
+}
+
 .landing-focus-panel {
     backdrop-filter: blur(3px);
 }
@@ -2924,6 +3104,24 @@ h3 {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .story-slide,
+    .story-slide-image-right {
+        grid-template-columns: 1fr;
+    }
+
+    .story-slide-image-right .story-slide-media,
+    .story-slide-image-right .story-slide-copy {
+        order: initial;
+    }
+
+    .story-slide-media {
+        min-height: 250px;
+    }
+
+    .story-slider-track {
+        min-height: 660px;
+    }
+
     .landing-spotlight-card {
         grid-template-columns: 1fr;
     }
@@ -3071,6 +3269,18 @@ h3 {
 
     .landing-points {
         grid-template-columns: 1fr;
+    }
+
+    .story-slider-track {
+        min-height: 700px;
+    }
+
+    .story-slider-controls {
+        gap: 10px;
+    }
+
+    .story-slide-buttons {
+        gap: 8px;
     }
 
     .landing-spotlight-image {
