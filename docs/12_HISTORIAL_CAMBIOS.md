@@ -232,6 +232,12 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Anadida una seccion especifica de perfiles (artistas, academias, penas/tablaos y festivales/eventos).
 - Simplificado `assets/js/landing-home.js` para mantener animacion del titulo, rotador de mensaje y reveals visuales.
 
+### 2026-06-25 - Fase 2 - Refuerzo visual de portada con tarjeta editorial
+
+- Anadida una tarjeta destacada en el hero de `index.php` con imagen flamenca existente del proyecto.
+- Incorporada una explicacion breve orientada a conversion y enlace directo a perfiles de artistas.
+- Aplicados estilos especificos para equilibrar impacto visual en escritorio y movil sin romper la estructura actual.
+
 ## Reglas y decisiones
 
 - Registrar cambios por fecha.

@@ -34,6 +34,18 @@ require_once __DIR__ . '/app/layout.php';
                         <a class="button button-primary" href="#como-funciona">Empezar ahora</a>
                         <a class="button button-secondary" href="registro.php">Quiero unirme</a>
                     </div>
+
+                    <article class="landing-spotlight-card" aria-label="Tarjeta destacada de la comunidad">
+                        <a class="landing-spotlight-image" href="artistas.php" aria-label="Ir a artistas destacados">
+                            <img src="assets/images/community/artista-bailaora.webp" alt="Bailaora en directo sobre escenario flamenco" width="640" height="480" loading="lazy">
+                        </a>
+                        <div class="landing-spotlight-content">
+                            <span>Destacado de la comunidad</span>
+                            <h2>El arte flamenco también se impulsa en digital</h2>
+                            <p>Da visibilidad a tu proyecto, conecta con público real y forma parte de una plataforma pensada para crecer contigo.</p>
+                            <a href="artistas.php">Ver ejemplo de perfiles →</a>
+                        </div>
+                    </article>
                 </div>
 
                 <aside class="hero-panel landing-focus-panel" aria-label="Resumen de valor de la comunidad">
