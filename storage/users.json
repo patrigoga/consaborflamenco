@@ -1,0 +1,114 @@
+[
+    {
+        "id": "b87d2fc2f04a43ca58edf7a933bc01ae",
+        "name": "Carlos",
+        "email": "patrigoga@gmail.com",
+        "password_hash": "$2y$10$rUuNz42rVl9qaC7qOtH\/GOjDr4SC1pq4y3XA5iowx8aUCaM17vgKS",
+        "role": "admin",
+        "terms_accepted_at": "2026-06-24T17:27:49+00:00",
+        "created_at": "2026-06-24T17:27:49+00:00",
+        "updated_at": "2026-06-25T07:14:27+00:00",
+        "last_login_at": "2026-06-25T07:14:27+00:00"
+    },
+    {
+        "id": "737d014878726903bc19a44a36b99b69",
+        "name": "Carlos",
+        "email": "carlos@gmail.com",
+        "password_hash": "$2y$10$3W\/OpdoWhG0RMukPOGDGteHfq.8MReGQO\/Xrh9mgXUYJOYLFYci\/S",
+        "role": "user",
+        "membership_tier": "simpatizante",
+        "terms_accepted_at": "2026-06-24T17:55:01+00:00",
+        "created_at": "2026-06-24T17:55:01+00:00",
+        "updated_at": "2026-06-24T23:52:38+00:00",
+        "last_login_at": null,
+        "artistic_profile": {
+            "member_type": "artista",
+            "public_name": "Carlos Gallego",
+            "artistic_headline": "El puma",
+            "short_description": "Artista flamenco de alma profunda y estilo elegante, fusiona la fuerza del compás tradicional con una expresión escénica actual. Su baile transmite pasión, carácter y sensibilidad, conectando con el público a través del duende, la técnica y el respeto por las raíces del flamenco.",
+            "cv_summary": "Artista flamenco de alma profunda y estilo elegante, fusiona la fuerza del compás tradicional con una expresión escénica actual. Su baile transmite pasión, carácter y sensibilidad, conectando con el público a través del duende, la técnica y el respeto por las raíces del flamenco.",
+            "specialties": "Cante",
+            "years_active": "Desde 2001",
+            "availability": "",
+            "birth_place": "",
+            "city": "Córdoba",
+            "province": "Córdoba",
+            "phone": "",
+            "website_url": "",
+            "instagram_url": "",
+            "main_photo_path": "assets\/uploads\/member-photos\/member-20260624230615-65ac2b7d382c.png",
+            "public_fields": [
+                "phone",
+                "birth_place",
+                "years_active",
+                "availability",
+                "education",
+                "experience",
+                "teaching",
+                "performances",
+                "awards",
+                "repertoire",
+                "social_links"
+            ],
+            "sort_orders": {
+                "education": "desc",
+                "experience": "desc",
+                "teaching": "desc",
+                "performances": "desc",
+                "awards": "desc"
+            },
+            "education": [
+                {
+                    "entry_title": "formacion 1",
+                    "entry_description": "descripcion formacion 1",
+                    "date_start": "2026-06-25",
+                    "date_end": "2026-06-25",
+                    "school": "cante",
+                    "discipline": "cante",
+                    "teacher": "rocio",
+                    "image_path": ""
+                },
+                {
+                    "entry_title": "formacion2",
+                    "entry_description": "descripcion de formacion 2",
+                    "date_start": "2026-06-25",
+                    "date_end": "2026-06-25",
+                    "school": "Centro amor de Dios",
+                    "discipline": "Baile",
+                    "teacher": "Alfonso Losa",
+                    "image_path": ""
+                }
+            ],
+            "experience": [
+                {
+                    "entry_title": "titulo experiencia",
+                    "entry_description": "descripcion experiencia",
+                    "date_start": "2026-06-25",
+                    "date_end": "2026-06-25",
+                    "role": "Bailaor",
+                    "company": "Ultima Madrugada",
+                    "place": "Montilla ( Córdoba)",
+                    "image_path": "assets\/uploads\/curriculum-images\/cv-20260624235045-e33ff7085ac0.png"
+                }
+            ],
+            "teaching": [],
+            "performances": [],
+            "awards": [],
+            "repertoire": [
+                {
+                    "style": "Bulerias",
+                    "description": "Compas al golpe y al 12"
+                }
+            ],
+            "social_links": [
+                {
+                    "network": "Facebook",
+                    "url": "http:\/\/lost\/consaborFlamenco",
+                    "description": "Perfil profesional"
+                }
+            ],
+            "private_notes": "Soy una persona activa, comprometida y apasionado por el flamenco",
+            "completed_at": "2026-06-24T22:51:16+00:00"
+        }
+    }
+]
