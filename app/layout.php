@@ -5,6 +5,7 @@ require_once __DIR__ . '/config.php';
 
 function page_head(string $title, string $description, bool $includeRankings = true): void
 {
+    $stylesVersion = (string) (@filemtime(__DIR__ . '/../assets/css/styles.css') ?: time());
     ?>
     <head>
         <meta charset="UTF-8">
@@ -15,7 +16,7 @@ function page_head(string $title, string $description, bool $includeRankings = t
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="assets/css/styles.css">
+        <link rel="stylesheet" href="assets/css/styles.css?v=<?= e($stylesVersion) ?>">
         <script src="assets/js/advertising.js" defer></script>
         <script src="assets/js/navigation.js" defer></script>
         <?php if ($includeRankings): ?><script src="assets/js/section-rankings.js" defer></script><?php endif; ?>
