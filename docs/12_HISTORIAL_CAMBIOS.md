@@ -244,6 +244,12 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Simplificada la home a una cabecera minima con titulo principal, manteniendo menu, fondo e identidad de color.
 - Ajustado `assets/css/styles.css` para que el hero quede centrado y sin columna vacia tras la limpieza.
 
+### 2026-06-25 - Fase 1 - Footer a ancho completo
+
+- Ajustado `assets/css/styles.css` para que `site-footer` ocupe todo el ancho de pantalla.
+- Eliminado el limite de ancho compartido con secciones de contenido para el pie de pagina.
+- Adaptado el footer a formato de banda horizontal continua manteniendo su estilo visual.
+
 ## Reglas y decisiones
 
 - Registrar cambios por fecha.

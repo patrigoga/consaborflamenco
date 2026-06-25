@@ -596,8 +596,7 @@ a {
 }
 
 .content-section,
-.cta-section,
-.site-footer {
+.cta-section {
     width: min(calc(100% - 24px), var(--max-width));
     margin-inline: auto;
 }
@@ -2575,15 +2574,19 @@ h3 {
 }
 
 .site-footer {
+    width: 100%;
+    max-width: none;
+    margin: 0;
     display: grid;
     grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr);
     gap: 48px;
     padding: 52px clamp(20px, 4vw, 56px);
     color: rgba(255, 255, 255, 0.76);
     background: var(--color-black);
-    border-radius: var(--section-radius);
+    border-radius: 0;
     border: 1px solid rgba(201, 164, 90, 0.38);
-    margin-bottom: 12px;
+    border-inline: 0;
+    margin-bottom: 0;
     overflow: hidden;
 }
 
