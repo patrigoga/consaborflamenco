@@ -224,6 +224,14 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Mantenido el footer y la compatibilidad con selector de provincia y scripts comunes de navegacion/publicidad.
 - Anadido `assets/js/landing-home.js` para controlar la animacion y la logica del wizard de portada.
 
+### 2026-06-25 - Fase 2 - Refinamiento de landing tras revision visual
+
+- Sustituido el wizard por una portada mas limpia y directa para reducir friccion en la primera visita.
+- Reforzada la cabecera con un bloque de valor rapido, perfiles objetivo visibles y llamadas a la accion inmediatas.
+- Anadida una seccion de recorrido en 3 pasos con animaciones suaves de aparicion al hacer scroll.
+- Anadida una seccion especifica de perfiles (artistas, academias, penas/tablaos y festivales/eventos).
+- Simplificado `assets/js/landing-home.js` para mantener animacion del titulo, rotador de mensaje y reveals visuales.
+
 ## Reglas y decisiones
 
 - Registrar cambios por fecha.

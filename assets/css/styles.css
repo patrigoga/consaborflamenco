@@ -798,77 +798,63 @@ h3 {
     transform: translateX(0);
 }
 
-.landing-wizard-panel {
+.landing-focus-panel {
     backdrop-filter: blur(3px);
 }
 
-.landing-progress {
+.landing-rotator {
+    min-height: 1.6em;
+    transition: opacity 0.24s ease;
+}
+
+.landing-rotator.is-switching {
+    opacity: 0.22;
+}
+
+.landing-tags {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-bottom: 16px;
+    margin: 2px 0 16px;
 }
 
-.landing-step-chip {
+.landing-tags span {
     padding: 8px 12px;
     color: rgba(255, 255, 255, 0.76);
     border: 1px solid rgba(255, 255, 255, 0.26);
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.06);
-    font: inherit;
+    background: rgba(255, 255, 255, 0.05);
     font-size: 0.76rem;
     font-weight: 800;
-    cursor: pointer;
 }
 
-.landing-step-chip.is-active,
-.landing-step-chip:hover {
-    color: var(--color-white);
-    border-color: rgba(201, 79, 92, 0.78);
-    background: rgba(201, 79, 92, 0.28);
-}
-
-.landing-step {
-    display: none;
-    animation: landingStepFade 0.32s ease;
-}
-
-.landing-step.is-active {
-    display: block;
-}
-
-.landing-step h3 {
+.landing-focus-block h3 {
     color: var(--color-white);
     font-family: "Playfair Display", Georgia, serif;
     font-size: clamp(1.35rem, 2vw, 1.8rem);
 }
 
-.landing-step p {
+.landing-focus-block p {
     margin: 12px 0 0;
     color: rgba(255, 255, 255, 0.8);
 }
 
-.landing-step ul {
+.landing-focus-block ul {
     margin: 14px 0 0;
     padding-left: 18px;
     color: rgba(255, 255, 255, 0.74);
     font-size: 0.92rem;
 }
 
-.landing-step-actions {
+.landing-focus-actions {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 12px;
     margin-top: 18px;
 }
 
-.landing-step-actions .text-button {
+.landing-focus-actions .text-button {
     color: rgba(255, 255, 255, 0.82);
-}
-
-.landing-step-actions .text-button:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
 }
 
 .landing-value {
@@ -888,6 +874,14 @@ h3 {
     border-radius: var(--radius);
     background: linear-gradient(145deg, #ffffff, #f6efe5);
     box-shadow: var(--shadow-soft);
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+.landing-point-card.is-visible {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .landing-point-number {
@@ -908,21 +902,59 @@ h3 {
     color: var(--color-muted);
 }
 
+.landing-profiles {
+    margin-top: var(--section-gap);
+    background: #efe4d8;
+}
+
+.landing-profiles-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.landing-profile-card {
+    min-height: 204px;
+    padding: 20px;
+    border: 1px solid rgba(17, 17, 20, 0.12);
+    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: var(--shadow-soft);
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+.landing-profile-card.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.landing-profile-card h3 {
+    font-size: 1.08rem;
+}
+
+.landing-profile-card p {
+    margin: 10px 0 0;
+    color: var(--color-muted);
+}
+
+.landing-profile-card a {
+    display: inline-block;
+    margin-top: 12px;
+    color: var(--color-red);
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.landing-profile-card a:hover {
+    color: #b94652;
+}
+
 .landing-cta-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
-}
-
-@keyframes landingStepFade {
-    from {
-        opacity: 0;
-        transform: translateY(8px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
 }
 
 .content-section {
@@ -2820,6 +2852,10 @@ h3 {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .landing-profiles-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .hero-lead {
         max-width: 860px;
         white-space: normal;
@@ -2941,19 +2977,23 @@ h3 {
         margin-top: 0;
     }
 
-    .landing-step-actions,
+    .landing-focus-actions,
     .landing-cta-actions {
         flex-direction: column;
         align-items: stretch;
     }
 
-    .landing-step-actions .button,
-    .landing-step-actions .text-button,
+    .landing-focus-actions .button,
+    .landing-focus-actions .text-button,
     .landing-cta-actions .button {
         width: 100%;
     }
 
     .landing-points {
+        grid-template-columns: 1fr;
+    }
+
+    .landing-profiles-grid {
         grid-template-columns: 1fr;
     }
 

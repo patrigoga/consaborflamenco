@@ -31,57 +31,39 @@ require_once __DIR__ . '/app/layout.php';
                     <h1 class="landing-title" data-landing-title>Con Sabor Flamenco</h1>
                     <p class="hero-lead">Una plataforma viva para artistas, academias, peñas, tablaos y festivales que quieren visibilidad, contactos y crecimiento digital.</p>
                     <div class="hero-actions">
-                        <a class="button button-primary" href="#landing-wizard">Empezar ahora</a>
+                        <a class="button button-primary" href="#como-funciona">Empezar ahora</a>
                         <a class="button button-secondary" href="registro.php">Quiero unirme</a>
                     </div>
                 </div>
 
-                <aside id="landing-wizard" class="hero-panel landing-wizard-panel" data-landing-wizard aria-label="Guía rápida para conocer la comunidad">
+                <aside class="hero-panel landing-focus-panel" aria-label="Resumen de valor de la comunidad">
                     <div class="hero-panel-header">
                         <span class="hero-panel-label">Empieza por aquí</span>
-                        <h2 class="hero-panel-title">Descubre la web en 3 pasos</h2>
-                        <p>Menos fricción, más claridad. En menos de un minuto sabrás cómo aprovechar la comunidad.</p>
+                        <h2 class="hero-panel-title">Qué te ofrece la comunidad</h2>
+                        <p class="landing-rotator" data-landing-rotator>Más visibilidad para tu proyecto flamenco.</p>
                     </div>
 
-                    <div class="landing-progress" aria-label="Progreso del recorrido">
-                        <button type="button" class="landing-step-chip is-active" data-step-target="0">1. Qué es</button>
-                        <button type="button" class="landing-step-chip" data-step-target="1">2. Qué ganas</button>
-                        <button type="button" class="landing-step-chip" data-step-target="2">3. Primer paso</button>
+                    <div class="landing-tags" aria-label="Perfiles de la comunidad">
+                        <span>Artistas</span>
+                        <span>Academias</span>
+                        <span>Peñas</span>
+                        <span>Tablaos</span>
+                        <span>Festivales</span>
                     </div>
 
-                    <article class="landing-step is-active" data-landing-step="0">
-                        <h3>Una comunidad flamenca con enfoque práctico</h3>
-                        <p>Con Sabor Flamenco conecta cultura, revista y promoción profesional en un mismo lugar para que te encuentren y te recomienden.</p>
+                    <article class="landing-focus-block">
+                        <h3>Un punto de entrada claro</h3>
+                        <p>Sin menús interminables ni pasos pesados: explicamos rápido qué es la plataforma y te llevamos a la acción.</p>
                         <ul>
-                            <li>Revista y contenidos de valor.</li>
-                            <li>Perfiles públicos de miembros.</li>
-                            <li>Ecosistema preparado para crecer.</li>
+                            <li>Mensaje directo en portada.</li>
+                            <li>Recorrido visual de 3 pasos.</li>
+                            <li>Registro en primer plano.</li>
                         </ul>
                     </article>
 
-                    <article class="landing-step" data-landing-step="1" aria-hidden="true">
-                        <h3>Qué puedes conseguir dentro</h3>
-                        <p>Más visibilidad, mejor posicionamiento de tu proyecto y una presencia profesional para captar oportunidades reales.</p>
-                        <ul>
-                            <li>Presencia digital con identidad flamenca.</li>
-                            <li>Conexión con público y colaboradores.</li>
-                            <li>Servicios y herramientas para miembros.</li>
-                        </ul>
-                    </article>
-
-                    <article class="landing-step" data-landing-step="2" aria-hidden="true">
-                        <h3>Empieza sin complicarte</h3>
-                        <p>Crea tu cuenta, completa tu perfil y entra en una comunidad diseñada para impulsar proyectos flamencos de forma moderna.</p>
-                        <ul>
-                            <li>Registro simple.</li>
-                            <li>Panel privado para organizar tu perfil.</li>
-                            <li>Base preparada para futuras opciones VIP.</li>
-                        </ul>
-                    </article>
-
-                    <div class="landing-step-actions">
-                        <button type="button" class="text-button" data-step-prev disabled>Anterior</button>
-                        <button type="button" class="button button-primary" data-step-next>Siguiente</button>
+                    <div class="landing-focus-actions">
+                        <a class="button button-primary" href="registro.php">Crear mi perfil</a>
+                        <a class="text-button" href="revista.php">Ver revista</a>
                     </div>
                 </aside>
             </div>
@@ -91,27 +73,61 @@ require_once __DIR__ . '/app/layout.php';
             <div class="section-heading">
                 <div class="section-heading-content">
                     <p class="section-kicker">Comunidad con dirección</p>
-                    <h2>Una landing pensada para que el visitante actúe</h2>
-                    <p>Hemos reducido ruido para centrar la portada en explicar, convencer y llevar al siguiente paso sin saturar al usuario.</p>
+                    <h2>Cómo funciona en solo 3 pasos</h2>
+                    <p>Queremos que el usuario entienda rápido la propuesta y avance sin aburrirse ni perderse.</p>
                 </div>
                 <a class="section-enter-link" href="revista.php">Ver revista</a>
             </div>
 
-            <div class="landing-points" aria-label="Beneficios principales de la plataforma">
-                <article class="landing-point-card">
+            <div class="landing-points" aria-label="Recorrido principal de la plataforma">
+                <article class="landing-point-card" data-landing-reveal>
                     <span class="landing-point-number">01</span>
-                    <h3>Mensaje claro desde el primer segundo</h3>
-                    <p>La propuesta de valor queda visible en cabecera y guía al usuario sin distracciones.</p>
+                    <h3>Entiende la propuesta</h3>
+                    <p>Desde la cabecera se explica qué es Con Sabor Flamenco y para quién está pensada.</p>
                 </article>
-                <article class="landing-point-card">
+                <article class="landing-point-card" data-landing-reveal>
                     <span class="landing-point-number">02</span>
-                    <h3>Recorrido guiado tipo wizard</h3>
-                    <p>Tres pasos breves para explicar qué es la comunidad y por qué merece quedarse.</p>
+                    <h3>Visualiza el valor</h3>
+                    <p>Ves de forma rápida cómo mejorar visibilidad, posicionamiento y contacto con la comunidad.</p>
                 </article>
-                <article class="landing-point-card">
+                <article class="landing-point-card" data-landing-reveal>
                     <span class="landing-point-number">03</span>
-                    <h3>Llamadas a la acción visibles</h3>
-                    <p>Botones directos para comenzar el recorrido o registrarse, sin forzar procesos largos.</p>
+                    <h3>Actúa en un clic</h3>
+                    <p>Registro visible y acceso inmediato para empezar hoy con tu perfil profesional.</p>
+                </article>
+            </div>
+        </section>
+
+        <section id="perfiles" class="content-section landing-profiles" data-ad-category="GENERAL">
+            <div class="section-heading">
+                <div class="section-heading-content">
+                    <p class="section-kicker">Tu lugar en la comunidad</p>
+                    <h2>Elige tu camino dentro de Con Sabor Flamenco</h2>
+                    <p>Un mismo ecosistema para distintos perfiles del mundo flamenco.</p>
+                </div>
+                <a class="section-enter-link" href="registro.php">Empezar registro</a>
+            </div>
+
+            <div class="landing-profiles-grid" aria-label="Tipos de perfiles de la comunidad">
+                <article class="landing-profile-card" data-landing-reveal>
+                    <h3>Artistas</h3>
+                    <p>Muestra tu trayectoria y aumenta tu visibilidad profesional.</p>
+                    <a href="artistas.php">Explorar artistas</a>
+                </article>
+                <article class="landing-profile-card" data-landing-reveal>
+                    <h3>Academias</h3>
+                    <p>Capta alumnado y presenta tu oferta formativa de forma atractiva.</p>
+                    <a href="academias.php">Explorar academias</a>
+                </article>
+                <article class="landing-profile-card" data-landing-reveal>
+                    <h3>Peñas y tablaos</h3>
+                    <p>Difunde programación, conecta con público y gana presencia digital.</p>
+                    <a href="penas.php">Explorar peñas</a>
+                </article>
+                <article class="landing-profile-card" data-landing-reveal>
+                    <h3>Festivales y eventos</h3>
+                    <p>Impulsa cartel, agenda y difusión de tus citas más importantes.</p>
+                    <a href="festivales.php">Explorar festivales</a>
                 </article>
             </div>
         </section>

@@ -8,60 +8,40 @@
         });
     }
 
-    const wizard = document.querySelector("[data-landing-wizard]");
-    if (!wizard) {
+    const rotator = document.querySelector("[data-landing-rotator]");
+    if (rotator) {
+        const lines = [
+            "Más visibilidad para tu proyecto flamenco.",
+            "Una comunidad para conectar talento y oportunidades.",
+            "Contenido, promoción y crecimiento en una sola plataforma."
+        ];
+        let index = 0;
+
+        window.setInterval(() => {
+            index = (index + 1) % lines.length;
+            rotator.classList.add("is-switching");
+            window.setTimeout(() => {
+                rotator.textContent = lines[index];
+                rotator.classList.remove("is-switching");
+            }, 180);
+        }, 3200);
+    }
+
+    const revealItems = Array.from(document.querySelectorAll("[data-landing-reveal]"));
+    if (!revealItems.length || typeof IntersectionObserver === "undefined") {
+        revealItems.forEach((item) => item.classList.add("is-visible"));
         return;
     }
 
-    const steps = Array.from(wizard.querySelectorAll("[data-landing-step]"));
-    const chips = Array.from(wizard.querySelectorAll("[data-step-target]"));
-    const prevButton = wizard.querySelector("[data-step-prev]");
-    const nextButton = wizard.querySelector("[data-step-next]");
-    let currentStep = 0;
-
-    function setStep(index) {
-        const safeIndex = Math.max(0, Math.min(index, steps.length - 1));
-        currentStep = safeIndex;
-
-        steps.forEach((step, stepIndex) => {
-            const isActive = stepIndex === currentStep;
-            step.classList.toggle("is-active", isActive);
-            step.setAttribute("aria-hidden", isActive ? "false" : "true");
-        });
-
-        chips.forEach((chip, chipIndex) => {
-            chip.classList.toggle("is-active", chipIndex === currentStep);
-        });
-
-        if (prevButton) {
-            prevButton.disabled = currentStep === 0;
-        }
-
-        if (nextButton) {
-            nextButton.textContent = currentStep === steps.length - 1 ? "Ir al registro" : "Siguiente";
-        }
-    }
-
-    chips.forEach((chip) => {
-        chip.addEventListener("click", () => {
-            const target = Number(chip.dataset.stepTarget);
-            if (!Number.isNaN(target)) {
-                setStep(target);
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (!entry.isIntersecting) {
+                return;
             }
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
         });
-    });
+    }, { threshold: 0.2, rootMargin: "0px 0px -10%" });
 
-    prevButton?.addEventListener("click", () => {
-        setStep(currentStep - 1);
-    });
-
-    nextButton?.addEventListener("click", () => {
-        if (currentStep === steps.length - 1) {
-            window.location.href = "registro.php";
-            return;
-        }
-        setStep(currentStep + 1);
-    });
-
-    setStep(0);
+    revealItems.forEach((item) => observer.observe(item));
 }());
