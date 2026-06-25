@@ -2574,9 +2574,9 @@ h3 {
 }
 
 .site-footer {
-    width: 100%;
+    width: 100vw;
     max-width: none;
-    margin: 0;
+    margin: 0 calc(50% - 50vw);
     display: grid;
     grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr);
     gap: 48px;
