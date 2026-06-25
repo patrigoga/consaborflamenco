@@ -18,133 +18,114 @@ require_once __DIR__ . '/app/layout.php';
     <link rel="stylesheet" href="assets/css/styles.css">
     <script src="assets/js/advertising.js" defer></script>
     <script src="assets/js/navigation.js" defer></script>
-    <script src="assets/js/section-rankings.js" defer></script>
+    <script src="assets/js/landing-home.js" defer></script>
 </head>
 <body>
     <?php page_header('INICIO'); ?>
 
-<main>
+    <main>
         <section id="inicio" class="hero-section" data-ad-category="INICIO">
-            <div class="hero-inner">
-                <div class="hero-content">
-                    <p class="section-kicker">Revista, comunidad y tecnología flamenca</p>
-                    <h1>Con Sabor Flamenco</h1>
-                    <p class="hero-lead">La plataforma que une revista, comunidad y tecnología para impulsar el arte flamenco.</p>
+            <div class="hero-inner landing-hero-inner">
+                <div class="hero-content landing-hero-copy">
+                    <p class="section-kicker">Comunidad, revista y oportunidades reales</p>
+                    <h1 class="landing-title" data-landing-title>Con Sabor Flamenco</h1>
+                    <p class="hero-lead">Una plataforma viva para artistas, academias, peñas, tablaos y festivales que quieren visibilidad, contactos y crecimiento digital.</p>
+                    <div class="hero-actions">
+                        <a class="button button-primary" href="#landing-wizard">Empezar ahora</a>
+                        <a class="button button-secondary" href="registro.php">Quiero unirme</a>
+                    </div>
                 </div>
 
-                <aside class="hero-panel" aria-label="Contenidos más visitados de la comunidad">
+                <aside id="landing-wizard" class="hero-panel landing-wizard-panel" data-landing-wizard aria-label="Guía rápida para conocer la comunidad">
                     <div class="hero-panel-header">
-                        <span class="hero-panel-label">Comunidad</span>
-                        <h2 class="hero-panel-title">Lo más visitado ahora</h2>
-                        <p>Los cuatro contenidos que más interés están generando en la comunidad.</p>
+                        <span class="hero-panel-label">Empieza por aquí</span>
+                        <h2 class="hero-panel-title">Descubre la web en 3 pasos</h2>
+                        <p>Menos fricción, más claridad. En menos de un minuto sabrás cómo aprovechar la comunidad.</p>
                     </div>
-                    <div class="community-cards" data-community-ranking>
-                        <article class="community-card">
-                            <a class="community-card-image" href="#artistas" aria-label="Ver Bailaora en directo">
-                                <img src="assets/images/community/artista-bailaora.webp" alt="Bailaora actuando en un tablao" width="640" height="480">
-                            </a>
-                            <div class="community-card-content">
-                                <span>Artista</span>
-                                <h3>Bailaora en directo</h3>
-                                <p>Fuerza y arte sobre el tablao.</p>
-                                <a class="community-card-link" href="#artistas">Ver más</a>
-                            </div>
-                        </article>
-                        <article class="community-card">
-                            <a class="community-card-image" href="#academias" aria-label="Ver Academia de baile">
-                                <img src="assets/images/community/academia-flamenca.webp" alt="Clase en una academia de baile flamenco" width="640" height="480">
-                            </a>
-                            <div class="community-card-content">
-                                <span>Academia</span>
-                                <h3>Academia de baile</h3>
-                                <p>Formación con raíz flamenca.</p>
-                                <a class="community-card-link" href="#academias">Ver más</a>
-                            </div>
-                        </article>
-                        <article class="community-card">
-                            <a class="community-card-image" href="#eventos" aria-label="Ver Festival flamenco">
-                                <img src="assets/images/community/evento-flamenco.webp" alt="Festival flamenco al aire libre" width="640" height="480" loading="lazy">
-                            </a>
-                            <div class="community-card-content">
-                                <span>Evento</span>
-                                <h3>Festival flamenco</h3>
-                                <p>Una cita para vivir el cante.</p>
-                                <a class="community-card-link" href="#eventos">Ver más</a>
-                            </div>
-                        </article>
-                        <article class="community-card">
-                            <a class="community-card-image" href="#penas" aria-label="Ver Peña flamenca">
-                                <img src="assets/images/community/pena-flamenca.webp" alt="Encuentro musical en una peña flamenca" width="640" height="480" loading="lazy">
-                            </a>
-                            <div class="community-card-content">
-                                <span>Peña</span>
-                                <h3>Peña flamenca</h3>
-                                <p>Tradición, cante y encuentro.</p>
-                                <a class="community-card-link" href="#penas">Ver más</a>
-                            </div>
-                        </article>
+
+                    <div class="landing-progress" aria-label="Progreso del recorrido">
+                        <button type="button" class="landing-step-chip is-active" data-step-target="0">1. Qué es</button>
+                        <button type="button" class="landing-step-chip" data-step-target="1">2. Qué ganas</button>
+                        <button type="button" class="landing-step-chip" data-step-target="2">3. Primer paso</button>
+                    </div>
+
+                    <article class="landing-step is-active" data-landing-step="0">
+                        <h3>Una comunidad flamenca con enfoque práctico</h3>
+                        <p>Con Sabor Flamenco conecta cultura, revista y promoción profesional en un mismo lugar para que te encuentren y te recomienden.</p>
+                        <ul>
+                            <li>Revista y contenidos de valor.</li>
+                            <li>Perfiles públicos de miembros.</li>
+                            <li>Ecosistema preparado para crecer.</li>
+                        </ul>
+                    </article>
+
+                    <article class="landing-step" data-landing-step="1" aria-hidden="true">
+                        <h3>Qué puedes conseguir dentro</h3>
+                        <p>Más visibilidad, mejor posicionamiento de tu proyecto y una presencia profesional para captar oportunidades reales.</p>
+                        <ul>
+                            <li>Presencia digital con identidad flamenca.</li>
+                            <li>Conexión con público y colaboradores.</li>
+                            <li>Servicios y herramientas para miembros.</li>
+                        </ul>
+                    </article>
+
+                    <article class="landing-step" data-landing-step="2" aria-hidden="true">
+                        <h3>Empieza sin complicarte</h3>
+                        <p>Crea tu cuenta, completa tu perfil y entra en una comunidad diseñada para impulsar proyectos flamencos de forma moderna.</p>
+                        <ul>
+                            <li>Registro simple.</li>
+                            <li>Panel privado para organizar tu perfil.</li>
+                            <li>Base preparada para futuras opciones VIP.</li>
+                        </ul>
+                    </article>
+
+                    <div class="landing-step-actions">
+                        <button type="button" class="text-button" data-step-prev disabled>Anterior</button>
+                        <button type="button" class="button button-primary" data-step-next>Siguiente</button>
                     </div>
                 </aside>
-
-                <div class="hero-actions">
-                    <a class="button button-primary" href="#artistas">Descubre la comunidad</a>
-                    <a class="button button-secondary" href="#hazte-miembro">Hazte miembro</a>
-                </div>
             </div>
         </section>
 
-        <div class="page-shell">
-            <div class="primary-content">
-                <aside class="ad-mobile-strip" aria-label="Publicidad local">
-                    <div class="ad-sidebar-heading">
-                        <div>
-                            <span class="ad-eyebrow">Selección patrocinada</span>
-                            <h2><span data-ad-category-label>Inicio</span> · <span data-ad-province>tu provincia</span></h2>
-                        </div>
-                        <button type="button" class="text-button" data-open-province>Cambiar provincia</button>
-                    </div>
-                    <div class="ad-slots" data-ad-slots aria-live="polite"></div>
-                </aside>
-
-                <section id="flamenco-home" class="content-section soft-band" data-ad-category="FLAMENCO"><div class="section-heading"><div class="section-heading-content"><p class="section-kicker">Flamenco</p><h2>Cultura flamenca</h2><p>Historia, palos del flamenco y Llaves de Oro reunidos en una página propia.</p></div><a class="section-enter-link" href="flamenco.php">Entrar en esta sección</a></div></section>
-                <section id="revista" class="content-section" data-ad-category="REVISTA"><div class="section-heading"><div class="section-heading-content"><p class="section-kicker">Revista</p><h2>Artículos destacados</h2><p>Miradas actuales sobre baile, cante, guitarra, compás y cultura flamenca.</p></div><a class="section-enter-link" href="revista.php">Entrar en esta sección</a></div><div class="editorial-grid section-ranking" data-ranking-section="REVISTA"></div></section>
-                <section id="academias" class="content-section soft-band" data-ad-category="ACADEMIAS"><div class="section-heading"><div class="section-heading-content"><p class="section-kicker">Formación</p><h2>Academias destacadas</h2><p>Los centros con mayor apoyo o promoción dentro de la comunidad.</p></div><a class="section-enter-link" href="academias.php">Entrar en esta sección</a></div><div class="editorial-grid section-ranking" data-ranking-section="ACADEMIAS"></div></section>
-                <section id="cursos" class="content-section" data-ad-category="CURSOS"><div class="section-heading"><div class="section-heading-content"><p class="section-kicker">Cursos</p><h2>Cursos de flamenco destacados</h2><p>Formación presencial, online e intensiva posicionada por votos o promoción.</p></div><a class="section-enter-link" href="cursos.php">Entrar en esta sección</a></div><div class="section-subcategories" aria-label="Modalidades de Cursos"><a id="cursos-presenciales" href="#cursos">Presenciales</a><a id="cursos-online" href="#cursos">Online</a><a id="cursos-intensivos" href="#cursos">Talleres intensivos</a></div><div class="editorial-grid section-ranking" data-ranking-section="CURSOS"></div></section>
-                <section id="artistas" class="content-section" data-ad-category="ARTISTAS"><div class="section-heading"><div class="section-heading-content"><p class="section-kicker">Directorio</p><h2>Artistas destacados</h2><p>Los perfiles artísticos que ocupan las tres primeras posiciones.</p></div><a class="section-enter-link" href="artistas.php">Entrar en esta sección</a></div><div class="editorial-grid section-ranking" data-ranking-section="ARTISTAS"></div></section>
-                <!-- <section id="concursos" class="content-section soft-band" data-ad-category="CONCURSOS"><div class="section-heading"><p class="section-kicker">Talento</p><h2>Concursos destacados</h2><p>Convocatorias posicionadas por votos o promoción contratada.</p></div><div class="editorial-grid section-ranking" data-ranking-section="CONCURSOS"></div></section> -->
-                <section id="eventos" class="content-section" data-ad-category="EVENTOS"><div class="section-heading"><div class="section-heading-content"><p class="section-kicker">Agenda</p><h2>Eventos destacados</h2><p>Las tres citas con mayor apoyo o visibilidad promocionada.</p></div><a class="section-enter-link" href="eventos.php">Entrar en esta sección</a></div><div class="editorial-grid section-ranking" data-ranking-section="EVENTOS"></div></section>
-                <section id="festivales" class="content-section soft-band" data-ad-category="FESTIVALES"><div class="section-heading"><div class="section-heading-content"><p class="section-kicker">Grandes citas</p><h2>Festivales destacados</h2><p>Carteles y programaciones situados en las primeras posiciones.</p></div><a class="section-enter-link" href="festivales.php">Entrar en esta sección</a></div><div class="editorial-grid section-ranking" data-ranking-section="FESTIVALES"></div></section>
-                <section id="penas" class="content-section" data-ad-category="PENAS"><div class="section-heading"><div class="section-heading-content"><p class="section-kicker">Comunidad local</p><h2>Peñas destacadas</h2><p>Espacios de encuentro ordenados por respaldo de la comunidad o promoción.</p></div><a class="section-enter-link" href="penas.php">Entrar en esta sección</a></div><div class="editorial-grid section-ranking" data-ranking-section="PENAS"></div></section>
-                <!-- Servicios se ha trasladado a servicios.php. -->
-                <section id="tablaos" class="content-section" data-ad-category="TABLAOS"><div class="section-heading"><div class="section-heading-content"><p class="section-kicker">Escenarios</p><h2>Tablaos destacados</h2><p>Los espacios de directo con mayor apoyo o promoción activa.</p></div><a class="section-enter-link" href="tablaos.php">Entrar en esta sección</a></div><div class="editorial-grid section-ranking" data-ranking-section="TABLAOS"></div></section>
-                <section id="moda" class="content-section soft-band" data-ad-category="MODA"><div class="section-heading"><div class="section-heading-content"><p class="section-kicker">Moda</p><h2>Moda flamenca destacada</h2><p>Ropa, calzado y complementos posicionados por votos o promoción.</p></div><a class="section-enter-link" href="moda.php">Entrar en esta sección</a></div><div class="section-subcategories" aria-label="Subcategorías de Moda"><a id="moda-ropa" href="#moda">Ropa</a><a id="moda-calzado" href="#moda">Calzado</a><a id="moda-complementos" href="#moda">Complementos</a><a id="moda-infantil" href="#moda">Moda infantil</a></div><div class="editorial-grid section-ranking" data-ranking-section="MODA"></div></section>
-                <section id="fotografia" class="content-section soft-band" data-ad-category="FOTOGRAFIA"><div class="section-heading"><div class="section-heading-content"><p class="section-kicker">Fotografía</p><h2>El flamenco en imágenes</h2><p>La selección visual más votada o promocionada de la comunidad.</p></div><a class="section-enter-link" href="fotografia.php">Entrar en esta sección</a></div><div class="editorial-grid section-ranking" data-ranking-section="FOTOGRAFIA"></div></section>
-                <!-- Flamenco se ha trasladado a flamenco.php. -->
-
+        <section id="como-funciona" class="content-section soft-band landing-value" data-ad-category="GENERAL">
+            <div class="section-heading">
+                <div class="section-heading-content">
+                    <p class="section-kicker">Comunidad con dirección</p>
+                    <h2>Una landing pensada para que el visitante actúe</h2>
+                    <p>Hemos reducido ruido para centrar la portada en explicar, convencer y llevar al siguiente paso sin saturar al usuario.</p>
+                </div>
+                <a class="section-enter-link" href="revista.php">Ver revista</a>
             </div>
 
-            <aside class="ad-sidebar" aria-label="Publicidad local">
-                <div class="ad-sidebar-inner">
-                    <div class="ad-sidebar-heading">
-                        <div>
-                            <span class="ad-eyebrow">Selección patrocinada</span>
-                            <h2><span data-ad-category-label>Inicio</span> · <span data-ad-province>tu provincia</span></h2>
-                        </div>
-                        <button type="button" class="text-button" data-open-province>Cambiar</button>
-                    </div>
-                    <div class="ad-slots" data-ad-slots aria-live="polite"></div>
-                    <p class="ad-disclosure">Espacios publicitarios seleccionados por sección y provincia.</p>
-                </div>
-            </aside>
-        </div>
+            <div class="landing-points" aria-label="Beneficios principales de la plataforma">
+                <article class="landing-point-card">
+                    <span class="landing-point-number">01</span>
+                    <h3>Mensaje claro desde el primer segundo</h3>
+                    <p>La propuesta de valor queda visible en cabecera y guía al usuario sin distracciones.</p>
+                </article>
+                <article class="landing-point-card">
+                    <span class="landing-point-number">02</span>
+                    <h3>Recorrido guiado tipo wizard</h3>
+                    <p>Tres pasos breves para explicar qué es la comunidad y por qué merece quedarse.</p>
+                </article>
+                <article class="landing-point-card">
+                    <span class="landing-point-number">03</span>
+                    <h3>Llamadas a la acción visibles</h3>
+                    <p>Botones directos para comenzar el recorrido o registrarse, sin forzar procesos largos.</p>
+                </article>
+            </div>
+        </section>
 
         <section id="hazte-miembro" class="cta-section" data-ad-category="GENERAL">
             <div>
-                <p class="section-kicker">Forma parte</p>
-                <h2>Una comunidad preparada para impulsar el flamenco</h2>
-                <p>Conecta tu proyecto con una plataforma pensada para cultura, promoción, servicios y futuro digital.</p>
+                <p class="section-kicker">Da el siguiente paso</p>
+                <h2>Únete a la comunidad Con Sabor Flamenco</h2>
+                <p>Empieza hoy con un perfil profesional y entra en un entorno digital creado para impulsar talento, espacios y proyectos flamencos.</p>
             </div>
-            <a class="button button-primary" href="registro.php">Hazte miembro</a>
+            <div class="landing-cta-actions">
+                <a class="button button-primary" href="registro.php">Crear mi cuenta</a>
+                <a class="button button-secondary" href="acceso.php">Ya tengo cuenta</a>
+            </div>
         </section>
     </main>
 

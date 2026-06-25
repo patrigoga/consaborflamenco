@@ -215,6 +215,15 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Reorganizadas las entradas con imagen a la izquierda, contenido a la derecha y previsualizacion inmediata al seleccionar archivo.
 - Anadidos titular artistico, especialidades y pegatina redonda de marca en la tarjeta de miembro.
 
+### 2026-06-25 - Fase 2 - Portada convertida en landing guiada
+
+- Transformada `index.php` en una landing enfocada en conversion sin alterar cabecera, menu, fondo ni paleta de color.
+- Sustituido el bloque de tarjetas y secciones extensas por una narrativa principal con mensaje claro y llamadas a la accion.
+- Anadida animacion de entrada del titulo principal desde la izquierda para reforzar impacto visual inicial.
+- Implementado un wizard de 3 pasos dentro del hero para explicar la propuesta de valor con menos friccion.
+- Mantenido el footer y la compatibilidad con selector de provincia y scripts comunes de navegacion/publicidad.
+- Anadido `assets/js/landing-home.js` para controlar la animacion y la logica del wizard de portada.
+
 ## Reglas y decisiones
 
 - Registrar cambios por fecha.
