@@ -788,8 +788,10 @@ h3 {
 
 .landing-title {
     opacity: 0;
-    transform: translateX(-44px);
+    transform: translateX(44px);
     transition: transform 0.85s cubic-bezier(0.2, 0.7, 0, 1), opacity 0.85s ease;
+    white-space: nowrap;
+    overflow-wrap: normal;
 }
 
 .landing-title.is-visible {
