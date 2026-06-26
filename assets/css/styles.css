@@ -814,6 +814,27 @@ h3 {
     background: linear-gradient(180deg, rgba(16, 24, 33, 0.82), rgba(248, 243, 234, 0));
 }
 
+.hero-section .story-slider-band {
+    width: 100%;
+    margin: 0;
+    padding: clamp(18px, 2vw, 30px) clamp(18px, 4vw, 42px) 0;
+    background: transparent;
+}
+
+.hero-section .story-slider {
+    width: min(100%, 1420px);
+    margin-inline: auto;
+}
+
+.hero-section .story-slider-controls {
+    justify-content: space-between;
+}
+
+.hero-section .landing-hero-copy {
+    max-width: 980px;
+    margin-inline: auto;
+}
+
 .story-slider {
     width: min(100%, 1860px);
     margin-inline: auto;
