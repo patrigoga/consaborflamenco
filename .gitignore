@@ -1,0 +1,12 @@
+# Runtime storage
+/storage/*
+!/storage/.htaccess
+!/storage/.gitkeep
+
+# Local environment
+.env
+.env.local
+
+# OS/editor noise
+.DS_Store
+Thumbs.db

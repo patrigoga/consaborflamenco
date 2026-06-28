@@ -284,3 +284,4 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - 2026-06-27: Sustituidas las pastillas de los sliders por accesos de icono grande con texto inferior.
 - 2026-06-27: Ampliados y centrados los iconos de acceso de los sliders para ocupar mejor la columna de texto.
 - 2026-06-28: Versionados los scripts de portada y reforzada la inicializacion del slider para evitar bloqueos por cache o recargas restauradas.
+- 2026-06-28: Ignorados los archivos runtime de `storage` y mantenida versionada solo la proteccion `.htaccess`.
