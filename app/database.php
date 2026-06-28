@@ -17,29 +17,38 @@ function db(): ?PDO
     $attempted = true;
 
     try {
-        $serverDsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';charset=' . DB_CHARSET;
-        $server = new PDO($serverDsn, DB_USER, DB_PASS, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_TIMEOUT => 2,
-        ]);
-        $server->exec(
-            'CREATE DATABASE IF NOT EXISTS `' . str_replace('`', '``', DB_NAME) . '` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'
-        );
+        if (APP_ENV !== 'production') {
+            $serverDsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';charset=' . DB_CHARSET;
+            $server = new PDO($serverDsn, DB_USER, DB_PASS, db_pdo_options());
+            $server->exec(
+                'CREATE DATABASE IF NOT EXISTS `' . str_replace('`', '``', DB_NAME) . '` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'
+            );
+        }
 
         $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=' . DB_CHARSET;
-        $pdo = new PDO($dsn, DB_USER, DB_PASS, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_TIMEOUT => 2,
-        ]);
+        $pdo = new PDO($dsn, DB_USER, DB_PASS, db_pdo_options());
 
         db_bootstrap($pdo);
         return $pdo;
-    } catch (Throwable) {
+    } catch (Throwable $exception) {
+        $GLOBALS['CSF_DB_LAST_ERROR'] = $exception->getMessage();
         $pdo = null;
         return null;
     }
+}
+
+function db_pdo_options(): array
+{
+    return [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_TIMEOUT => 5,
+    ];
+}
+
+function db_last_error(): ?string
+{
+    return isset($GLOBALS['CSF_DB_LAST_ERROR']) ? (string) $GLOBALS['CSF_DB_LAST_ERROR'] : null;
 }
 
 function db_bootstrap(PDO $pdo): void

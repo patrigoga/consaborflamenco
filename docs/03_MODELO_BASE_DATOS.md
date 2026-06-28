@@ -134,7 +134,14 @@ Tablas incluidas en esta fase:
 
 Este esquema pasa a ser la fuente principal para autenticacion, miembros, articulos, categorias, banners y setters cuando MySQL esta disponible. El almacenamiento JSON queda como respaldo local durante la transicion.
 
-La aplicacion incorpora un bootstrap automatico que crea la base `consaborflamenco`, crea o actualiza tablas, siembra tipos de miembro/categorias editoriales, migra usuarios existentes desde `storage/users.json` cuando exista y crea un administrador por defecto solo si no hay ningun admin.
+La aplicacion incorpora un bootstrap automatico que crea la base `consaborflamenco` en local, crea o actualiza tablas, siembra tipos de miembro/categorias editoriales, migra usuarios existentes desde `storage/users.json` cuando exista y crea un administrador por defecto solo si no hay ningun admin.
+
+En produccion se usa la base ya creada en Hostinger:
+
+- Base de datos: `u311361615_csf`.
+- Usuario MySQL: `u311361615_admin`.
+- Host esperado: `localhost`.
+- La contrasena se guarda en `.env` y no se versiona.
 
 ## Estados previstos
 
@@ -187,3 +194,4 @@ Estados comerciales a definir:
 - 2026-06-25: Anadida tabla prevista `miembros_curriculum_items` para curriculum artistico repetible y privacidad por item.
 - 2026-06-25: Ampliado el curriculum previsto con redes sociales, fechas, orden cronologico, titulo, descripcion e imagen por item principal.
 - 2026-06-28: Activada la conexion inicial a MySQL con bootstrap de tablas, migracion desde JSON, admin por defecto y almacenamiento de perfil completo en `miembros.perfil_json`.
+- 2026-06-29: Anadida configuracion especifica para la base de produccion `u311361615_csf` y separacion de credenciales mediante `.env`.

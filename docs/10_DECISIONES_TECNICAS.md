@@ -65,6 +65,11 @@ Centralizar criterios tecnicos iniciales para mantener coherencia durante el des
 - Los banners contratados por miembros dependeran de pago Stripe confirmado, estado activo y fechas validas para mostrarse en la web.
 - `database/schema.sql` sera la referencia inicial para migrar del almacenamiento JSON a base de datos relacional.
 - La base de datos principal se llamara `consaborflamenco` y usara `utf8mb4_unicode_ci`.
+- La configuracion sensible de entorno se cargara desde `.env`, que no se versiona en Git.
+- El entorno local usara por defecto MySQL de XAMPP: `127.0.0.1`, base `consaborflamenco`, usuario `root`.
+- El entorno de produccion usara por defecto la base de Hostinger `u311361615_csf` con usuario `u311361615_admin`, esperando la contrasena en `.env`.
+- En produccion no se intentara crear la base de datos; solo se conectara a la base ya asignada y ejecutara el bootstrap de tablas.
+- `setup-prod-db.php` quedara como instalador temporal bloqueado por `storage/ALLOW_PROD_SETUP` para configurar `.env`, preparar tablas y migrar datos JSON si existen.
 
 ## Criterios de desarrollo
 
@@ -118,3 +123,4 @@ El proyecto debera separar permisos entre administradores, miembros y setters. E
 - 2026-06-25: Registrada la incorporacion de filas dinamicas, orden cronologico y pie de marca en PDF.
 - 2026-06-25: Registrado que la configuracion de banners queda oculta hasta contratacion activa, que la tarjeta cambia sin recargar y que el PDF debe ser compacto.
 - 2026-06-25: Registrado que las entradas principales del curriculum requieren titulo y descripcion y admiten imagen.
+- 2026-06-29: Registrada la separacion local/produccion mediante `.env` y el instalador temporal `setup-prod-db.php` para preparar la base Hostinger.

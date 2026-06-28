@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/env.php';
+
 const APP_NAME = 'Con Sabor Flamenco';
 const APP_EMAIL = 'hola@consaborflamenco.com';
 const STORAGE_DIR = __DIR__ . '/../storage';
@@ -13,14 +15,21 @@ const MEMBER_PHOTOS_URL = 'assets/uploads/member-photos';
 const MEMBER_CV_IMAGES_DIR = __DIR__ . '/../assets/uploads/curriculum-images';
 const MEMBER_CV_IMAGES_URL = 'assets/uploads/curriculum-images';
 
-define('DB_HOST', getenv('CSF_DB_HOST') ?: '127.0.0.1');
-define('DB_PORT', getenv('CSF_DB_PORT') ?: '3306');
-define('DB_NAME', getenv('CSF_DB_NAME') ?: 'consaborflamenco');
-define('DB_USER', getenv('CSF_DB_USER') ?: 'root');
-define('DB_PASS', getenv('CSF_DB_PASS') ?: '');
+define('APP_ENV', csf_detect_environment());
+define('APP_DEBUG', csf_env_bool('CSF_APP_DEBUG', APP_ENV !== 'production'));
+
+$defaultDbHost = APP_ENV === 'production' ? 'localhost' : '127.0.0.1';
+$defaultDbName = APP_ENV === 'production' ? 'u311361615_csf' : 'consaborflamenco';
+$defaultDbUser = APP_ENV === 'production' ? 'u311361615_admin' : 'root';
+
+define('DB_HOST', csf_env('CSF_DB_HOST', $defaultDbHost));
+define('DB_PORT', csf_env('CSF_DB_PORT', '3306'));
+define('DB_NAME', csf_env('CSF_DB_NAME', $defaultDbName));
+define('DB_USER', csf_env('CSF_DB_USER', $defaultDbUser));
+define('DB_PASS', csf_env('CSF_DB_PASS', ''));
 define('DB_CHARSET', 'utf8mb4');
-define('DEFAULT_ADMIN_EMAIL', getenv('CSF_DEFAULT_ADMIN_EMAIL') ?: 'admin@consaborflamenco.com');
-define('DEFAULT_ADMIN_PASSWORD', getenv('CSF_DEFAULT_ADMIN_PASSWORD') ?: 'Admin1234!');
+define('DEFAULT_ADMIN_EMAIL', csf_env('CSF_DEFAULT_ADMIN_EMAIL', 'admin@consaborflamenco.com'));
+define('DEFAULT_ADMIN_PASSWORD', csf_env('CSF_DEFAULT_ADMIN_PASSWORD', 'Admin1234!'));
 
 if (!is_dir(STORAGE_DIR)) {
     mkdir(STORAGE_DIR, 0775, true);
