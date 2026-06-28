@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 720" role="img" aria-labelledby="title desc">
+  <title id="title">Comunidad flamenca conectada</title>
+  <desc id="desc">Ilustracion sin texto de una comunidad flamenca conectada alrededor de un nucleo central.</desc>
+  <defs>
+    <radialGradient id="warmLight" cx="70%" cy="20%" r="78%">
+      <stop offset="0" stop-color="#4b1b18" stop-opacity="0.82"/>
+      <stop offset="0.42" stop-color="#151313" stop-opacity="0.94"/>
+      <stop offset="1" stop-color="#050506"/>
+    </radialGradient>
+    <linearGradient id="redSweep" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#7d1014" stop-opacity="0.08"/>
+      <stop offset="0.48" stop-color="#c71922" stop-opacity="0.82"/>
+      <stop offset="1" stop-color="#e7b46a" stop-opacity="0.18"/>
+    </linearGradient>
+    <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" seed="12"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.15"/>
+      </feComponentTransfer>
+    </filter>
+  </defs>
+
+  <rect width="960" height="720" fill="url(#warmLight)"/>
+  <rect width="960" height="720" filter="url(#grain)" opacity="0.46"/>
+
+  <path d="M-70 636 C116 514 212 584 344 458 C500 309 602 444 812 246 C886 176 952 130 1034 104" fill="none" stroke="url(#redSweep)" stroke-width="82" stroke-linecap="round" opacity="0.74"/>
+  <path d="M-35 674 C168 556 258 622 420 472 C584 320 690 420 892 214" fill="none" stroke="#b51218" stroke-width="4" stroke-linecap="round" opacity="0.62"/>
+
+  <g opacity="0.25" stroke="#f6d6a4" stroke-width="2" fill="none">
+    <path d="M620 148 C670 82 764 94 806 170"/>
+    <path d="M692 170 C670 218 692 268 744 292"/>
+    <path d="M746 188 C790 218 825 278 827 338"/>
+    <path d="M676 254 C620 322 592 386 604 462"/>
+  </g>
+
+  <g stroke="#f8e5b6" stroke-width="1.6" opacity="0.55">
+    <line x1="480" y1="346" x2="238" y2="172"/>
+    <line x1="480" y1="346" x2="722" y2="172"/>
+    <line x1="480" y1="346" x2="206" y2="456"/>
+    <line x1="480" y1="346" x2="754" y2="456"/>
+    <line x1="480" y1="346" x2="480" y2="574"/>
+  </g>
+
+  <g filter="url(#softGlow)">
+    <circle cx="480" cy="346" r="124" fill="rgba(5,5,6,.72)" stroke="#c71922" stroke-width="3"/>
+    <circle cx="480" cy="346" r="76" fill="none" stroke="#f8e5b6" stroke-width="2" opacity="0.78"/>
+    <path d="M430 366 C452 306 506 300 528 350 C544 386 518 420 472 412 C444 408 426 392 430 366Z" fill="rgba(201,79,92,.8)"/>
+    <path d="M456 394 C496 326 528 294 584 282 C548 330 550 392 512 426 C492 444 460 430 456 394Z" fill="rgba(248,229,182,.58)"/>
+    <circle cx="480" cy="346" r="16" fill="#f8e5b6"/>
+  </g>
+
+  <g fill="rgba(5,5,6,.65)" stroke-width="2">
+    <circle cx="238" cy="172" r="72" stroke="#c94f5c"/>
+    <circle cx="722" cy="172" r="72" stroke="#f0c77a"/>
+    <circle cx="206" cy="456" r="72" stroke="#f0c77a"/>
+    <circle cx="754" cy="456" r="72" stroke="#c94f5c"/>
+    <circle cx="480" cy="574" r="72" stroke="#f0c77a"/>
+  </g>
+
+  <g fill="none" stroke="#fff9f0" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="0.86">
+    <circle cx="238" cy="152" r="18"/>
+    <path d="M202 208 C212 178 264 178 274 208"/>
+
+    <path d="M686 198 L686 148 L722 126 L758 148 L758 198"/>
+    <path d="M704 198 L704 168 L740 168 L740 198"/>
+
+    <rect x="174" y="424" width="64" height="50" rx="8"/>
+    <path d="M186 410 L186 436"/>
+    <path d="M226 410 L226 436"/>
+    <path d="M190 448 L222 448"/>
+
+    <path d="M720 480 L720 424 L788 424 L788 480"/>
+    <path d="M736 424 C740 400 770 400 774 424"/>
+    <path d="M736 452 L772 452"/>
+
+    <circle cx="480" cy="558" r="18"/>
+    <path d="M444 612 C454 582 506 582 516 612"/>
+  </g>
+</svg>

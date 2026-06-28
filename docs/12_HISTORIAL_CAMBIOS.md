@@ -277,3 +277,9 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - 2026-06-08: Registrada la creacion de AGENTS.md como archivo principal de instrucciones para agentes IA.
 - 2026-06-08: Registrada la preparacion visual inicial de la Fase 1.
 - 2026-06-21: Registrada la base funcional y documental del sistema de publicidad local.
+- 2026-06-27: Ajustada la animacion del hero para separar "Con Sabor" en rojo y "Flamenco" en blanco, con entrada desde lados opuestos y slides transparentes desde vertices.
+- 2026-06-27: Creada la primera imagen propia del slider como esquema de comunidad flamenca conectado a consaborflamenco.com.
+- 2026-06-27: Limpiado el texto interno de las imagenes del slider y creada la segunda imagen sobre presencia web para miembros.
+- 2026-06-27: Creada la tercera imagen de llamada al registro y anadidos iconos transparentes a los botones de los sliders.
+- 2026-06-27: Sustituidas las pastillas de los sliders por accesos de icono grande con texto inferior.
+- 2026-06-27: Ampliados y centrados los iconos de acceso de los sliders para ocupar mejor la columna de texto.

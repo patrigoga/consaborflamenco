@@ -29,8 +29,11 @@ $stylesVersion = (string) (@filemtime(__DIR__ . '/assets/css/styles.css') ?: tim
         <section id="inicio" class="hero-section home-hero" data-ad-category="INICIO">
             <div class="hero-inner landing-hero-inner">
                 <div class="hero-content landing-hero-copy">
-                    <p class="section-kicker">Comunidad, revista y oportunidades reales</p>
-                    <h1 class="landing-title" data-landing-title>Con Sabor Flamenco</h1>
+                    <p class="section-kicker">Comunidad, presencia digital y compromiso real</p>
+                    <h1 class="landing-title" data-landing-title>
+                        <span class="landing-title-red">Con Sabor</span>
+                        <span class="landing-title-white">Flamenco</span>
+                    </h1>
                 </div>
 
                 <div class="story-slider-band" aria-label="Historia visual de Con Sabor Flamenco">
