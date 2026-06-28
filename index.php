@@ -4,7 +4,10 @@ declare(strict_types=1);
 require_once __DIR__ . '/app/auth.php';
 require_once __DIR__ . '/app/layout.php';
 
-$stylesVersion = (string) (@filemtime(__DIR__ . '/assets/css/styles.css') ?: time());
+$assetVersion = static function (string $path): string {
+    return (string) (@filemtime(__DIR__ . '/' . ltrim($path, '/')) ?: time());
+};
+$stylesVersion = $assetVersion('assets/css/styles.css');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -18,9 +21,9 @@ $stylesVersion = (string) (@filemtime(__DIR__ . '/assets/css/styles.css') ?: tim
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/styles.css?v=<?= e($stylesVersion) ?>">
-    <script src="assets/js/advertising.js" defer></script>
-    <script src="assets/js/navigation.js" defer></script>
-    <script src="assets/js/landing-home.js" defer></script>
+    <script src="assets/js/advertising.js?v=<?= e($assetVersion('assets/js/advertising.js')) ?>" defer></script>
+    <script src="assets/js/navigation.js?v=<?= e($assetVersion('assets/js/navigation.js')) ?>" defer></script>
+    <script src="assets/js/landing-home.js?v=<?= e($assetVersion('assets/js/landing-home.js')) ?>" defer></script>
 </head>
 <body>
     <?php page_header('INICIO'); ?>
