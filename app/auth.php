@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/database.php';
 
 function read_json_file(string $path, array $fallback): array
 {
@@ -256,6 +257,12 @@ function save_member_cv_image_upload(?array $file, array &$errors): ?string
 
 function all_users(): array
 {
+    $pdo = auth_database();
+    if ($pdo) {
+        $statement = $pdo->query(db_user_select_sql() . ' ORDER BY u.created_at DESC, u.id DESC');
+        return array_map('db_user_from_row', $statement->fetchAll());
+    }
+
     return read_json_file(USERS_FILE, []);
 }
 
@@ -267,6 +274,15 @@ function save_users(array $users): void
 function find_user_by_email(string $email): ?array
 {
     $normalizedEmail = normalize_email($email);
+    $pdo = auth_database();
+    if ($pdo) {
+        $statement = $pdo->prepare(db_user_select_sql() . ' WHERE u.email = :email LIMIT 1');
+        $statement->execute(['email' => $normalizedEmail]);
+        $row = $statement->fetch();
+
+        return $row ? db_user_from_row($row) : null;
+    }
+
     foreach (all_users() as $user) {
         if (($user['email'] ?? '') === $normalizedEmail) {
             return $user;
@@ -278,6 +294,15 @@ function find_user_by_email(string $email): ?array
 
 function find_user_by_id(string $id): ?array
 {
+    $pdo = auth_database();
+    if ($pdo) {
+        $statement = $pdo->prepare(db_user_select_sql() . ' WHERE u.uuid = :uuid LIMIT 1');
+        $statement->execute(['uuid' => $id]);
+        $row = $statement->fetch();
+
+        return $row ? db_user_from_row($row) : null;
+    }
+
     foreach (all_users() as $user) {
         if (($user['id'] ?? '') === $id) {
             return $user;
@@ -289,8 +314,36 @@ function find_user_by_id(string $id): ?array
 
 function create_user(string $name, string $email, string $password, array $memberProfile = []): array
 {
-    $users = all_users();
     $normalizedEmail = normalize_email($email);
+    $displayName = clean_text($name) !== '' ? clean_text($name) : name_from_email($normalizedEmail);
+    $pdo = auth_database();
+
+    if ($pdo) {
+        if (db_email_exists($pdo, $normalizedEmail)) {
+            throw new InvalidArgumentException('Ya existe una cuenta con ese email.');
+        }
+
+        $now = gmdate('c');
+        $profile = member_profile_from_input(['name' => $displayName] + $memberProfile, $memberProfile);
+        $user = [
+            'id' => bin2hex(random_bytes(16)),
+            'name' => $displayName,
+            'email' => $normalizedEmail,
+            'password_hash' => password_hash($password, PASSWORD_DEFAULT),
+            'role' => 'user',
+            'membership_tier' => 'simpatizante',
+            'artistic_profile' => $profile,
+            'terms_accepted_at' => $now,
+            'created_at' => $now,
+            'updated_at' => $now,
+            'last_login_at' => null,
+        ];
+
+        db_insert_legacy_user($pdo, $user);
+        return find_user_by_email($normalizedEmail) ?? $user;
+    }
+
+    $users = all_users();
 
     foreach ($users as $user) {
         if (($user['email'] ?? '') === $normalizedEmail) {
@@ -301,12 +354,12 @@ function create_user(string $name, string $email, string $password, array $membe
     $now = gmdate('c');
     $user = [
         'id' => bin2hex(random_bytes(16)),
-        'name' => clean_text($name),
+        'name' => $displayName,
         'email' => $normalizedEmail,
         'password_hash' => password_hash($password, PASSWORD_DEFAULT),
-        'role' => empty($users) ? 'admin' : 'user',
+        'role' => 'user',
         'membership_tier' => 'simpatizante',
-        'artistic_profile' => member_profile_from_input(['name' => $name] + $memberProfile, $memberProfile),
+        'artistic_profile' => member_profile_from_input(['name' => $displayName] + $memberProfile, $memberProfile),
         'terms_accepted_at' => $now,
         'created_at' => $now,
         'updated_at' => $now,
@@ -321,6 +374,12 @@ function create_user(string $name, string $email, string $password, array $membe
 
 function update_user(array $updatedUser): void
 {
+    $pdo = auth_database();
+    if ($pdo) {
+        db_update_legacy_user($pdo, $updatedUser);
+        return;
+    }
+
     $users = all_users();
     foreach ($users as $index => $user) {
         if (($user['id'] ?? '') === ($updatedUser['id'] ?? null)) {
@@ -399,6 +458,20 @@ function create_password_reset_token(string $email): ?string
     }
 
     $plainToken = bin2hex(random_bytes(32));
+    $pdo = auth_database();
+    if ($pdo && !empty($user['db_id'])) {
+        $statement = $pdo->prepare(
+            'INSERT INTO password_reset_tokens (usuario_id, token_hash, expires_at) VALUES (:usuario_id, :token_hash, :expires_at)'
+        );
+        $statement->execute([
+            'usuario_id' => (int) $user['db_id'],
+            'token_hash' => hash('sha256', $plainToken),
+            'expires_at' => db_datetime(gmdate('c', time() + 3600)),
+        ]);
+
+        return $plainToken;
+    }
+
     $tokens = array_filter(reset_tokens(), static function (array $token): bool {
         return strtotime($token['expires_at'] ?? '') > time() && empty($token['used_at']);
     });
@@ -419,6 +492,31 @@ function create_password_reset_token(string $email): ?string
 function consume_password_reset_token(string $plainToken, string $newPassword): bool
 {
     $tokenHash = hash('sha256', $plainToken);
+    $pdo = auth_database();
+    if ($pdo) {
+        $statement = $pdo->prepare(
+            'SELECT prt.*, u.uuid FROM password_reset_tokens prt INNER JOIN usuarios u ON u.id = prt.usuario_id WHERE prt.token_hash = :token_hash AND prt.used_at IS NULL AND prt.expires_at > UTC_TIMESTAMP() LIMIT 1'
+        );
+        $statement->execute(['token_hash' => $tokenHash]);
+        $token = $statement->fetch();
+
+        if (!$token) {
+            return false;
+        }
+
+        $pdo->beginTransaction();
+        $updateUser = $pdo->prepare('UPDATE usuarios SET password_hash = :password_hash, updated_at = UTC_TIMESTAMP() WHERE id = :id');
+        $updateUser->execute([
+            'password_hash' => password_hash($newPassword, PASSWORD_DEFAULT),
+            'id' => (int) $token['usuario_id'],
+        ]);
+        $updateToken = $pdo->prepare('UPDATE password_reset_tokens SET used_at = UTC_TIMESTAMP() WHERE id = :id');
+        $updateToken->execute(['id' => (int) $token['id']]);
+        $pdo->commit();
+
+        return true;
+    }
+
     $tokens = reset_tokens();
 
     foreach ($tokens as $index => $token) {
@@ -444,6 +542,361 @@ function consume_password_reset_token(string $plainToken, string $newPassword): 
     }
 
     return false;
+}
+
+function auth_database(): ?PDO
+{
+    static $ready = false;
+    static $available = null;
+
+    $pdo = db();
+    if (!$pdo) {
+        return null;
+    }
+
+    if ($ready && $available) {
+        return $pdo;
+    }
+
+    migrate_json_users_to_database($pdo);
+    ensure_default_admin_user($pdo);
+    $ready = true;
+    $available = true;
+
+    return $pdo;
+}
+
+function db_user_select_sql(): string
+{
+    return "SELECT
+        u.*,
+        m.id AS miembro_id,
+        m.nombre_publico,
+        m.numero_miembro,
+        m.codigo_descuento,
+        m.estado AS miembro_estado,
+        m.biografia,
+        m.ciudad,
+        m.provincia_texto,
+        m.telefono,
+        m.foto_principal_path,
+        m.web_url,
+        m.instagram_url,
+        m.perfil_json,
+        m.perfil_completo_at,
+        tm.slug AS tipo_miembro_slug,
+        tm.nombre AS tipo_miembro_nombre
+    FROM usuarios u
+    LEFT JOIN miembros m ON m.usuario_id = u.id
+    LEFT JOIN tipos_miembro tm ON tm.id = m.tipo_miembro_id";
+}
+
+function db_user_from_row(array $row): array
+{
+    $profileData = [];
+    if (!empty($row['perfil_json'])) {
+        $decoded = json_decode((string) $row['perfil_json'], true);
+        $profileData = is_array($decoded) ? $decoded : [];
+    }
+
+    $profile = default_member_profile([
+        'name' => (string) ($row['nombre'] ?? ''),
+        'artistic_profile' => $profileData,
+    ]);
+
+    if (!empty($row['tipo_miembro_slug'])) {
+        $profile['member_type'] = (string) $row['tipo_miembro_slug'];
+    }
+    if (($profile['public_name'] ?? '') === '' && !empty($row['nombre_publico'])) {
+        $profile['public_name'] = (string) $row['nombre_publico'];
+    }
+    if (($profile['short_description'] ?? '') === '' && !empty($row['biografia'])) {
+        $profile['short_description'] = (string) $row['biografia'];
+    }
+    if (($profile['city'] ?? '') === '' && !empty($row['ciudad'])) {
+        $profile['city'] = (string) $row['ciudad'];
+    }
+    if (($profile['province'] ?? '') === '' && !empty($row['provincia_texto'])) {
+        $profile['province'] = (string) $row['provincia_texto'];
+    }
+    if (($profile['phone'] ?? '') === '' && !empty($row['telefono'])) {
+        $profile['phone'] = (string) $row['telefono'];
+    }
+    if (($profile['main_photo_path'] ?? '') === '' && !empty($row['foto_principal_path'])) {
+        $profile['main_photo_path'] = (string) $row['foto_principal_path'];
+    }
+    if (($profile['website_url'] ?? '') === '' && !empty($row['web_url'])) {
+        $profile['website_url'] = (string) $row['web_url'];
+    }
+    if (($profile['instagram_url'] ?? '') === '' && !empty($row['instagram_url'])) {
+        $profile['instagram_url'] = (string) $row['instagram_url'];
+    }
+
+    $role = match ((string) ($row['rol'] ?? 'MIEMBRO')) {
+        'ADMIN' => 'admin',
+        'SETTER' => 'setter',
+        default => 'user',
+    };
+    $memberState = strtolower((string) ($row['miembro_estado'] ?? 'SIMPATIZANTE'));
+
+    return [
+        'id' => (string) ($row['uuid'] ?? ''),
+        'db_id' => (int) ($row['id'] ?? 0),
+        'member_db_id' => isset($row['miembro_id']) ? (int) $row['miembro_id'] : null,
+        'name' => (string) ($row['nombre'] ?? ''),
+        'email' => (string) ($row['email'] ?? ''),
+        'password_hash' => (string) ($row['password_hash'] ?? ''),
+        'role' => $role,
+        'account_status' => strtolower((string) ($row['estado'] ?? 'ACTIVO')),
+        'membership_tier' => $memberState === 'vip' ? 'vip' : 'simpatizante',
+        'member_number' => isset($row['numero_miembro']) ? (string) $row['numero_miembro'] : null,
+        'member_code' => isset($row['codigo_descuento']) ? (string) $row['codigo_descuento'] : null,
+        'artistic_profile' => $profile,
+        'terms_accepted_at' => db_to_iso($row['terms_accepted_at'] ?? null),
+        'created_at' => db_to_iso($row['created_at'] ?? null),
+        'updated_at' => db_to_iso($row['updated_at'] ?? null),
+        'last_login_at' => db_to_iso($row['last_login_at'] ?? null),
+    ];
+}
+
+function db_email_exists(PDO $pdo, string $email): bool
+{
+    $statement = $pdo->prepare('SELECT COUNT(*) FROM usuarios WHERE email = :email');
+    $statement->execute(['email' => normalize_email($email)]);
+
+    return (int) $statement->fetchColumn() > 0;
+}
+
+function db_find_user_id_by_uuid(PDO $pdo, string $uuid): ?int
+{
+    $statement = $pdo->prepare('SELECT id FROM usuarios WHERE uuid = :uuid LIMIT 1');
+    $statement->execute(['uuid' => $uuid]);
+    $id = $statement->fetchColumn();
+
+    return $id ? (int) $id : null;
+}
+
+function db_insert_legacy_user(PDO $pdo, array $user): void
+{
+    $role = db_role_from_legacy((string) ($user['role'] ?? 'user'));
+    $pdo->beginTransaction();
+
+    try {
+        $statement = $pdo->prepare(
+            'INSERT INTO usuarios (uuid, nombre, email, password_hash, rol, estado, terms_accepted_at, last_login_at, created_at, updated_at)
+            VALUES (:uuid, :nombre, :email, :password_hash, :rol, :estado, :terms_accepted_at, :last_login_at, :created_at, :updated_at)'
+        );
+        $statement->execute([
+            'uuid' => (string) ($user['id'] ?? bin2hex(random_bytes(16))),
+            'nombre' => clean_text((string) ($user['name'] ?? name_from_email((string) ($user['email'] ?? '')))),
+            'email' => normalize_email((string) ($user['email'] ?? '')),
+            'password_hash' => (string) ($user['password_hash'] ?? ''),
+            'rol' => $role,
+            'estado' => 'ACTIVO',
+            'terms_accepted_at' => db_nullable_datetime($user['terms_accepted_at'] ?? null),
+            'last_login_at' => db_nullable_datetime($user['last_login_at'] ?? null),
+            'created_at' => db_nullable_datetime($user['created_at'] ?? null) ?? db_datetime(),
+            'updated_at' => db_nullable_datetime($user['updated_at'] ?? null) ?? db_datetime(),
+        ]);
+
+        $userId = (int) $pdo->lastInsertId();
+        if ($role !== 'ADMIN') {
+            db_upsert_member_for_user($pdo, $userId, $user);
+        }
+
+        $pdo->commit();
+    } catch (Throwable $exception) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        throw $exception;
+    }
+}
+
+function db_update_legacy_user(PDO $pdo, array $updatedUser): void
+{
+    $uuid = (string) ($updatedUser['id'] ?? '');
+    $userId = db_find_user_id_by_uuid($pdo, $uuid);
+    if (!$userId) {
+        return;
+    }
+
+    $statement = $pdo->prepare(
+        'UPDATE usuarios SET nombre = :nombre, email = :email, password_hash = :password_hash, rol = :rol, last_login_at = :last_login_at, updated_at = UTC_TIMESTAMP() WHERE id = :id'
+    );
+    $statement->execute([
+        'nombre' => clean_text((string) ($updatedUser['name'] ?? name_from_email((string) ($updatedUser['email'] ?? '')))),
+        'email' => normalize_email((string) ($updatedUser['email'] ?? '')),
+        'password_hash' => (string) ($updatedUser['password_hash'] ?? ''),
+        'rol' => db_role_from_legacy((string) ($updatedUser['role'] ?? 'user')),
+        'last_login_at' => db_nullable_datetime($updatedUser['last_login_at'] ?? null),
+        'id' => $userId,
+    ]);
+
+    if (($updatedUser['role'] ?? 'user') !== 'admin') {
+        db_upsert_member_for_user($pdo, $userId, $updatedUser);
+    }
+}
+
+function db_upsert_member_for_user(PDO $pdo, int $userId, array $user): void
+{
+    $profile = default_member_profile($user);
+    $memberTypeId = db_member_type_id($pdo, (string) ($profile['member_type'] ?? 'artista'));
+    $memberNumber = db_member_number_for_user($pdo, $userId);
+    $memberCode = (string) ($user['member_code'] ?? '');
+    if ($memberCode === '') {
+        $memberCode = 'CSF-' . strtoupper(substr(hash('sha1', (string) ($user['id'] ?? '') . (string) ($user['email'] ?? '')), 0, 8));
+    }
+
+    $statement = $pdo->prepare(
+        'INSERT INTO miembros (
+            usuario_id, tipo_miembro_id, nombre_publico, numero_miembro, codigo_descuento, estado, biografia,
+            ciudad, provincia_texto, telefono, foto_principal_path, web_url, instagram_url, perfil_json, perfil_completo_at
+        ) VALUES (
+            :usuario_id, :tipo_miembro_id, :nombre_publico, :numero_miembro, :codigo_descuento, :estado, :biografia,
+            :ciudad, :provincia_texto, :telefono, :foto_principal_path, :web_url, :instagram_url, :perfil_json, :perfil_completo_at
+        ) ON DUPLICATE KEY UPDATE
+            tipo_miembro_id = VALUES(tipo_miembro_id),
+            nombre_publico = VALUES(nombre_publico),
+            estado = VALUES(estado),
+            biografia = VALUES(biografia),
+            ciudad = VALUES(ciudad),
+            provincia_texto = VALUES(provincia_texto),
+            telefono = VALUES(telefono),
+            foto_principal_path = VALUES(foto_principal_path),
+            web_url = VALUES(web_url),
+            instagram_url = VALUES(instagram_url),
+            perfil_json = VALUES(perfil_json),
+            perfil_completo_at = VALUES(perfil_completo_at),
+            updated_at = UTC_TIMESTAMP()'
+    );
+
+    $statement->execute([
+        'usuario_id' => $userId,
+        'tipo_miembro_id' => $memberTypeId,
+        'nombre_publico' => clean_text((string) ($profile['public_name'] ?? $user['name'] ?? 'Miembro')),
+        'numero_miembro' => $memberNumber,
+        'codigo_descuento' => $memberCode,
+        'estado' => strtolower((string) ($user['membership_tier'] ?? 'simpatizante')) === 'vip' ? 'VIP' : 'SIMPATIZANTE',
+        'biografia' => clean_text((string) ($profile['short_description'] ?? '')),
+        'ciudad' => clean_text((string) ($profile['city'] ?? '')),
+        'provincia_texto' => clean_text((string) ($profile['province'] ?? '')),
+        'telefono' => clean_text((string) ($profile['phone'] ?? '')),
+        'foto_principal_path' => clean_text((string) ($profile['main_photo_path'] ?? '')),
+        'web_url' => trim((string) ($profile['website_url'] ?? '')),
+        'instagram_url' => trim((string) ($profile['instagram_url'] ?? '')),
+        'perfil_json' => json_encode($profile, JSON_UNESCAPED_UNICODE),
+        'perfil_completo_at' => db_nullable_datetime($profile['completed_at'] ?? null),
+    ]);
+}
+
+function db_member_type_id(PDO $pdo, string $type): int
+{
+    $slug = normalize_member_type($type);
+    $statement = $pdo->prepare('SELECT id FROM tipos_miembro WHERE slug = :slug LIMIT 1');
+    $statement->execute(['slug' => $slug]);
+    $id = $statement->fetchColumn();
+
+    if ($id) {
+        return (int) $id;
+    }
+
+    $label = member_type_options()[$slug] ?? 'Artista';
+    $insert = $pdo->prepare('INSERT INTO tipos_miembro (nombre, slug) VALUES (:nombre, :slug)');
+    $insert->execute(['nombre' => $label, 'slug' => $slug]);
+
+    return (int) $pdo->lastInsertId();
+}
+
+function db_member_number_for_user(PDO $pdo, int $userId): int
+{
+    $statement = $pdo->prepare('SELECT numero_miembro FROM miembros WHERE usuario_id = :usuario_id LIMIT 1');
+    $statement->execute(['usuario_id' => $userId]);
+    $current = $statement->fetchColumn();
+    if ($current) {
+        return (int) $current;
+    }
+
+    $max = (int) $pdo->query('SELECT COALESCE(MAX(numero_miembro), 40000) FROM miembros')->fetchColumn();
+    return $max + 1;
+}
+
+function db_role_from_legacy(string $role): string
+{
+    return match ($role) {
+        'admin' => 'ADMIN',
+        'setter' => 'SETTER',
+        default => 'MIEMBRO',
+    };
+}
+
+function migrate_json_users_to_database(PDO $pdo): void
+{
+    static $migrated = false;
+    if ($migrated || !file_exists(USERS_FILE)) {
+        return;
+    }
+    $migrated = true;
+
+    foreach (read_json_file(USERS_FILE, []) as $user) {
+        if (!is_array($user) || empty($user['email']) || db_email_exists($pdo, (string) $user['email'])) {
+            continue;
+        }
+
+        db_insert_legacy_user($pdo, $user);
+    }
+}
+
+function ensure_default_admin_user(PDO $pdo): void
+{
+    $adminCount = (int) $pdo->query("SELECT COUNT(*) FROM usuarios WHERE rol = 'ADMIN'")->fetchColumn();
+    if ($adminCount > 0) {
+        return;
+    }
+
+    $now = gmdate('c');
+    db_insert_legacy_user($pdo, [
+        'id' => bin2hex(random_bytes(16)),
+        'name' => 'Administrador',
+        'email' => DEFAULT_ADMIN_EMAIL,
+        'password_hash' => password_hash(DEFAULT_ADMIN_PASSWORD, PASSWORD_DEFAULT),
+        'role' => 'admin',
+        'terms_accepted_at' => $now,
+        'created_at' => $now,
+        'updated_at' => $now,
+        'last_login_at' => null,
+    ]);
+}
+
+function name_from_email(string $email): string
+{
+    $localPart = strtok($email, '@');
+    $name = clean_text(str_replace(['.', '_', '-'], ' ', (string) $localPart));
+
+    return $name !== '' ? mb_convert_case($name, MB_CASE_TITLE, 'UTF-8') : 'Miembro';
+}
+
+function db_datetime(?string $value = null): string
+{
+    $timestamp = $value ? strtotime($value) : time();
+    return gmdate('Y-m-d H:i:s', $timestamp ?: time());
+}
+
+function db_nullable_datetime(mixed $value): ?string
+{
+    $value = is_string($value) ? trim($value) : '';
+    return $value !== '' ? db_datetime($value) : null;
+}
+
+function db_to_iso(mixed $value): ?string
+{
+    $value = is_string($value) ? trim($value) : '';
+    if ($value === '') {
+        return null;
+    }
+
+    $timestamp = strtotime($value);
+    return $timestamp ? gmdate('c', $timestamp) : $value;
 }
 
 function send_password_reset_email(string $email, string $plainToken): bool

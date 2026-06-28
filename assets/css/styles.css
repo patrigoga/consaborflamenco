@@ -2998,6 +2998,112 @@ h3 {
     line-height: 1.4;
 }
 
+.admin-shell {
+    display: grid;
+    gap: 22px;
+}
+
+.admin-metric-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.admin-metric-card,
+.admin-editor-card {
+    border: 1px solid rgba(17, 24, 39, 0.12);
+    border-radius: var(--radius);
+    background: rgba(255, 252, 246, 0.94);
+    box-shadow: var(--shadow-soft);
+}
+
+.admin-metric-card {
+    padding: 20px;
+}
+
+.admin-metric-card span {
+    display: block;
+    color: var(--color-muted);
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.admin-metric-card strong {
+    display: block;
+    margin-top: 8px;
+    color: var(--color-black);
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    line-height: 1;
+}
+
+.admin-table-wrap {
+    overflow-x: auto;
+    border: 1px solid rgba(17, 24, 39, 0.12);
+    border-radius: var(--radius);
+    background: rgba(255, 252, 246, 0.96);
+}
+
+.admin-table {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+    padding: 15px 16px;
+    border-bottom: 1px solid rgba(17, 24, 39, 0.09);
+    color: var(--color-black);
+    text-align: left;
+    vertical-align: top;
+}
+
+.admin-table th {
+    color: var(--color-muted);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.admin-table td strong,
+.admin-table td small {
+    display: block;
+}
+
+.admin-table td small {
+    margin-top: 4px;
+    color: var(--color-muted);
+    font-size: 0.8rem;
+}
+
+.admin-editor-grid {
+    grid-template-columns: minmax(260px, 0.72fr) minmax(0, 1.28fr);
+}
+
+.admin-editor-card {
+    padding: clamp(20px, 3vw, 30px);
+}
+
+.admin-form {
+    display: grid;
+    gap: 10px;
+}
+
+.admin-form label {
+    color: var(--color-black);
+    font-weight: 900;
+}
+
+.admin-form input,
+.admin-form select,
+.admin-form textarea {
+    width: 100%;
+}
+
 .province-modal {
     position: fixed;
     inset: 0;
@@ -3254,6 +3360,8 @@ h3 {
     .feature-grid,
     .four-columns,
     .duo-grid,
+    .admin-metric-grid,
+    .admin-editor-grid,
     .member-summary-grid,
     .footer-links {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3357,6 +3465,11 @@ h3 {
     }
 
     .landing-points {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-metric-grid,
+    .admin-editor-grid {
         grid-template-columns: 1fr;
     }
 

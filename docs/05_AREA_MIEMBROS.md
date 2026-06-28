@@ -45,17 +45,15 @@ La plataforma incorpora una primera base de registro y acceso para miembros medi
 
 Todo usuario registrado entra inicialmente como Miembro simpatizante. Este nivel permite acceder al area privada y ver su tarjeta, pero no activa descuentos.
 
-El registro exige:
+El registro inicial se simplifica para no frenar el alta. Exige:
 
-- Nombre o proyecto.
 - Tipo de espacio: artista, academia, tienda flamenca, pena flamenca, tablao flamenco, festival o profesional flamenco.
-- Nombre publico artistico.
-- Descripcion artistica minima.
-- Ciudad y provincia.
-- Fotografia principal obligatoria.
 - Email unico.
-- Contrasena robusta.
+- Contrasena de al menos 8 caracteres.
+- Repeticion de contrasena.
 - Aceptacion de terminos y condiciones.
+
+El nombre publico, descripcion, ciudad, provincia, fotografia principal y curriculum se completan despues desde el area privada.
 
 El acceso redirige al panel privado inicial `panel-usuario.php`, que queda preparado para desarrollar sus modulos por fases.
 
@@ -194,3 +192,4 @@ Los miembros podran contratar servicios digitales ofrecidos por la plataforma. E
 - 2026-06-25: Ocultados los campos de banner mientras no haya contratacion activa, evitada la recarga al cambiar el diseno de tarjeta y compactado el formato PDF.
 - 2026-06-25: Anadidos titulo, descripcion obligatoria e imagen opcional a las entradas principales del curriculum artistico.
 - 2026-06-25: Anadidos titular artistico, especialidades y sello redondo de marca a la tarjeta de miembro.
+- 2026-06-28: Simplificado el registro a tipo de espacio, email, contrasena, repeticion y terminos; el perfil completo se rellena desde el panel privado.

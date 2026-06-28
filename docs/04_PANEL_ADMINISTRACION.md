@@ -66,9 +66,28 @@ El administrador debera poder revisar y administrar miembros, perfiles publicos,
 
 ## Acceso administrativo inicial
 
-El primer usuario registrado se marca inicialmente como `admin` para poder acceder a `panel-admin.php`.
+La base de datos crea o migra un usuario administrador. Si no existe ningun admin, el sistema crea una cuenta por defecto configurable mediante variables de entorno.
 
-Este panel queda protegido por sesion y preparado como base, sin definir todavia su contenido interno definitivo.
+Valores locales por defecto:
+
+- Email: `admin@consaborflamenco.com`.
+- Contrasena: `Admin1234!`.
+
+Cuando exista un usuario admin migrado desde `storage/users.json`, se respeta y no se pisa.
+
+El panel queda protegido por sesion y rol administrativo.
+
+## Panel funcional inicial
+
+`panel-admin.php` permite ya:
+
+- Ver metricas de miembros, setters, articulos y banners.
+- Ver miembros registrados con tipo de espacio, membresia, numero y estado de perfil.
+- Ver appointment setters registrados y sus estados de cuenta, documentacion, comisiones y codigo.
+- Crear categorias editoriales.
+- Crear articulos con categoria y estado.
+- Ver articulos recientes.
+- Ver banners contratados y sus fechas de publicacion/contratacion.
 
 ## Gestion comercial
 
@@ -100,3 +119,4 @@ El administrador debera poder revisar conversaciones, cambiar estados, asignarla
 - 2026-06-08: Documentadas las funciones iniciales del panel de administracion.
 - 2026-06-21: Definida la futura gestion administrativa de publicidad y metricas.
 - 2026-06-23: Documentado el acceso administrativo inicial y el panel protegido base.
+- 2026-06-28: Implementado panel admin inicial conectado a BD para miembros, setters, categorias, articulos y banners.

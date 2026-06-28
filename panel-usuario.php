@@ -6,8 +6,12 @@ require_once __DIR__ . '/app/layout.php';
 
 $user = require_login();
 $userName = $user['name'] ?? 'Miembro';
-$memberNumber = str_pad((string) ((hexdec(substr((string) ($user['id'] ?? '000000'), 0, 6)) % 90000) + 10000), 6, '0', STR_PAD_LEFT);
-$memberCode = 'CSF-' . strtoupper(substr(hash('sha1', (string) ($user['id'] ?? '') . ($user['email'] ?? '')), 0, 8));
+$memberNumber = !empty($user['member_number'])
+    ? str_pad((string) $user['member_number'], 6, '0', STR_PAD_LEFT)
+    : str_pad((string) ((hexdec(substr((string) ($user['id'] ?? '000000'), 0, 6)) % 90000) + 10000), 6, '0', STR_PAD_LEFT);
+$memberCode = !empty($user['member_code'])
+    ? (string) $user['member_code']
+    : 'CSF-' . strtoupper(substr(hash('sha1', (string) ($user['id'] ?? '') . ($user['email'] ?? '')), 0, 8));
 $memberTier = strtolower((string) ($user['membership_tier'] ?? 'simpatizante'));
 $isVipMember = $memberTier === 'vip';
 $memberStatus = $isVipMember ? 'Miembro VIP' : 'Miembro simpatizante';

@@ -2,11 +2,11 @@
 
 ## Descripcion
 
-Este documento recoge una vision inicial del modelo de datos previsto para Con Sabor Flamenco. En esta fase no se implementa ninguna base de datos; solo se documentan entidades conceptuales y relaciones probables.
+Este documento recoge el modelo de datos previsto y la primera conexion real a base de datos de Con Sabor Flamenco.
 
 ## Objetivo del documento
 
-Preparar una base documental para disenar posteriormente el modelo inicial de base de datos sin improvisar tablas ni relaciones durante la implementacion.
+Mantener una base documental para disenar y evolucionar el modelo de base de datos sin improvisar tablas ni relaciones durante la implementacion.
 
 ## Entidades conceptuales previstas
 
@@ -128,9 +128,13 @@ Tablas incluidas en esta fase:
 - `articulos`.
 - `pagos_stripe`.
 - `banners_miembro`.
+- `appointment_setters`.
+- `password_reset_tokens`.
 - `usos_codigo_descuento`.
 
-Este esquema aun no sustituye el almacenamiento JSON inicial de autenticacion, pero define la direccion para migrar a base de datos.
+Este esquema pasa a ser la fuente principal para autenticacion, miembros, articulos, categorias, banners y setters cuando MySQL esta disponible. El almacenamiento JSON queda como respaldo local durante la transicion.
+
+La aplicacion incorpora un bootstrap automatico que crea la base `consaborflamenco`, crea o actualiza tablas, siembra tipos de miembro/categorias editoriales, migra usuarios existentes desde `storage/users.json` cuando exista y crea un administrador por defecto solo si no hay ningun admin.
 
 ## Estados previstos
 
@@ -182,3 +186,4 @@ Estados comerciales a definir:
 - 2026-06-24: Anadidos campos previstos para ubicacion, telefono, fotografia principal y perfil completo de miembros.
 - 2026-06-25: Anadida tabla prevista `miembros_curriculum_items` para curriculum artistico repetible y privacidad por item.
 - 2026-06-25: Ampliado el curriculum previsto con redes sociales, fechas, orden cronologico, titulo, descripcion e imagen por item principal.
+- 2026-06-28: Activada la conexion inicial a MySQL con bootstrap de tablas, migracion desde JSON, admin por defecto y almacenamiento de perfil completo en `miembros.perfil_json`.

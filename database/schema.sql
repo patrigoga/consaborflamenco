@@ -53,6 +53,7 @@ CREATE TABLE miembros (
     instagram_url VARCHAR(255) NULL,
     facebook_url VARCHAR(255) NULL,
     youtube_url VARCHAR(255) NULL,
+    perfil_json LONGTEXT NULL,
     perfil_completo_at TIMESTAMP NULL,
     fecha_alta DATE NULL,
     fecha_baja DATE NULL,
@@ -158,6 +159,32 @@ CREATE TABLE banners_miembro (
     CONSTRAINT fk_banners_pago FOREIGN KEY (pago_id) REFERENCES pagos_stripe(id) ON DELETE SET NULL,
     INDEX idx_banners_estado_fechas (estado, fecha_inicio_publicacion, fecha_fin_publicacion),
     INDEX idx_banners_miembro_estado (miembro_id, estado)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE appointment_setters (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    usuario_id BIGINT UNSIGNED NOT NULL UNIQUE,
+    nombre_comercial VARCHAR(160) NULL,
+    estado_cuenta ENUM('PENDIENTE','ACTIVO','PAUSADO','SUSPENDIDO') NOT NULL DEFAULT 'PENDIENTE',
+    estado_documentacion ENUM('PENDIENTE','VALIDADA','RECHAZADA') NOT NULL DEFAULT 'PENDIENTE',
+    estado_comisiones ENUM('SIN_VENTAS','PENDIENTE_COBRO','AL_DIA','BLOQUEADAS') NOT NULL DEFAULT 'SIN_VENTAS',
+    codigo_promocional VARCHAR(60) NULL UNIQUE,
+    notas_admin TEXT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_setters_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+    INDEX idx_setters_estados (estado_cuenta, estado_documentacion, estado_comisiones)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE password_reset_tokens (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    usuario_id BIGINT UNSIGNED NOT NULL,
+    token_hash CHAR(64) NOT NULL UNIQUE,
+    expires_at DATETIME NOT NULL,
+    used_at DATETIME NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_reset_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+    INDEX idx_reset_usuario_estado (usuario_id, expires_at, used_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE usos_codigo_descuento (
