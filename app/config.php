@@ -9,6 +9,7 @@ const STORAGE_DIR = __DIR__ . '/../storage';
 const USERS_FILE = STORAGE_DIR . '/users.json';
 const RESET_TOKENS_FILE = STORAGE_DIR . '/password_resets.json';
 const MAIL_LOG_FILE = STORAGE_DIR . '/mail_outbox.log';
+const EMAIL_VERIFICATION_TOKENS_FILE = STORAGE_DIR . '/email_verifications.json';
 const SESSIONS_DIR = STORAGE_DIR . '/sessions';
 const MEMBER_PHOTOS_DIR = __DIR__ . '/../assets/uploads/member-photos';
 const MEMBER_PHOTOS_URL = 'assets/uploads/member-photos';

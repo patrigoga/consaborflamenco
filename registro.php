@@ -45,6 +45,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user = create_user('', $values['email'], $password, [
                 'member_type' => $values['member_type'],
             ]);
+
+            // Send email verification token (best-effort)
+            $token = create_email_verification_token($user['email']);
+            if ($token) {
+                // try to use public name or name in greeting
+                $displayName = $user['name'] ?? ($user['public_name'] ?? '');
+                @send_email_verification($user['email'], $token, $displayName);
+            }
+
             login_user($user);
             redirect_to(($user['role'] ?? 'user') === 'admin' ? 'panel-admin.php' : 'panel-usuario.php');
         } catch (InvalidArgumentException $exception) {

@@ -475,6 +475,77 @@ function save_reset_tokens(array $tokens): void
     write_json_file(RESET_TOKENS_FILE, array_values($tokens));
 }
 
+function verification_tokens(): array
+{
+    return read_json_file(EMAIL_VERIFICATION_TOKENS_FILE, []);
+}
+
+function save_verification_tokens(array $tokens): void
+{
+    write_json_file(EMAIL_VERIFICATION_TOKENS_FILE, array_values($tokens));
+}
+
+function create_email_verification_token(string $email): ?string
+{
+    $user = find_user_by_email($email);
+    if (!$user) {
+        return null;
+    }
+
+    $plainToken = bin2hex(random_bytes(24));
+    $tokens = array_filter(verification_tokens(), static function (array $token): bool {
+        return strtotime($token['expires_at'] ?? '') > time() && empty($token['used_at']);
+    });
+
+    $tokens[] = [
+        'email' => $user['email'],
+        'token_hash' => hash('sha256', $plainToken),
+        'expires_at' => gmdate('c', time() + 24 * 3600),
+        'created_at' => gmdate('c'),
+        'used_at' => null,
+    ];
+
+    save_verification_tokens($tokens);
+
+    return $plainToken;
+}
+
+function consume_email_verification_token(string $plainToken): bool
+{
+    $tokenHash = hash('sha256', $plainToken);
+    $pdo = auth_database();
+    if ($pdo) {
+        $statement = $pdo->prepare('SELECT prt.*, u.uuid, u.id AS usuario_id, u.email FROM password_reset_tokens prt INNER JOIN usuarios u ON u.id = prt.usuario_id WHERE prt.token_hash = :token_hash LIMIT 1');
+        // We don't have a dedicated DB table for email verification tokens; use JSON tokens below.
+    }
+
+    $tokens = verification_tokens();
+    foreach ($tokens as $index => $token) {
+        $isValid = empty($token['used_at'])
+            && strtotime($token['expires_at'] ?? '') > time()
+            && hash_equals($token['token_hash'] ?? '', $tokenHash);
+
+        if (!$isValid) {
+            continue;
+        }
+
+        $user = find_user_by_email($token['email'] ?? '');
+        if (!$user) {
+            return false;
+        }
+
+        // mark verified
+        $user['email_verified_at'] = gmdate('c');
+        update_user($user);
+        $tokens[$index]['used_at'] = gmdate('c');
+        save_verification_tokens($tokens);
+
+        return true;
+    }
+
+    return false;
+}
+
 function create_password_reset_token(string $email): ?string
 {
     $user = find_user_by_email($email);
@@ -1093,6 +1164,47 @@ function send_password_reset_email(string $email, string $plainToken): bool
 
     if (!$sent) {
         error_log(sprintf('[%s] [CSF MAIL] Password reset email FAILED for %s', gmdate('c'), $email));
+    }
+
+    return $sent;
+}
+
+function send_email_verification(string $email, string $plainToken, string $name = ''): bool
+{
+    $verifyUrl = app_url('verify-email.php?token=' . urlencode($plainToken));
+    $subject = 'Verifica tu correo en ' . APP_NAME;
+    $body = "Hola " . ($name !== '' ? $name : '') . "\n\nGracias por registrarte en " . APP_NAME . ".\n\nConfirma tu correo electrónico mediante este enlace:\n{$verifyUrl}\n\nEl enlace caduca en 24 horas.\n\n" . APP_NAME;
+    $fromAddress = csf_env('CSF_MAIL_FROM_ADDRESS', APP_EMAIL);
+    $fromName = csf_env('CSF_MAIL_FROM_NAME', APP_NAME);
+    $headers = [
+        'From: ' . $fromName . ' <' . $fromAddress . '>',
+        'Reply-To: ' . $fromAddress,
+        'Content-Type: text/plain; charset=UTF-8',
+    ];
+
+    $headerText = implode("\r\n", $headers);
+    $sent = false;
+    $usedMethod = 'none';
+
+    if (!csf_env_bool('CSF_MAIL_USE_SMTP', false) && function_exists('mail')) {
+        $sendParams = '-f' . escapeshellarg($fromAddress);
+        $sent = @mail($email, $subject, $body, $headerText, $sendParams);
+        $usedMethod = 'mail';
+    }
+
+    if (!$sent && csf_env('CSF_SMTP_HOST')) {
+        $sent = smtp_send_email($email, $subject, $body, $headers);
+        $usedMethod = 'smtp';
+    }
+
+    $logEntry = '[' . gmdate('c') . '] ' . ($sent ? 'SENT' : 'FAILED') . " METHOD: {$usedMethod} To: {$email}\nSubject: {$subject}\nHeaders: {$headerText}\n\n{$body}\n\n";
+    if (!is_dir(dirname(MAIL_LOG_FILE))) {
+        @mkdir(dirname(MAIL_LOG_FILE), 0775, true);
+    }
+    @file_put_contents(MAIL_LOG_FILE, $logEntry, FILE_APPEND | LOCK_EX);
+
+    if (!$sent) {
+        error_log(sprintf('[%s] [CSF MAIL] Email verification FAILED for %s', gmdate('c'), $email));
     }
 
     return $sent;
