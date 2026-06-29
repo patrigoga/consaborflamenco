@@ -42,13 +42,7 @@ $publicFieldOptions = [
     'birth_place' => 'Lugar de origen',
     'years_active' => 'Trayectoria',
     'availability' => 'Disponibilidad',
-    'education' => 'Formacion',
     'experience' => 'Experiencia',
-    'teaching' => 'Docencia',
-    'performances' => 'Actuaciones destacadas',
-    'awards' => 'Premios',
-    'repertoire' => 'Repertorio',
-    'social_links' => 'Redes sociales',
 ];
 
 function is_public_field(array $profile, string $field): bool
@@ -97,7 +91,10 @@ function clean_cv_entries(
         $entry = [];
         $hasContent = false;
         foreach ($fields as $field) {
-            $value = clean_text((string) ($row[$field] ?? ''));
+            $rawValue = (string) ($row[$field] ?? '');
+            $value = in_array($field, ['entry_description', 'description'], true)
+                ? clean_html_text($rawValue)
+                : clean_text($rawValue);
             $entry[$field] = $value;
             $hasContent = $hasContent || $value !== '';
         }
@@ -166,23 +163,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') ==
             static fn ($value): string => $value === 'asc' ? 'asc' : 'desc',
             array_intersect_key($submittedSortOrders, $publicFieldOptions)
         );
-        $entryMediaOptions = ['requires_title_description' => true, 'allows_image' => true];
-        $memberProfile['education'] = clean_cv_entries($_POST, 'education', ['entry_title', 'entry_description', 'date_start', 'date_end', 'school', 'discipline', 'teacher'], $entryMediaOptions + ['title' => 'Formacion flamenca'], $memberProfile['education'], $_FILES, $profileErrors);
-        $memberProfile['experience'] = clean_cv_entries($_POST, 'experience', ['entry_title', 'entry_description', 'date_start', 'date_end', 'role', 'company', 'place'], $entryMediaOptions + ['title' => 'Experiencia artistica'], $memberProfile['experience'], $_FILES, $profileErrors);
-        $memberProfile['teaching'] = clean_cv_entries($_POST, 'teaching', ['entry_title', 'entry_description', 'date_start', 'date_end', 'school', 'subject', 'place'], $entryMediaOptions + ['title' => 'Docencia'], $memberProfile['teaching'], $_FILES, $profileErrors);
-        $memberProfile['performances'] = clean_cv_entries($_POST, 'performances', ['entry_title', 'entry_description', 'date_start', 'venue', 'city'], $entryMediaOptions + ['title' => 'Actuaciones destacadas'], $memberProfile['performances'], $_FILES, $profileErrors);
-        $memberProfile['awards'] = clean_cv_entries($_POST, 'awards', ['entry_title', 'entry_description', 'date_start', 'entity'], $entryMediaOptions + ['title' => 'Premios y reconocimientos'], $memberProfile['awards'], $_FILES, $profileErrors);
-        $memberProfile['repertoire'] = clean_cv_entries($_POST, 'repertoire', ['style', 'description']);
-        $memberProfile['social_links'] = clean_cv_entries($_POST, 'social_links', ['network', 'url', 'description']);
-        foreach (['education', 'experience', 'teaching', 'performances', 'awards'] as $sortableSection) {
-            $memberProfile[$sortableSection] = sort_cv_entries_by_date(
-                $memberProfile[$sortableSection],
-                $memberProfile['sort_orders'][$sortableSection] ?? 'desc'
-            );
-        }
+        $entryMediaOptions = ['requires_title_description' => false, 'allows_image' => true];
+        $memberProfile['experience'] = clean_cv_entries(
+            $_POST,
+            'experience',
+            ['category', 'description', 'date_start', 'date_end', 'location'],
+            $entryMediaOptions + ['title' => 'Experiencia profesional'],
+            $memberProfile['experience'],
+            $_FILES,
+            $profileErrors
+        );
+        $memberProfile['experience'] = sort_cv_entries_by_date(
+            $memberProfile['experience'],
+            $memberProfile['sort_orders']['experience'] ?? 'desc'
+        );
         $memberProfile['completed_at'] = profile_is_complete($memberProfile) ? ($memberProfile['completed_at'] ?? gmdate('c')) : null;
         if (!profile_is_complete($memberProfile)) {
-            $profileErrors[] = 'Completa nombre publico, descripcion, ciudad, provincia, fotografia principal y al menos una formacion, experiencia o actuacion.';
+            $profileErrors[] = 'Completa nombre publico, descripcion, ciudad, provincia, fotografia principal y al menos una experiencia profesional.';
         }
     }
 
@@ -205,62 +202,18 @@ $profileRequiredFields = [
     $memberProfile['city'] ?? '',
     $memberProfile['province'] ?? '',
     $memberProfile['main_photo_path'] ?? '',
-    (!empty($memberProfile['education']) || !empty($memberProfile['experience']) || !empty($memberProfile['performances'])) ? 'cv' : '',
+    !empty($memberProfile['experience']) ? 'experience' : '',
 ];
 $completedProfileFields = count(array_filter($profileRequiredFields, static fn ($value): bool => clean_text((string) $value) !== ''));
 $profileCompletion = (int) round(($completedProfileFields / count($profileRequiredFields)) * 100);
 $cvSectionConfig = [
-    'education' => [
-        'title' => 'Formacion flamenca',
-        'public_field' => 'education',
-        'fields' => ['entry_title' => 'Titulo', 'entry_description' => 'Descripcion', 'date_start' => 'Inicio', 'date_end' => 'Fin', 'discipline' => 'Disciplina', 'school' => 'Centro / maestro', 'teacher' => 'Profesor/a referente'],
-        'sortable' => true,
-        'requires_title_description' => true,
-        'allows_image' => true,
-    ],
     'experience' => [
-        'title' => 'Experiencia artistica',
+        'title' => 'Experiencia profesional',
         'public_field' => 'experience',
-        'fields' => ['entry_title' => 'Titulo', 'entry_description' => 'Descripcion', 'date_start' => 'Inicio', 'date_end' => 'Fin', 'role' => 'Rol', 'company' => 'Compania / proyecto', 'place' => 'Lugar'],
+        'fields' => ['category' => 'Categoria', 'description' => 'Descripcion', 'date_start' => 'Inicio', 'date_end' => 'Fin', 'location' => 'Lugar / entidad'],
         'sortable' => true,
-        'requires_title_description' => true,
+        'requires_title_description' => false,
         'allows_image' => true,
-    ],
-    'teaching' => [
-        'title' => 'Docencia',
-        'public_field' => 'teaching',
-        'fields' => ['entry_title' => 'Titulo', 'entry_description' => 'Descripcion', 'date_start' => 'Inicio', 'date_end' => 'Fin', 'school' => 'Academia / entidad', 'subject' => 'Asignatura o nivel', 'place' => 'Lugar'],
-        'sortable' => true,
-        'requires_title_description' => true,
-        'allows_image' => true,
-    ],
-    'performances' => [
-        'title' => 'Actuaciones destacadas',
-        'public_field' => 'performances',
-        'fields' => ['entry_title' => 'Titulo', 'entry_description' => 'Descripcion', 'date_start' => 'Fecha', 'venue' => 'Tablao / teatro / espacio', 'city' => 'Ciudad'],
-        'sortable' => true,
-        'requires_title_description' => true,
-        'allows_image' => true,
-    ],
-    'awards' => [
-        'title' => 'Premios y reconocimientos',
-        'public_field' => 'awards',
-        'fields' => ['entry_title' => 'Titulo', 'entry_description' => 'Descripcion', 'date_start' => 'Fecha', 'entity' => 'Entidad'],
-        'sortable' => true,
-        'requires_title_description' => true,
-        'allows_image' => true,
-    ],
-    'repertoire' => [
-        'title' => 'Repertorio y palos',
-        'public_field' => 'repertoire',
-        'fields' => ['style' => 'Palo / estilo', 'description' => 'Notas'],
-        'sortable' => false,
-    ],
-    'social_links' => [
-        'title' => 'Redes sociales y enlaces',
-        'public_field' => 'social_links',
-        'fields' => ['network' => 'Red / plataforma', 'url' => 'URL', 'description' => 'Uso o descripcion'],
-        'sortable' => false,
     ],
 ];
 ?>
@@ -292,6 +245,12 @@ $cvSectionConfig = [
             </aside>
 
             <div class="member-panel-content">
+                <div class="member-panel-tabs" role="tablist" aria-label="Secciones del panel de miembro">
+                    <button type="button" class="tab-button panel-tab-button active" data-tab-target="perfil">Ficha artistica</button>
+                    <button type="button" class="tab-button panel-tab-button" data-tab-target="tarjeta-miembro">Tarjeta de miembro</button>
+                    <button type="button" class="tab-button panel-tab-button" data-tab-target="banners">Banners</button>
+                    <button type="button" class="tab-button panel-tab-button" data-tab-target="seguridad">Seguridad</button>
+                </div>
                 <section class="member-dashboard-hero" aria-label="Resumen del espacio">
                     <div class="member-dashboard-identity">
                         <?php if (!empty($memberProfile['main_photo_path'])): ?>
@@ -311,7 +270,7 @@ $cvSectionConfig = [
                     </div>
                 </section>
 
-                <section id="perfil" class="content-section member-panel-section">
+                <section id="perfil" class="content-section member-panel-section active">
                     <div class="section-heading">
                         <div class="section-heading-content">
                             <p class="section-kicker">Perfil</p>
@@ -366,7 +325,7 @@ $cvSectionConfig = [
                                 <button class="button button-secondary" type="button" onclick="window.print()">Imprimir / guardar PDF</button>
                             </div>
 
-                            <fieldset class="cv-fieldset">
+                            <fieldset class="cv-fieldset profile-tab-panel active" data-profile-tab="artistica">
                                 <legend>Identidad artistica</legend>
                                 <div class="form-grid-two">
                                     <label for="member_type">Tipo de espacio
@@ -396,9 +355,9 @@ $cvSectionConfig = [
                                 </label>
                             </fieldset>
 
-                            <fieldset class="cv-fieldset">
-                                <legend>Datos profesionales y contacto</legend>
-                                <p class="field-help">Aqui se rellenan telefono, lugar de origen, trayectoria, disponibilidad, web e Instagram. Las casillas inferiores solo controlan si esos datos aparecen publicamente.</p>
+                            <fieldset class="cv-fieldset profile-tab-panel" data-profile-tab="datos">
+                                <legend>Datos de perfil e imagen</legend>
+                                <p class="field-help">Aqui se rellenan ciudad, provincia, lugar de origen y fotografia principal. Estas opciones definen tu perfil visible.</p>
                                 <div class="form-grid-three">
                                     <label for="city">Ciudad
                                         <input id="city" name="city" type="text" value="<?= e($memberProfile['city']) ?>" required>
@@ -481,15 +440,17 @@ $cvSectionConfig = [
                                             <?php foreach ($sectionConfig['fields'] as $fieldName => $fieldLabel): ?>
                                                 <?php
                                                 $fieldClass = match ($fieldName) {
-                                                    'entry_title' => 'cv-entry-title-field',
-                                                    'entry_description' => 'cv-entry-description-field',
+                                                    'category' => 'cv-entry-category-field',
+                                                    'description' => 'cv-entry-description-field',
                                                     default => '',
                                                 };
                                                 ?>
                                                 <label class="<?= e($fieldClass) ?>">
                                                     <?= e($fieldLabel) ?>
-                                                    <?php if ($fieldName === 'entry_description'): ?>
-                                                        <textarea name="<?= e($sectionKey) ?>[<?= e((string) $rowIndex) ?>][<?= e($fieldName) ?>]" rows="3" maxlength="900"><?= e((string) ($entry[$fieldName] ?? '')) ?></textarea>
+                                                    <?php if ($fieldName === 'description'): ?>
+                                                        <div class="rich-text-toolbar" data-editor-toolbar></div>
+                                                        <div class="rich-text-editor" contenteditable="true" data-rich-editor><?= $entry['description'] ?? '' ?></div>
+                                                        <textarea name="<?= e($sectionKey) ?>[<?= e((string) $rowIndex) ?>][<?= e($fieldName) ?>]" rows="5" hidden><?= e((string) ($entry[$fieldName] ?? '')) ?></textarea>
                                                     <?php else: ?>
                                                         <input name="<?= e($sectionKey) ?>[<?= e((string) $rowIndex) ?>][<?= e($fieldName) ?>]" type="<?= str_starts_with($fieldName, 'date_') ? 'date' : 'text' ?>" value="<?= e((string) ($entry[$fieldName] ?? '')) ?>">
                                                     <?php endif; ?>
@@ -677,6 +638,12 @@ $cvSectionConfig = [
                         input.name = input.name.replace(/\[\d+\]/, `[${nextIndex}]`);
                     }
                 });
+                const richEditor = row.querySelector('[data-rich-editor]');
+                const textarea = row.querySelector('textarea[hidden]');
+                if (richEditor && textarea) {
+                    richEditor.innerHTML = '';
+                    textarea.value = '';
+                }
                 list.appendChild(row);
             });
         });
@@ -701,6 +668,70 @@ $cvSectionConfig = [
             }
         });
 
+        document.querySelectorAll('.profile-tab-button').forEach((button) => {
+            button.addEventListener('click', () => {
+                const target = button.dataset.profileTab;
+                if (!target) {
+                    return;
+                }
+
+                document.querySelectorAll('.profile-tab-button').forEach((tab) => tab.classList.toggle('active', tab === button));
+                document.querySelectorAll('.profile-tab-panel').forEach((panel) => {
+                    panel.classList.toggle('active', panel.dataset.profileTab === target);
+                });
+            });
+        });
+
+        const richTextEditorToolbar = document.querySelectorAll('[data-editor-toolbar]');
+        richTextEditorToolbar.forEach((toolbar) => {
+            const editor = toolbar.parentElement?.querySelector('[data-rich-editor]');
+            const textarea = toolbar.parentElement?.querySelector('textarea[hidden]');
+            if (!(editor instanceof HTMLElement) || !(textarea instanceof HTMLTextAreaElement)) {
+                return;
+            }
+
+            const controls = [
+                { label: 'B', command: 'bold' },
+                { label: 'I', command: 'italic' },
+                { label: 'U', command: 'underline' },
+                { label: 'S', command: 'strikeThrough' },
+                { label: 'A', command: 'foreColor', value: '#b22222' },
+                { label: 'A', command: 'foreColor', value: '#1e90ff' },
+                { label: 'A', command: 'foreColor', value: '#000000' },
+                { label: 'H1', command: 'formatBlock', value: 'h1' },
+                { label: 'P', command: 'formatBlock', value: 'p' },
+            ];
+
+            controls.forEach((control) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'rich-text-button';
+                button.textContent = control.label;
+                button.title = control.value ? `${control.command}: ${control.value}` : control.command;
+                button.addEventListener('click', () => {
+                    document.execCommand('styleWithCSS', false, true);
+                    document.execCommand(control.command, false, control.value || null);
+                    editor.focus();
+                });
+                if (control.command === 'foreColor') {
+                    button.style.color = control.value;
+                    button.textContent = 'A';
+                }
+                toolbar.appendChild(button);
+            });
+
+            editor.addEventListener('input', () => {
+                textarea.value = editor.innerHTML;
+            });
+
+            const form = toolbar.closest('form');
+            if (form) {
+                form.addEventListener('submit', () => {
+                    textarea.value = editor.innerHTML;
+                });
+            }
+        });
+
         const cardPreview = document.querySelector('[data-card-preview]');
         const cardImage = document.querySelector('[data-card-image]');
         document.querySelectorAll('[data-card-option]').forEach((input) => {
@@ -714,6 +745,20 @@ $cvSectionConfig = [
                 cardPreview.classList.toggle('member-card-preview-man', input.dataset.cardFigure === 'man');
             });
         });
+
+        document.querySelectorAll('.panel-tab-button').forEach((button) => {
+            button.addEventListener('click', () => {
+                const target = button.dataset.tabTarget;
+                if (!target) {
+                    return;
+                }
+                document.querySelectorAll('.panel-tab-button').forEach((tab) => tab.classList.toggle('active', tab === button));
+                document.querySelectorAll('.member-panel-section').forEach((section) => {
+                    section.style.display = section.id === target ? 'block' : 'none';
+                });
+            });
+        });
+
     </script>
 </body>
 </html>

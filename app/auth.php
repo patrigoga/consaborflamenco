@@ -61,6 +61,67 @@ function clean_text(string $value): string
     return trim(preg_replace('/\s+/', ' ', $value) ?? '');
 }
 
+function sanitize_css_style(string $style): string
+{
+    $allowedProperties = [
+        'color',
+        'background-color',
+        'font-size',
+        'font-weight',
+        'font-style',
+        'text-decoration',
+        'text-align',
+    ];
+    $cleanRules = [];
+    preg_match_all('/([a-z-]+)\s*:\s*([^;]+);?/i', $style, $matches, PREG_SET_ORDER);
+    foreach ($matches as $match) {
+        $property = strtolower(trim($match[1]));
+        $value = trim($match[2]);
+        if (!in_array($property, $allowedProperties, true)) {
+            continue;
+        }
+        if (preg_match('/^(#([0-9a-f]{3}|[0-9a-f]{6})|rgba?\([^\)]+\)|[a-z ]+)$/i', $value)) {
+            $cleanRules[] = $property . ': ' . $value;
+        }
+    }
+    return implode('; ', $cleanRules);
+}
+
+function sanitize_html(string $html): string
+{
+    $allowedTags = ['b', 'strong', 'i', 'em', 'u', 'span', 'br', 'p', 'ul', 'ol', 'li'];
+    $html = strip_tags($html, '<b><strong><i><em><u><span><br><p><ul><ol><li>');
+
+    return preg_replace_callback(
+        '/<(\/)?([a-z0-9]+)([^>]*)>/i',
+        static function (array $matches) use ($allowedTags): string {
+            $slash = $matches[1] ?? '';
+            $tag = strtolower($matches[2] ?? '');
+            $attrs = $matches[3] ?? '';
+            if (!in_array($tag, $allowedTags, true)) {
+                return '';
+            }
+            if ($tag === 'span' || $tag === 'p') {
+                $style = '';
+                if (preg_match('/style\s*=\s*("([^"]*)"|\'([^\']*)\')/i', $attrs, $styleMatch)) {
+                    $style = sanitize_css_style($styleMatch[2] ?? $styleMatch[3] ?? '');
+                }
+                return '<' . $slash . $tag . ($style !== '' ? ' style="' . htmlspecialchars($style, ENT_QUOTES, 'UTF-8') . '"' : '') . '>';
+            }
+            return '<' . $slash . $tag . '>';
+        },
+        $html
+    );
+}
+
+function clean_html_text(string $value): string
+{
+    $value = trim($value);
+    $value = preg_replace('/\s+/', ' ', $value);
+
+    return sanitize_html($value);
+}
+
 function normalize_email(string $email): string
 {
     return strtolower(trim($email));

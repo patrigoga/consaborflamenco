@@ -2196,6 +2196,81 @@ h3 {
     background: rgba(255, 255, 255, 0.1);
 }
 
+.member-panel-tabs,
+.member-profile-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.tab-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 18px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--color-white);
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.tab-button.active {
+    background: rgba(201, 79, 92, 0.22);
+    border-color: rgba(201, 79, 92, 0.48);
+    color: var(--color-white);
+}
+
+.member-panel-section {
+    padding-top: 0;
+    display: none;
+}
+
+.member-panel-section.active {
+    display: block;
+}
+
+.profile-tab-panel {
+    display: none;
+}
+
+.profile-tab-panel.active {
+    display: block;
+}
+
+.rich-text-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.rich-text-button {
+    border: 1px solid rgba(17, 17, 20, 0.08);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--color-white);
+    padding: 8px 12px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.rich-text-editor {
+    min-height: 160px;
+    padding: 14px;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--color-white);
+    overflow-wrap: break-word;
+}
+
+.rich-text-editor:focus {
+    outline: 2px solid rgba(201, 79, 92, 0.24);
+}
+
 .member-panel-content {
     display: grid;
     gap: 18px;
