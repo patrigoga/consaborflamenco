@@ -292,6 +292,31 @@ function find_user_by_email(string $email): ?array
     return null;
 }
 
+function normalize_name(string $name): string
+{
+    return mb_strtolower(clean_text($name), 'UTF-8');
+}
+
+function find_user_by_name_and_email(string $name, string $email): ?array
+{
+    $normalizedName = normalize_name($name);
+    $user = find_user_by_email($email);
+    if (!$user) {
+        return null;
+    }
+
+    $possibleNames = [
+        normalize_name((string) ($user['name'] ?? '')),
+        normalize_name((string) ($user['public_name'] ?? '')),
+    ];
+
+    if (!in_array($normalizedName, $possibleNames, true)) {
+        return null;
+    }
+
+    return $user;
+}
+
 function find_user_by_id(string $id): ?array
 {
     $pdo = auth_database();
