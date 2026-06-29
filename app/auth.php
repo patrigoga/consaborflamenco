@@ -419,6 +419,7 @@ function create_user(string $name, string $email, string $password, array $membe
             'role' => 'user',
             'membership_tier' => 'simpatizante',
             'artistic_profile' => $profile,
+            'email_verified_at' => null,
             'terms_accepted_at' => $now,
             'created_at' => $now,
             'updated_at' => $now,
@@ -446,6 +447,7 @@ function create_user(string $name, string $email, string $password, array $membe
         'role' => 'user',
         'membership_tier' => 'simpatizante',
         'artistic_profile' => member_profile_from_input(['name' => $displayName] + $memberProfile, $memberProfile),
+        'email_verified_at' => null,
         'terms_accepted_at' => $now,
         'created_at' => $now,
         'updated_at' => $now,
@@ -523,7 +525,20 @@ function require_login(): array
         redirect_to('acceso.php');
     }
 
+    if (!user_email_is_verified($user)) {
+        redirect_to('verificacion-pendiente.php');
+    }
+
     return $user;
+}
+
+function user_email_is_verified(array $user): bool
+{
+    if (($user['role'] ?? 'user') === 'admin') {
+        return true;
+    }
+
+    return clean_text((string) ($user['email_verified_at'] ?? '')) !== '';
 }
 
 function reset_tokens(): array
@@ -809,6 +824,7 @@ function db_user_from_row(array $row): array
         'member_number' => isset($row['numero_miembro']) ? (string) $row['numero_miembro'] : null,
         'member_code' => isset($row['codigo_descuento']) ? (string) $row['codigo_descuento'] : null,
         'artistic_profile' => $profile,
+        'email_verified_at' => db_to_iso($row['email_verified_at'] ?? null),
         'terms_accepted_at' => db_to_iso($row['terms_accepted_at'] ?? null),
         'created_at' => db_to_iso($row['created_at'] ?? null),
         'updated_at' => db_to_iso($row['updated_at'] ?? null),
@@ -840,8 +856,8 @@ function db_insert_legacy_user(PDO $pdo, array $user): void
 
     try {
         $statement = $pdo->prepare(
-            'INSERT INTO usuarios (uuid, nombre, email, password_hash, rol, estado, terms_accepted_at, last_login_at, created_at, updated_at)
-            VALUES (:uuid, :nombre, :email, :password_hash, :rol, :estado, :terms_accepted_at, :last_login_at, :created_at, :updated_at)'
+            'INSERT INTO usuarios (uuid, nombre, email, password_hash, rol, estado, email_verified_at, terms_accepted_at, last_login_at, created_at, updated_at)
+            VALUES (:uuid, :nombre, :email, :password_hash, :rol, :estado, :email_verified_at, :terms_accepted_at, :last_login_at, :created_at, :updated_at)'
         );
         $statement->execute([
             'uuid' => (string) ($user['id'] ?? bin2hex(random_bytes(16))),
@@ -850,6 +866,7 @@ function db_insert_legacy_user(PDO $pdo, array $user): void
             'password_hash' => (string) ($user['password_hash'] ?? ''),
             'rol' => $role,
             'estado' => 'ACTIVO',
+            'email_verified_at' => db_nullable_datetime($user['email_verified_at'] ?? null),
             'terms_accepted_at' => db_nullable_datetime($user['terms_accepted_at'] ?? null),
             'last_login_at' => db_nullable_datetime($user['last_login_at'] ?? null),
             'created_at' => db_nullable_datetime($user['created_at'] ?? null) ?? db_datetime(),
@@ -879,13 +896,14 @@ function db_update_legacy_user(PDO $pdo, array $updatedUser): void
     }
 
     $statement = $pdo->prepare(
-        'UPDATE usuarios SET nombre = :nombre, email = :email, password_hash = :password_hash, rol = :rol, last_login_at = :last_login_at, updated_at = UTC_TIMESTAMP() WHERE id = :id'
+        'UPDATE usuarios SET nombre = :nombre, email = :email, password_hash = :password_hash, rol = :rol, email_verified_at = :email_verified_at, last_login_at = :last_login_at, updated_at = UTC_TIMESTAMP() WHERE id = :id'
     );
     $statement->execute([
         'nombre' => clean_text((string) ($updatedUser['name'] ?? name_from_email((string) ($updatedUser['email'] ?? '')))),
         'email' => normalize_email((string) ($updatedUser['email'] ?? '')),
         'password_hash' => (string) ($updatedUser['password_hash'] ?? ''),
         'rol' => db_role_from_legacy((string) ($updatedUser['role'] ?? 'user')),
+        'email_verified_at' => db_nullable_datetime($updatedUser['email_verified_at'] ?? null),
         'last_login_at' => db_nullable_datetime($updatedUser['last_login_at'] ?? null),
         'id' => $userId,
     ]);

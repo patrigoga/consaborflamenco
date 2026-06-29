@@ -288,3 +288,4 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - 2026-06-28: Conectada la autenticacion inicial a MySQL con bootstrap de tablas, migracion JSON, admin por defecto, registro ligero y panel admin funcional para miembros, setters, articulos y banners.
 - 2026-06-29: Separada la configuracion local/produccion mediante `.env`, anadidos defaults de la BD Hostinger y creado `setup-prod-db.php` para preparar produccion.
 - 2026-06-29: Ajustado el panel de usuario para guardar fotografia principal en perfiles pendientes, mejorar el editor de experiencia profesional y compactar la imagen del email de verificacion.
+- 2026-06-29: Reforzada la verificacion obligatoria de email antes del panel privado y redisenada la salida impresa del curriculum para evitar elementos del panel, conservar texto enriquecido y compactar fechas.

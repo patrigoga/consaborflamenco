@@ -3843,7 +3843,8 @@ h3 {
 
 @media print {
     @page {
-        margin: 10mm;
+        size: A4;
+        margin: 0;
     }
 
     * {
@@ -3851,8 +3852,16 @@ h3 {
         -webkit-print-color-adjust: exact;
     }
 
+    html,
     body {
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0;
         background: #ffffff;
+    }
+
+    body * {
+        visibility: hidden !important;
     }
 
     .site-header,
@@ -3870,11 +3879,16 @@ h3 {
         display: none !important;
     }
 
+    .cv-print-document,
+    .cv-print-document * {
+        visibility: visible !important;
+    }
+
     .member-panel,
     .member-panel-content,
     .member-panel-section,
     .member-profile-editor {
-        display: block;
+        display: block !important;
         width: 100%;
         margin: 0;
         padding: 0;
@@ -3886,27 +3900,33 @@ h3 {
     }
 
     .cv-print-document {
-        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        display: block !important;
+        width: 100%;
+        min-height: 297mm;
+        box-sizing: border-box;
         color: #111114;
         font-family: "Inter", Arial, sans-serif;
-        padding-bottom: 18mm;
-        font-size: 11px;
+        padding: 9mm 11mm 20mm;
+        font-size: 10.5px;
     }
 
     .cv-print-header {
         display: grid;
-        grid-template-columns: 110px minmax(0, 1fr);
-        gap: 12px;
+        grid-template-columns: 88px minmax(0, 1fr);
+        gap: 11px;
         align-items: center;
-        padding: 10px 12px;
+        padding: 9px 11px;
         color: #ffffff;
         background: linear-gradient(135deg, #111114, #203847);
         border-radius: 10px;
     }
 
     .cv-print-header img {
-        width: 100px;
-        height: 100px;
+        width: 78px;
+        height: 78px;
         object-fit: cover;
         border-radius: 10px;
         filter: none;
@@ -3923,12 +3943,13 @@ h3 {
         max-width: none;
         color: #ffffff;
         font-family: "Playfair Display", Georgia, serif;
-        font-size: 26px;
+        font-size: 24px;
+        line-height: 1.05;
     }
 
     .cv-print-document section {
-        margin-top: 7px;
-        padding: 5px 0;
+        margin-top: 6px;
+        padding: 4px 0;
         border-bottom: 1px solid #e2ded7;
         break-inside: avoid;
     }
@@ -3961,24 +3982,29 @@ h3 {
 
     .cv-print-list {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 4px 12px;
+        grid-template-columns: 1fr;
+        gap: 5px;
     }
 
     .cv-print-list article {
-        padding: 3px 0;
+        padding: 4px 0;
         border-bottom: 1px solid #dddddd;
         break-inside: avoid;
+    }
+
+    .cv-print-entry {
+        display: grid;
+        gap: 5px;
     }
 
     .cv-print-entry-with-image {
         display: grid;
         grid-template-columns: 58px minmax(0, 1fr);
-        gap: 7px;
+        gap: 7px 9px;
         align-items: start;
     }
 
-    .cv-print-entry-with-image img {
+    .cv-print-entry-image {
         width: 58px;
         height: 58px;
         object-fit: cover;
@@ -3986,16 +4012,61 @@ h3 {
         filter: none;
     }
 
+    .cv-print-entry-title {
+        margin: 0 0 2px;
+        font-weight: 800;
+    }
+
+    .cv-print-entry-description {
+        max-width: none;
+        line-height: 1.42;
+    }
+
+    .cv-print-entry-description p,
+    .cv-print-entry-description ul,
+    .cv-print-entry-description ol,
+    .cv-print-entry-description blockquote {
+        margin: 0 0 3px;
+    }
+
+    .cv-print-entry-description ul,
+    .cv-print-entry-description ol {
+        padding-left: 14px;
+    }
+
+    .cv-print-entry-meta {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 3px 10px;
+        margin-top: 3px;
+    }
+
+    .cv-print-entry-dates dd {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2px 9px;
+    }
+
     .cv-print-footer {
         position: fixed;
-        right: 0;
-        bottom: 0;
-        left: 0;
-        padding-top: 8px;
+        right: 11mm;
+        bottom: 7mm;
+        left: 11mm;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 16mm;
+        padding-top: 4px;
         color: #555555;
         border-top: 2px solid #111114;
-        font-size: 12px;
-        text-align: right;
+        font-size: 10px;
+    }
+
+    .cv-print-footer img {
+        width: 15mm;
+        height: 15mm;
+        object-fit: contain;
+        filter: none;
     }
 
     .cv-print-footer strong {

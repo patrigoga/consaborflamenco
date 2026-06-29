@@ -8,8 +8,13 @@ $errors = [];
 $email = '';
 $passwordReset = isset($_GET['password_reset']);
 
-if (current_user()) {
-    redirect_to(($_SESSION['user_role'] ?? 'user') === 'admin' ? 'panel-admin.php' : 'panel-usuario.php');
+$currentUser = current_user();
+if ($currentUser) {
+    if (($currentUser['role'] ?? 'user') === 'admin') {
+        redirect_to('panel-admin.php');
+    }
+
+    redirect_to(user_email_is_verified($currentUser) ? 'panel-usuario.php' : 'verificacion-pendiente.php');
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -24,7 +29,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = authenticate_user($email, $password);
         if ($user) {
             login_user($user);
-            redirect_to(($user['role'] ?? 'user') === 'admin' ? 'panel-admin.php' : 'panel-usuario.php');
+            if (($user['role'] ?? 'user') === 'admin') {
+                redirect_to('panel-admin.php');
+            }
+
+            redirect_to(user_email_is_verified($user) ? 'panel-usuario.php' : 'verificacion-pendiente.php');
         }
         $errors[] = 'Email o contraseña incorrectos.';
     }

@@ -141,6 +141,17 @@ function sort_cv_entries_by_date(array $entries, string $order): array
     return $entries;
 }
 
+function cv_print_date(string $date): string
+{
+    $date = clean_text($date);
+    if ($date === '') {
+        return '';
+    }
+
+    $timestamp = strtotime($date);
+    return $timestamp ? date('d/m/Y', $timestamp) : $date;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') === 'update_profile') {
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
         $profileErrors[] = 'La sesion ha caducado. Vuelve a intentarlo.';
@@ -515,16 +526,39 @@ $cvSectionConfig = [
                                         <h2><?= e($sectionConfig['title']) ?></h2>
                                         <div class="cv-print-list">
                                             <?php foreach ($memberProfile[$sectionKey] as $entry): ?>
-                                                <article class="<?= !empty($entry['image_path']) ? 'cv-print-entry-with-image' : '' ?>">
+                                                <?php
+                                                $entryDescription = clean_html_text((string) ($entry['description'] ?? ''));
+                                                $entryStart = cv_print_date((string) ($entry['date_start'] ?? ''));
+                                                $entryEnd = cv_print_date((string) ($entry['date_end'] ?? ''));
+                                                ?>
+                                                <article class="cv-print-entry <?= !empty($entry['image_path']) ? 'cv-print-entry-with-image' : '' ?>">
                                                     <?php if (!empty($entry['image_path'])): ?>
-                                                        <img src="<?= e((string) $entry['image_path']) ?>" alt="Imagen de <?= e($sectionConfig['title']) ?>">
+                                                        <img class="cv-print-entry-image" src="<?= e((string) $entry['image_path']) ?>" alt="Imagen de <?= e($sectionConfig['title']) ?>">
                                                     <?php endif; ?>
-                                                    <div>
-                                                        <?php foreach ($sectionConfig['fields'] as $fieldName => $fieldLabel): ?>
-                                                            <?php if (!empty($entry[$fieldName])): ?>
-                                                                <p><strong><?= e($fieldLabel) ?>:</strong> <?= e((string) $entry[$fieldName]) ?></p>
+                                                    <div class="cv-print-entry-main">
+                                                        <?php if (!empty($entry['category'])): ?>
+                                                            <p class="cv-print-entry-title"><?= e((string) $entry['category']) ?></p>
+                                                        <?php endif; ?>
+                                                        <?php if ($entryDescription !== ''): ?>
+                                                            <div class="cv-print-entry-description"><?= $entryDescription ?></div>
+                                                        <?php endif; ?>
+                                                        <dl class="cv-print-entry-meta">
+                                                            <?php if ($entryStart !== '' || $entryEnd !== ''): ?>
+                                                                <div class="cv-print-entry-dates">
+                                                                    <dt>Fechas</dt>
+                                                                    <dd>
+                                                                        <?php if ($entryStart !== ''): ?><span>Inicio: <?= e($entryStart) ?></span><?php endif; ?>
+                                                                        <?php if ($entryEnd !== ''): ?><span>Fin: <?= e($entryEnd) ?></span><?php endif; ?>
+                                                                    </dd>
+                                                                </div>
                                                             <?php endif; ?>
-                                                        <?php endforeach; ?>
+                                                            <?php if (!empty($entry['location'])): ?>
+                                                                <div>
+                                                                    <dt>Lugar / entidad</dt>
+                                                                    <dd><?= e((string) $entry['location']) ?></dd>
+                                                                </div>
+                                                            <?php endif; ?>
+                                                        </dl>
                                                     </div>
                                                 </article>
                                             <?php endforeach; ?>
@@ -533,7 +567,8 @@ $cvSectionConfig = [
                                 <?php endif; ?>
                             <?php endforeach; ?>
                             <footer class="cv-print-footer">
-                                Creado con <strong>consaborflamenco.com</strong>
+                                <img src="assets/images/member-cards/pegatina-con-sabor-flamenco.png" alt="Con Sabor Flamenco">
+                                <span>Creado con <strong>consaborflamenco.com</strong></span>
                             </footer>
                         </section>
                     </div>
@@ -620,6 +655,14 @@ $cvSectionConfig = [
     <?php page_footer(); ?>
     <?php province_modal('Así podremos mostrarte oportunidades y servicios relevantes para tu provincia.'); ?>
     <script>
+        const originalDocumentTitle = document.title;
+        window.addEventListener('beforeprint', () => {
+            document.title = ' ';
+        });
+        window.addEventListener('afterprint', () => {
+            document.title = originalDocumentTitle;
+        });
+
         document.querySelectorAll('[data-repeat-add]').forEach((button) => {
             button.addEventListener('click', () => {
                 const section = button.dataset.repeatAdd;
