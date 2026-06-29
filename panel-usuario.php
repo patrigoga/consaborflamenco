@@ -254,7 +254,7 @@ $cvSectionConfig = [
                 <section class="member-dashboard-hero" aria-label="Resumen del espacio">
                     <div class="member-dashboard-identity">
                         <?php if (!empty($memberProfile['main_photo_path'])): ?>
-                            <img src="<?= e($memberProfile['main_photo_path']) ?>" alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy">
+                            <img src="<?= e($memberProfile['main_photo_path']) ?>" alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview>
                         <?php else: ?>
                             <div class="member-dashboard-photo-placeholder"><?= e(strtoupper(substr($displayName, 0, 1))) ?></div>
                         <?php endif; ?>
@@ -311,7 +311,7 @@ $cvSectionConfig = [
                                 <?php else: ?>
                                     <div class="member-photo-placeholder" data-main-photo-placeholder>Foto pendiente</div>
                                 <?php endif; ?>
-                                <button type="button" class="button button-secondary button-small" data-main-photo-trigger>Editar imagen</button>
+                                <button type="button" class="button button-secondary button-small member-photo-edit-button" data-main-photo-trigger>Editar imagen</button>
                             </div>
                             <div>
                                 <span><?= e($memberTypeLabel) ?></span>
@@ -393,7 +393,7 @@ $cvSectionConfig = [
                                 </div>
                                 <div class="main-photo-field">
                                     <label for="main_photo">Fotografia principal</label>
-                                    <input id="main_photo" name="main_photo" type="file" accept="image/jpeg,image/png,image/webp" <?= empty($memberProfile['main_photo_path']) ? 'required' : '' ?> data-main-photo-input>
+                                    <input id="main_photo" name="main_photo" type="file" accept="image/jpeg,image/png,image/webp" <?= empty($memberProfile['main_photo_path']) ? 'required' : '' ?> data-main-photo-input hidden>
                                     <button type="button" class="button button-secondary button-small" data-main-photo-trigger>Seleccionar imagen</button>
                                 </div>
                                 <p class="field-help">Cada espacio debe tener al menos una fotografia principal. JPG, PNG o WebP, maximo 5 MB.</p>
@@ -674,25 +674,16 @@ $cvSectionConfig = [
 
             if (input.matches('#main_photo') && input.files?.[0]) {
                 const fileUrl = URL.createObjectURL(input.files[0]);
-                const previewImage = document.querySelector('[data-main-photo-preview]');
+                const previewImages = document.querySelectorAll('[data-main-photo-preview]');
                 const placeholder = document.querySelector('[data-main-photo-placeholder]');
-                if (previewImage instanceof HTMLImageElement) {
-                    previewImage.src = fileUrl;
-                    previewImage.hidden = false;
-                } else if (placeholder instanceof HTMLElement) {
-                    const img = document.createElement('img');
-                    img.dataset.mainPhotoPreview = '';
-                    img.src = fileUrl;
-                    img.alt = 'Fotografia principal de ' + document.querySelector('.member-profile-preview strong')?.textContent?.trim();
-                    img.loading = 'lazy';
-                    placeholder.replaceWith(img);
-                }
+                previewImages.forEach((previewImage) => {
+                    if (previewImage instanceof HTMLImageElement) {
+                        previewImage.src = fileUrl;
+                        previewImage.hidden = false;
+                    }
+                });
                 if (placeholder instanceof HTMLElement) {
                     placeholder.hidden = true;
-                }
-                const dashboardImage = document.querySelector('.member-dashboard-identity img[data-main-photo-preview]');
-                if (dashboardImage instanceof HTMLImageElement) {
-                    dashboardImage.src = fileUrl;
                 }
             }
         });

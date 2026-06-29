@@ -2244,70 +2244,124 @@ h3 {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-bottom: 10px;
+    margin-bottom: 16px;
 }
 
 .rich-text-button {
-    border: 1px solid rgba(17, 17, 20, 0.08);
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
     color: var(--color-white);
-    padding: 8px 12px;
+    padding: 10px 14px;
     cursor: pointer;
     font-weight: 700;
-    }
+    min-width: 44px;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
 
-    .button-small {
-        font-size: 0.85rem;
-        padding: 8px 14px;
-        min-width: auto;
-    }
+.rich-text-button:hover {
+    background: rgba(255, 255, 255, 0.18);
+    transform: translateY(-1px);
+}
 
-    .member-profile-photo {
-        position: relative;
-        display: inline-flex;
-        align-items: center;
-        gap: 14px;
-    }
+.button-small {
+    font-size: 0.9rem;
+    padding: 10px 16px;
+    min-width: auto;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--color-white);
+    transition: background 0.2s ease;
+}
 
-    .member-profile-photo img,
-    .member-profile-photo .member-photo-placeholder {
-        width: 132px;
-        height: 132px;
-        object-fit: cover;
-        border-radius: 18px;
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        background: rgba(255, 255, 255, 0.05);
-    }
+.button-small:hover {
+    background: rgba(255, 255, 255, 0.16);
+}
 
-    .member-profile-photo button {
-        position: absolute;
-        bottom: 10px;
-        right: 10px;
-        z-index: 2;
-        padding: 8px 12px;
-        border-radius: 999px;
-    }
+.member-profile-photo {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 160px;
+    min-width: 160px;
+    height: 160px;
+    border-radius: 24px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
 
-    .main-photo-field {
-        display: grid;
-        gap: 10px;
-        align-items: center;
-    }
+.member-profile-photo img,
+.member-profile-photo .member-photo-placeholder {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: grid;
+    place-items: center;
+    font-size: 1rem;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.88);
+    background: rgba(255, 255, 255, 0.04);
+}
 
-    .main-photo-field input[type="file"] {
-        opacity: 0;
-        position: absolute;
-        pointer-events: none;
-        width: 0;
-        height: 0;
-    }
+.member-profile-photo button {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    z-index: 2;
+    padding: 8px 14px;
+    border-radius: 999px;
+    backdrop-filter: blur(10px);
+    background: rgba(17, 17, 20, 0.62);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--color-white);
+}
 
-    .main-photo-field label {
-        font-weight: 700;
-        color: var(--color-white);
-    }
+.main-photo-field {
+    position: relative;
+    display: grid;
+    gap: 10px;
+    align-items: center;
+}
+
+.main-photo-field input[type="file"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    clip: rect(0, 0, 0, 0);
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.main-photo-field label {
+    font-weight: 700;
+    color: var(--color-white);
+    letter-spacing: 0.02em;
+}
+
+.rich-text-editor {
+    min-height: 200px;
+    padding: 20px;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--color-white);
+    line-height: 1.9;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
     overflow-wrap: break-word;
+}
+
+.rich-text-editor:focus {
+    outline: none;
+    border-color: rgba(201, 79, 92, 0.6);
+    box-shadow: 0 0 0 8px rgba(201, 79, 92, 0.08);
+}
+
 }
 
 .rich-text-editor:focus {
