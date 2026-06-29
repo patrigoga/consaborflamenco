@@ -35,10 +35,10 @@ function page_header(string $active = ''): void
     $academiasOpen = in_array($active, ['ACADEMIAS', 'CURSOS'], true);
     $modaOpen = $active === 'MODA';
     $user = function_exists('current_user') ? current_user() : null;
-    $panelHref = ($user['role'] ?? '') === 'admin' ? 'panel-admin.php' : 'panel-usuario.php';
     if ($user && ($user['role'] ?? 'user') !== 'admin' && function_exists('user_email_is_verified') && !user_email_is_verified($user)) {
-        $panelHref = 'verificacion-pendiente.php';
+        $user = null;
     }
+    $panelHref = ($user['role'] ?? '') === 'admin' ? 'panel-admin.php' : 'panel-usuario.php';
     $userName = $user['name'] ?? 'Miembro';
     $initials = strtoupper(substr($userName, 0, 1));
     ?>

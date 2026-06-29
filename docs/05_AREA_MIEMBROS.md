@@ -195,3 +195,4 @@ Los miembros podran contratar servicios digitales ofrecidos por la plataforma. E
 - 2026-06-28: Simplificado el registro a tipo de espacio, email, contrasena, repeticion y terminos; el perfil completo se rellena desde el panel privado.
 - 2026-06-29: Corregida la persistencia de fotografia principal aunque el perfil siga pendiente y refinado el editor de experiencia profesional con mas controles de formato.
 - 2026-06-29: Bloqueado el acceso al area de usuario hasta verificar email y revisado el formato de impresion del curriculum con cabecera directa, descripcion limpia, fechas compactas y sello de marca en el pie.
+- 2026-06-29: Ajustado el flujo de verificacion para que un miembro sin email validado no cree sesion ni aparezca como logueado; la pantalla pendiente permite reenviar el enlace por email.

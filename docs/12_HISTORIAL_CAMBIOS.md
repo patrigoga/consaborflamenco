@@ -289,3 +289,4 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - 2026-06-29: Separada la configuracion local/produccion mediante `.env`, anadidos defaults de la BD Hostinger y creado `setup-prod-db.php` para preparar produccion.
 - 2026-06-29: Ajustado el panel de usuario para guardar fotografia principal en perfiles pendientes, mejorar el editor de experiencia profesional y compactar la imagen del email de verificacion.
 - 2026-06-29: Reforzada la verificacion obligatoria de email antes del panel privado y redisenada la salida impresa del curriculum para evitar elementos del panel, conservar texto enriquecido y compactar fechas.
+- 2026-06-29: Corregido el acceso de usuarios no verificados para impedir la creacion de sesion tras registro o login y permitir reenvio de verificacion sin estar autenticado.

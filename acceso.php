@@ -14,7 +14,13 @@ if ($currentUser) {
         redirect_to('panel-admin.php');
     }
 
-    redirect_to(user_email_is_verified($currentUser) ? 'panel-usuario.php' : 'verificacion-pendiente.php');
+    if (user_email_is_verified($currentUser)) {
+        redirect_to('panel-usuario.php');
+    }
+
+    $pendingEmail = (string) ($currentUser['email'] ?? '');
+    logout_user();
+    redirect_to('verificacion-pendiente.php?email=' . urlencode($pendingEmail));
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -28,12 +34,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$errors) {
         $user = authenticate_user($email, $password);
         if ($user) {
-            login_user($user);
             if (($user['role'] ?? 'user') === 'admin') {
+                login_user($user);
                 redirect_to('panel-admin.php');
             }
 
-            redirect_to(user_email_is_verified($user) ? 'panel-usuario.php' : 'verificacion-pendiente.php');
+            if (!user_email_is_verified($user)) {
+                redirect_to('verificacion-pendiente.php?email=' . urlencode((string) ($user['email'] ?? $email)));
+            }
+
+            login_user($user);
+            redirect_to('panel-usuario.php');
         }
         $errors[] = 'Email o contraseña incorrectos.';
     }

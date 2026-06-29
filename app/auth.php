@@ -486,14 +486,14 @@ function authenticate_user(string $email, string $password): ?array
         return null;
     }
 
-    $user['last_login_at'] = gmdate('c');
-    update_user($user);
-
     return $user;
 }
 
 function login_user(array $user): void
 {
+    $user['last_login_at'] = gmdate('c');
+    update_user($user);
+
     session_regenerate_id(true);
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['user_role'] = $user['role'] ?? 'user';
@@ -526,7 +526,9 @@ function require_login(): array
     }
 
     if (!user_email_is_verified($user)) {
-        redirect_to('verificacion-pendiente.php');
+        $email = (string) ($user['email'] ?? '');
+        logout_user();
+        redirect_to('verificacion-pendiente.php?email=' . urlencode($email));
     }
 
     return $user;

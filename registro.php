@@ -16,7 +16,13 @@ if ($currentUser) {
         redirect_to('panel-admin.php');
     }
 
-    redirect_to(user_email_is_verified($currentUser) ? 'panel-usuario.php' : 'verificacion-pendiente.php');
+    if (user_email_is_verified($currentUser)) {
+        redirect_to('panel-usuario.php');
+    }
+
+    $pendingEmail = (string) ($currentUser['email'] ?? '');
+    logout_user();
+    redirect_to('verificacion-pendiente.php?email=' . urlencode($pendingEmail));
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -59,8 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 @send_email_verification($user['email'], $token, $displayName);
             }
 
-            login_user($user);
-            redirect_to('verificacion-pendiente.php');
+            redirect_to('verificacion-pendiente.php?email=' . urlencode((string) ($user['email'] ?? $values['email'])));
         } catch (InvalidArgumentException $exception) {
             $errors[] = $exception->getMessage();
         } catch (Throwable) {
