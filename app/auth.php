@@ -89,8 +89,8 @@ function sanitize_css_style(string $style): string
 
 function sanitize_html(string $html): string
 {
-    $allowedTags = ['b', 'strong', 'i', 'em', 'u', 'span', 'br', 'p', 'ul', 'ol', 'li'];
-    $html = strip_tags($html, '<b><strong><i><em><u><span><br><p><ul><ol><li>');
+    $allowedTags = ['b', 'strong', 'i', 'em', 'u', 'span', 'br', 'p', 'div', 'h3', 'blockquote', 'ul', 'ol', 'li'];
+    $html = strip_tags($html, '<b><strong><i><em><u><span><br><p><div><h3><blockquote><ul><ol><li>');
 
     return preg_replace_callback(
         '/<(\/)?([a-z0-9]+)([^>]*)>/i',
@@ -101,7 +101,7 @@ function sanitize_html(string $html): string
             if (!in_array($tag, $allowedTags, true)) {
                 return '';
             }
-            if ($tag === 'span' || $tag === 'p') {
+            if (in_array($tag, ['span', 'p', 'div'], true)) {
                 $style = '';
                 if (preg_match('/style\s*=\s*("([^"]*)"|\'([^\']*)\')/i', $attrs, $styleMatch)) {
                     $style = sanitize_css_style($styleMatch[2] ?? $styleMatch[3] ?? '');
@@ -1236,7 +1236,7 @@ function send_email_verification(string $email, string $plainToken, string $name
     $subject = 'Bienvenido a ' . APP_NAME;
     $recipientName = $name !== '' ? $name : 'Miembro';
     $brand = APP_NAME;
-    $headerImage = app_url('assets/images/auth/registro-flamenco.png');
+    $headerImage = app_url('assets/images/flamenco-header-art.png');
     $profileUrl = app_url('panel-usuario.php');
 
     $plainText = "Hola {$recipientName},\n\n"
@@ -1260,7 +1260,7 @@ function send_email_verification(string $email, string $plainToken, string $name
                 <table width="680" cellpadding="0" cellspacing="0" role="presentation" style="background:#111114;border-radius:28px;overflow:hidden;box-shadow:0 30px 90px rgba(0,0,0,0.35);">
                     <tr>
                         <td style="padding:0;">
-                            <img src="{$headerImage}" alt="{$brand}" width="680" style="display:block;width:100%;height:auto;object-fit:cover;">
+                            <img src="{$headerImage}" alt="{$brand}" width="680" height="170" style="display:block;width:100%;height:170px;object-fit:cover;object-position:center 42%;">
                         </td>
                     </tr>
                     <tr>

@@ -178,15 +178,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') ==
             $memberProfile['sort_orders']['experience'] ?? 'desc'
         );
         $memberProfile['completed_at'] = profile_is_complete($memberProfile) ? ($memberProfile['completed_at'] ?? gmdate('c')) : null;
-        if (!profile_is_complete($memberProfile)) {
-            $profileErrors[] = 'Completa nombre publico, descripcion, ciudad, provincia, fotografia principal y al menos una experiencia profesional.';
-        }
     }
 
     if (!$profileErrors) {
         $user['artistic_profile'] = $memberProfile;
         update_user($user);
-        $profileMessages[] = 'Perfil artistico actualizado.';
+        $profileMessages[] = profile_is_complete($memberProfile)
+            ? 'Perfil artistico actualizado.'
+            : 'Perfil guardado. Sigue pendiente completar nombre publico, descripcion, ciudad, provincia, fotografia principal y al menos una experiencia profesional.';
     }
 }
 
@@ -210,7 +209,7 @@ $cvSectionConfig = [
     'experience' => [
         'title' => 'Experiencia profesional',
         'public_field' => 'experience',
-        'fields' => ['category' => 'Categoria', 'description' => 'Descripcion', 'date_start' => 'Inicio', 'date_end' => 'Fin', 'location' => 'Lugar / entidad'],
+        'fields' => ['category' => 'Categoria / cargo', 'description' => 'Descripcion', 'date_start' => 'Inicio', 'date_end' => 'Fin', 'location' => 'Lugar / entidad'],
         'sortable' => true,
         'requires_title_description' => false,
         'allows_image' => true,
@@ -256,7 +255,8 @@ $cvSectionConfig = [
                         <?php if (!empty($memberProfile['main_photo_path'])): ?>
                             <img src="<?= e($memberProfile['main_photo_path']) ?>" alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview>
                         <?php else: ?>
-                            <div class="member-dashboard-photo-placeholder"><?= e(strtoupper(substr($displayName, 0, 1))) ?></div>
+                            <img alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview hidden>
+                            <div class="member-dashboard-photo-placeholder" data-main-photo-placeholder><?= e(strtoupper(substr($displayName, 0, 1))) ?></div>
                         <?php endif; ?>
                         <div>
                             <span><?= e($memberTypeLabel) ?></span>
@@ -309,6 +309,7 @@ $cvSectionConfig = [
                                 <?php if (!empty($memberProfile['main_photo_path'])): ?>
                                     <img src="<?= e($memberProfile['main_photo_path']) ?>" alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview>
                                 <?php else: ?>
+                                    <img alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview hidden>
                                     <div class="member-photo-placeholder" data-main-photo-placeholder>Foto pendiente</div>
                                 <?php endif; ?>
                                 <button type="button" class="button button-secondary button-small member-photo-edit-button" data-main-photo-trigger>Editar imagen</button>
@@ -649,7 +650,12 @@ $cvSectionConfig = [
                     richEditor.innerHTML = '';
                     textarea.value = '';
                 }
+                row.querySelectorAll('[data-editor-toolbar]').forEach((toolbar) => {
+                    toolbar.innerHTML = '';
+                    delete toolbar.dataset.editorReady;
+                });
                 list.appendChild(row);
+                initializeRichTextEditors(row);
             });
         });
 
@@ -675,16 +681,16 @@ $cvSectionConfig = [
             if (input.matches('#main_photo') && input.files?.[0]) {
                 const fileUrl = URL.createObjectURL(input.files[0]);
                 const previewImages = document.querySelectorAll('[data-main-photo-preview]');
-                const placeholder = document.querySelector('[data-main-photo-placeholder]');
+                const placeholders = document.querySelectorAll('[data-main-photo-placeholder]');
                 previewImages.forEach((previewImage) => {
                     if (previewImage instanceof HTMLImageElement) {
                         previewImage.src = fileUrl;
                         previewImage.hidden = false;
                     }
                 });
-                if (placeholder instanceof HTMLElement) {
+                placeholders.forEach((placeholder) => {
                     placeholder.hidden = true;
-                }
+                });
             }
         });
 
@@ -702,55 +708,80 @@ $cvSectionConfig = [
             });
         });
 
-        const richTextEditorToolbar = document.querySelectorAll('[data-editor-toolbar]');
-        richTextEditorToolbar.forEach((toolbar) => {
-            const editor = toolbar.parentElement?.querySelector('[data-rich-editor]');
-            const textarea = toolbar.parentElement?.querySelector('textarea[hidden]');
-            if (!(editor instanceof HTMLElement) || !(textarea instanceof HTMLTextAreaElement)) {
-                return;
-            }
-
-            const controls = [
-                { label: 'B', command: 'bold' },
-                { label: 'I', command: 'italic' },
-                { label: 'U', command: 'underline' },
-                { label: 'S', command: 'strikeThrough' },
-                { label: 'A', command: 'foreColor', value: '#b22222' },
-                { label: 'A', command: 'foreColor', value: '#1e90ff' },
-                { label: 'A', command: 'foreColor', value: '#000000' },
-                { label: 'H1', command: 'formatBlock', value: 'h1' },
-                { label: 'P', command: 'formatBlock', value: 'p' },
-            ];
-
-            controls.forEach((control) => {
-                const button = document.createElement('button');
-                button.type = 'button';
-                button.className = 'rich-text-button';
-                button.textContent = control.label;
-                button.title = control.value ? `${control.command}: ${control.value}` : control.command;
-                button.addEventListener('click', () => {
-                    document.execCommand('styleWithCSS', false, true);
-                    document.execCommand(control.command, false, control.value || null);
-                    editor.focus();
-                });
-                if (control.command === 'foreColor') {
-                    button.style.color = control.value;
-                    button.textContent = 'A';
+        function initializeRichTextEditors(scope = document) {
+            scope.querySelectorAll('[data-editor-toolbar]').forEach((toolbar) => {
+                if (toolbar.dataset.editorReady === '1') {
+                    return;
                 }
-                toolbar.appendChild(button);
-            });
 
-            editor.addEventListener('input', () => {
-                textarea.value = editor.innerHTML;
-            });
+                const editor = toolbar.parentElement?.querySelector('[data-rich-editor]');
+                const textarea = toolbar.parentElement?.querySelector('textarea[hidden]');
+                if (!(editor instanceof HTMLElement) || !(textarea instanceof HTMLTextAreaElement)) {
+                    return;
+                }
 
-            const form = toolbar.closest('form');
-            if (form) {
-                form.addEventListener('submit', () => {
+                toolbar.dataset.editorReady = '1';
+                toolbar.innerHTML = '';
+
+                const controls = [
+                    { label: 'B', title: 'Negrita', command: 'bold' },
+                    { label: 'I', title: 'Cursiva', command: 'italic' },
+                    { label: 'U', title: 'Subrayado', command: 'underline' },
+                    { label: 'T', title: 'Titulo corto', command: 'formatBlock', value: 'h3' },
+                    { label: 'P', title: 'Parrafo', command: 'formatBlock', value: 'p' },
+                    { label: 'Q', title: 'Cita destacada', command: 'formatBlock', value: 'blockquote' },
+                    { label: 'UL', title: 'Lista', command: 'insertUnorderedList' },
+                    { label: 'OL', title: 'Lista numerada', command: 'insertOrderedList' },
+                    { label: 'L', title: 'Alinear izquierda', command: 'justifyLeft' },
+                    { label: 'C', title: 'Centrar', command: 'justifyCenter' },
+                    { label: 'R', title: 'Color rojo', command: 'foreColor', value: '#c94f5c', color: '#c94f5c' },
+                    { label: 'A', title: 'Color negro', command: 'foreColor', value: '#111114', color: '#111114' },
+                    { label: 'X', title: 'Limpiar formato', command: 'removeFormat' },
+                ];
+
+                const syncEditor = () => {
                     textarea.value = editor.innerHTML;
+                };
+
+                controls.forEach((control) => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'rich-text-button';
+                    button.textContent = control.label;
+                    button.title = control.title;
+                    button.setAttribute('aria-label', control.title);
+                    if (control.color) {
+                        button.style.color = control.color;
+                    }
+                    button.addEventListener('click', () => {
+                        editor.focus();
+                        document.execCommand('styleWithCSS', false, true);
+                        document.execCommand(control.command, false, control.value || null);
+                        syncEditor();
+                    });
+                    toolbar.appendChild(button);
                 });
-            }
-        });
+
+                editor.addEventListener('input', syncEditor);
+                editor.addEventListener('blur', syncEditor);
+                syncEditor();
+
+                const form = toolbar.closest('form');
+                if (form && form.dataset.richEditorSubmitBound !== '1') {
+                    form.dataset.richEditorSubmitBound = '1';
+                    form.addEventListener('submit', () => {
+                        form.querySelectorAll('[data-rich-editor]').forEach((formEditor) => {
+                            const formTextarea = formEditor.parentElement?.querySelector('textarea[hidden]');
+                            if (formTextarea instanceof HTMLTextAreaElement) {
+                                formTextarea.value = formEditor.innerHTML;
+                            }
+                        });
+                    });
+                }
+            });
+        }
+
+        initializeRichTextEditors();
 
         const cardPreview = document.querySelector('[data-card-preview]');
         const cardImage = document.querySelector('[data-card-image]');

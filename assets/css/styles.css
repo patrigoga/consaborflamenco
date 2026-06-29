@@ -2243,24 +2243,33 @@ h3 {
 .rich-text-toolbar {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 16px;
+    gap: 6px;
+    margin-bottom: 0;
+    padding: 10px;
+    border: 1px solid rgba(17, 17, 20, 0.1);
+    border-bottom: 0;
+    border-radius: 14px 14px 0 0;
+    background: linear-gradient(180deg, rgba(255, 250, 242, 0.98), rgba(244, 238, 229, 0.96));
 }
 
 .rich-text-button {
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.08);
-    color: var(--color-white);
-    padding: 10px 14px;
+    min-width: 34px;
+    min-height: 32px;
+    padding: 6px 10px;
+    border: 1px solid rgba(17, 17, 20, 0.12);
+    border-radius: 8px;
+    color: #111114;
+    background: rgba(255, 255, 255, 0.82);
     cursor: pointer;
-    font-weight: 700;
-    min-width: 44px;
-    transition: background 0.2s ease, transform 0.2s ease;
+    font-size: 0.78rem;
+    font-weight: 900;
+    line-height: 1;
+    transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
 }
 
 .rich-text-button:hover {
-    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(201, 79, 92, 0.38);
+    background: #ffffff;
     transform: translateY(-1px);
 }
 
@@ -2345,15 +2354,16 @@ h3 {
 }
 
 .rich-text-editor {
-    min-height: 200px;
-    padding: 20px;
-    border-radius: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--color-white);
-    line-height: 1.9;
+    min-height: 220px;
+    padding: 18px 20px;
+    border: 1px solid rgba(17, 17, 20, 0.1);
+    border-radius: 0 0 14px 14px;
+    background: #ffffff;
+    color: #111114;
+    line-height: 1.75;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
     overflow-wrap: break-word;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .rich-text-editor:focus {
@@ -2362,10 +2372,24 @@ h3 {
     box-shadow: 0 0 0 8px rgba(201, 79, 92, 0.08);
 }
 
+.rich-text-editor h3 {
+    margin: 0 0 10px;
+    color: #111114;
+    font-family: var(--font-display);
+    font-size: 1.35rem;
 }
 
-.rich-text-editor:focus {
-    outline: 2px solid rgba(201, 79, 92, 0.24);
+.rich-text-editor p,
+.rich-text-editor ul,
+.rich-text-editor ol,
+.rich-text-editor blockquote {
+    margin: 0 0 12px;
+}
+
+.rich-text-editor blockquote {
+    padding-left: 14px;
+    border-left: 3px solid var(--color-red);
+    color: #343038;
 }
 
 .member-panel-content {
@@ -2693,16 +2717,17 @@ h3 {
 .cv-repeat-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 10px;
-    padding: 12px;
-    border: 1px solid rgba(17, 17, 20, 0.07);
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.7);
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid rgba(17, 17, 20, 0.08);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.82);
 }
 
 .cv-repeat-row-with-media {
-    grid-template-columns: minmax(150px, 180px) repeat(5, minmax(110px, 1fr));
-    gap: 10px 12px;
+    grid-template-columns: minmax(170px, 220px) repeat(3, minmax(0, 1fr));
+    gap: 14px 16px;
+    align-items: start;
 }
 
 .cv-row-help,
@@ -2714,13 +2739,23 @@ h3 {
 
 .cv-repeat-row-with-media .cv-entry-image-field {
     grid-column: 1;
-    grid-row: 1 / span 5;
+    grid-row: 1 / span 4;
 }
 
 .cv-repeat-row-with-media .cv-row-help,
 .cv-repeat-row-with-media .cv-entry-title-field,
 .cv-repeat-row-with-media .cv-entry-description-field {
     grid-column: 2 / -1;
+}
+
+.cv-repeat-row-with-media .cv-entry-category-field {
+    grid-column: 2 / -1;
+    max-width: 520px;
+}
+
+.cv-repeat-row-with-media .cv-entry-description-field {
+    display: grid;
+    gap: 0;
 }
 
 .cv-entry-title-field input {
@@ -2734,10 +2769,10 @@ h3 {
 .cv-entry-image-box {
     display: grid;
     place-items: center;
-    min-height: 178px;
+    min-height: 190px;
     color: var(--color-muted);
     border: 1px dashed rgba(17, 17, 20, 0.18);
-    border-radius: 12px;
+    border-radius: 14px;
     background: rgba(17, 17, 20, 0.04);
     overflow: hidden;
 }
@@ -2745,8 +2780,17 @@ h3 {
 .cv-entry-image-preview {
     width: 100%;
     height: 100%;
-    min-height: 178px;
+    min-height: 190px;
     object-fit: cover;
+}
+
+.cv-entry-image-field input[type="file"] {
+    width: 100%;
+    min-height: 42px;
+    padding: 9px;
+    border: 1px solid rgba(17, 17, 20, 0.1);
+    border-radius: 10px;
+    background: rgba(255, 250, 242, 0.84);
 }
 
 .cv-repeat-section .cv-repeat-row:nth-of-type(n + 5) {
@@ -3722,6 +3766,7 @@ h3 {
         .cv-repeat-row-with-media .cv-entry-image-field,
         .cv-repeat-row-with-media .cv-row-help,
         .cv-repeat-row-with-media .cv-entry-title-field,
+        .cv-repeat-row-with-media .cv-entry-category-field,
         .cv-repeat-row-with-media .cv-entry-description-field {
             grid-column: 1 / -1;
             grid-row: auto;
