@@ -2092,22 +2092,32 @@ h3 {
     display: grid;
     gap: 4px;
     padding: 12px 14px;
+    border: 1px solid transparent;
     border-radius: 10px;
     font-size: 0.92rem;
 }
 
 .form-alert p {
     margin: 0;
+    color: inherit;
 }
 
 .form-alert-error {
-    color: #7a2630;
-    background: #f8dce0;
+    color: #fff7f7;
+    border-color: rgba(255, 176, 176, 0.42);
+    background: #8f1f2d;
+    box-shadow: 0 14px 34px rgba(143, 31, 45, 0.24);
 }
 
 .form-alert-success {
-    color: #23543b;
-    background: #dcf2e6;
+    color: #f3fff8;
+    border-color: rgba(156, 230, 183, 0.42);
+    background: #14633f;
+    box-shadow: 0 14px 34px rgba(20, 99, 63, 0.24);
+}
+
+.auth-copy .form-alert p {
+    color: inherit;
 }
 
 .legal-section {
@@ -2265,6 +2275,18 @@ h3 {
     font-weight: 900;
     line-height: 1;
     transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.rich-text-select {
+    min-height: 32px;
+    max-width: 150px;
+    padding: 6px 28px 6px 10px;
+    border: 1px solid rgba(17, 17, 20, 0.12);
+    border-radius: 8px;
+    color: #111114;
+    background: rgba(255, 255, 255, 0.9);
+    font-size: 0.78rem;
+    font-weight: 800;
 }
 
 .rich-text-button:hover {
@@ -2694,7 +2716,8 @@ h3 {
     letter-spacing: 0.06em;
 }
 
-.cv-section-tools select {
+.cv-section-tools select,
+.cv-section-tools input[type="number"] {
     min-height: 36px;
     padding: 6px 10px;
     border: 1px solid rgba(17, 17, 20, 0.12);
@@ -2702,16 +2725,16 @@ h3 {
     background: #ffffff;
 }
 
-.cv-section-heading span {
-    width: max-content;
-    padding: 6px 10px;
-    color: #7a5720;
-    background: #fff0c8;
+.cv-section-tools input[type="number"] {
+    width: 74px;
+}
+
+.cv-section-toggle {
+    padding: 7px 10px;
+    color: #173d2c;
+    border: 1px solid rgba(23, 61, 44, 0.16);
     border-radius: 999px;
-    font-size: 0.72rem;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    background: #e5f5ec;
 }
 
 .cv-repeat-row {
@@ -2730,6 +2753,23 @@ h3 {
     align-items: start;
 }
 
+.cv-entry-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    grid-column: 1 / -1;
+}
+
+.cv-entry-controls label {
+    width: auto;
+}
+
+.cv-entry-controls input[type="number"] {
+    width: 84px;
+    min-height: 42px;
+}
+
 .cv-row-help,
 .cv-entry-title-field,
 .cv-entry-description-field,
@@ -2743,6 +2783,7 @@ h3 {
 }
 
 .cv-repeat-row-with-media .cv-row-help,
+.cv-repeat-row-with-media .cv-entry-controls,
 .cv-repeat-row-with-media .cv-entry-title-field,
 .cv-repeat-row-with-media .cv-entry-description-field {
     grid-column: 2 / -1;
@@ -2791,6 +2832,26 @@ h3 {
     border: 1px solid rgba(17, 17, 20, 0.1);
     border-radius: 10px;
     background: rgba(255, 250, 242, 0.84);
+}
+
+.cv-header-background-field {
+    display: grid;
+    gap: 8px;
+}
+
+.cv-header-background-preview {
+    display: grid;
+    min-height: 110px;
+    place-items: center;
+    color: var(--color-white);
+    border: 1px solid rgba(17, 17, 20, 0.12);
+    border-radius: 14px;
+    background:
+        linear-gradient(135deg, rgba(17, 17, 20, 0.72), rgba(32, 56, 71, 0.68)),
+        rgba(17, 17, 20, 0.36);
+    background-size: cover;
+    background-position: center;
+    font-weight: 900;
 }
 
 .cv-repeat-section .cv-repeat-row:nth-of-type(n + 5) {
@@ -3764,6 +3825,7 @@ h3 {
 	    }
 
         .cv-repeat-row-with-media .cv-entry-image-field,
+        .cv-repeat-row-with-media .cv-entry-controls,
         .cv-repeat-row-with-media .cv-row-help,
         .cv-repeat-row-with-media .cv-entry-title-field,
         .cv-repeat-row-with-media .cv-entry-category-field,
@@ -3921,6 +3983,8 @@ h3 {
         padding: 9px 11px;
         color: #ffffff;
         background: linear-gradient(135deg, #111114, #203847);
+        background-size: cover;
+        background-position: center;
         border-radius: 10px;
     }
 
@@ -3943,8 +4007,15 @@ h3 {
         max-width: none;
         color: #ffffff;
         font-family: "Playfair Display", Georgia, serif;
-        font-size: 24px;
+        font-size: 25px;
         line-height: 1.05;
+    }
+
+    .cv-print-name {
+        margin-top: 4px;
+        color: rgba(255, 255, 255, 0.92);
+        font-size: 13px;
+        font-weight: 800;
     }
 
     .cv-print-document section {

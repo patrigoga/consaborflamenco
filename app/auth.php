@@ -71,6 +71,7 @@ function sanitize_css_style(string $style): string
         'font-style',
         'text-decoration',
         'text-align',
+        'font-family',
     ];
     $cleanRules = [];
     preg_match_all('/([a-z-]+)\s*:\s*([^;]+);?/i', $style, $matches, PREG_SET_ORDER);
@@ -80,6 +81,21 @@ function sanitize_css_style(string $style): string
         if (!in_array($property, $allowedProperties, true)) {
             continue;
         }
+
+        if ($property === 'font-family') {
+            if (preg_match('/^[a-z0-9 ,"\'-]+$/i', $value)) {
+                $cleanRules[] = $property . ': ' . $value;
+            }
+            continue;
+        }
+
+        if ($property === 'font-size') {
+            if (preg_match('/^([0-9]{1,2}px|[0-3](\.[0-9]{1,2})?(rem|em))$/i', $value)) {
+                $cleanRules[] = $property . ': ' . $value;
+            }
+            continue;
+        }
+
         if (preg_match('/^(#([0-9a-f]{3}|[0-9a-f]{6})|rgba?\([^\)]+\)|[a-z ]+)$/i', $value)) {
             $cleanRules[] = $property . ': ' . $value;
         }
@@ -165,8 +181,11 @@ function default_member_profile(array $user = []): array
         'website_url' => '',
         'instagram_url' => '',
         'main_photo_path' => '',
+        'cv_header_image_path' => '',
+        'print_professional_data' => true,
         'public_fields' => [],
         'sort_orders' => [],
+        'section_settings' => [],
         'education' => [],
         'experience' => [],
         'teaching' => [],
@@ -212,6 +231,11 @@ function member_profile_from_input(array $input, array $existingProfile = []): a
     $profile['instagram_url'] = trim((string) ($input['instagram_url'] ?? $profile['instagram_url']));
     $profile['private_notes'] = clean_text((string) ($input['private_notes'] ?? $profile['private_notes']));
     $profile['main_photo_path'] = clean_text((string) ($existingProfile['main_photo_path'] ?? $profile['main_photo_path']));
+    $profile['cv_header_image_path'] = clean_text((string) ($existingProfile['cv_header_image_path'] ?? $profile['cv_header_image_path']));
+    $profile['print_professional_data'] = array_key_exists('print_professional_data', $input)
+        ? (string) $input['print_professional_data'] === '1'
+        : (bool) ($existingProfile['print_professional_data'] ?? $profile['print_professional_data']);
+    $profile['section_settings'] = is_array($existingProfile['section_settings'] ?? null) ? $existingProfile['section_settings'] : $profile['section_settings'];
     $profile['completed_at'] = profile_is_complete($profile) ? ($profile['completed_at'] ?? gmdate('c')) : null;
 
     return $profile;

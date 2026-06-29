@@ -53,7 +53,7 @@ El registro inicial se simplifica para no frenar el alta. Exige:
 - Repeticion de contrasena.
 - Aceptacion de terminos y condiciones.
 
-El nombre publico, descripcion, ciudad, provincia, fotografia principal y curriculum se completan despues desde el area privada.
+El nombre artistico, descripcion, ciudad, provincia, fotografia principal y curriculum se completan despues desde el area privada.
 
 El acceso redirige al panel privado inicial `panel-usuario.php`, que queda preparado para desarrollar sus modulos por fases.
 
@@ -65,15 +65,17 @@ El panel de miembro se organiza con:
 
 - Cabecera con avatar de usuario y menu desplegable para editar perfil, cambiar contrasena y cerrar sesion.
 - Sidebar izquierdo oscuro con accesos a Perfil, Tarjeta de miembro, Banners y Seguridad.
-- Cabecera privada tipo dashboard con fotografia principal, nombre publico, tipo de espacio, ubicacion y metricas de estado.
+- Cabecera privada tipo dashboard con fotografia principal, nombre artistico, tipo de espacio, ubicacion y metricas de estado.
 - Bloque de perfil con datos principales del miembro.
-- Editor de perfil artistico con tipo de espacio, nombre publico, descripcion, ubicacion, contacto, redes y fotografia principal.
+- Editor de perfil artistico con tipo de espacio, nombre artistico, titular artistico, descripcion, ubicacion, contacto, redes y fotografia principal.
 - Editor de curriculum artistico con formacion, experiencia escenica, docencia, actuaciones destacadas, premios, repertorio, disponibilidad y notas privadas.
 - Control de visibilidad por bloques para decidir que datos se publican y que datos quedan privados.
 - Bloques repetibles con boton para anadir nuevas entradas sin limite fijo inicial.
 - Fechas en formacion, experiencia, docencia, actuaciones y premios para permitir orden cronologico ascendente o descendente.
+- Formacion y experiencia permiten activar/desactivar la seccion completa, activar/desactivar cada entrada y ordenar entradas de forma manual.
 - Boton para imprimir o guardar el curriculum en PDF desde el navegador.
 - La plantilla PDF debe ser compacta, aprovechar el ancho del papel y mantener la foto en color.
+- La cabecera del PDF usa el titular artistico como H1, puede tener imagen de fondo personalizada y no muestra el tipo de espacio.
 - Bloque de tarjeta identificativa con imagen a pantalla completa, nombre y nivel de membresia visible.
 - Bloque de banners para preparar la compra de espacios publicitarios mediante Stripe.
 
@@ -106,7 +108,7 @@ Regla principal:
 Cada miembro debe tener un espacio publico minimo desde el registro. Para considerarse completo, el perfil debe incluir:
 
 - Tipo de espacio.
-- Nombre publico.
+- Nombre artistico.
 - Descripcion artistica.
 - Ciudad.
 - Provincia.
@@ -125,6 +127,7 @@ El curriculum artistico debe permitir registrar:
 - Repertorio y palos: palo/estilo y notas.
 - Redes sociales y enlaces: plataforma, URL y descripcion.
 - Datos profesionales: especialidades, trayectoria, disponibilidad, web, Instagram y contacto.
+- Opcion para ocultar los datos profesionales en la impresion PDF sin eliminarlos del perfil.
 - Notas privadas no publicables.
 - Pie de pagina del PDF con la marca `Creado con consaborflamenco.com`.
 

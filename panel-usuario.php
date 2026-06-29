@@ -42,7 +42,28 @@ $publicFieldOptions = [
     'birth_place' => 'Lugar de origen',
     'years_active' => 'Trayectoria',
     'availability' => 'Disponibilidad',
+    'education' => 'Formacion',
     'experience' => 'Experiencia',
+];
+$cvSectionConfig = [
+    'education' => [
+        'title' => 'Formacion',
+        'public_field' => 'education',
+        'fields' => ['category' => 'Titulo / formacion', 'description' => 'Descripcion', 'date_start' => 'Inicio', 'date_end' => 'Fin', 'location' => 'Centro / maestro'],
+        'sortable' => true,
+        'requires_title_description' => false,
+        'allows_image' => true,
+        'default_order' => 1,
+    ],
+    'experience' => [
+        'title' => 'Experiencia profesional',
+        'public_field' => 'experience',
+        'fields' => ['category' => 'Titulo / cargo', 'description' => 'Descripcion', 'date_start' => 'Inicio', 'date_end' => 'Fin', 'location' => 'Lugar / entidad'],
+        'sortable' => true,
+        'requires_title_description' => false,
+        'allows_image' => true,
+        'default_order' => 2,
+    ],
 ];
 
 function is_public_field(array $profile, string $field): bool
@@ -99,6 +120,9 @@ function clean_cv_entries(
             $hasContent = $hasContent || $value !== '';
         }
 
+        $entry['is_active'] = isset($row['is_active']) && (string) $row['is_active'] === '1';
+        $entry['display_order'] = max(1, (int) ($row['display_order'] ?? ($existingEntries[$rowIndex]['display_order'] ?? ($rowIndex + 1))));
+
         if ($allowsImage) {
             $entry['image_path'] = clean_text((string) ($existingEntries[$rowIndex]['image_path'] ?? ''));
             $uploadedImagePath = save_member_cv_image_upload(cv_uploaded_file($files, $section, (int) $rowIndex), $errors);
@@ -129,9 +153,13 @@ function cv_public_badge(array $profile, string $field): string
     return is_public_field($profile, $field) ? 'Publico' : 'Privado';
 }
 
-function sort_cv_entries_by_date(array $entries, string $order): array
+function sort_cv_entries(array $entries, string $order): array
 {
     usort($entries, static function (array $left, array $right) use ($order): int {
+        if ($order === 'manual') {
+            return ((int) ($left['display_order'] ?? 0)) <=> ((int) ($right['display_order'] ?? 0));
+        }
+
         $leftDate = (string) ($left['date_start'] ?? $left['date_end'] ?? '');
         $rightDate = (string) ($right['date_start'] ?? $right['date_end'] ?? '');
         $comparison = strcmp($leftDate, $rightDate);
@@ -139,6 +167,12 @@ function sort_cv_entries_by_date(array $entries, string $order): array
     });
 
     return $entries;
+}
+
+function normalize_cv_sort_order(mixed $value): string
+{
+    $value = (string) $value;
+    return in_array($value, ['desc', 'asc', 'manual'], true) ? $value : 'desc';
 }
 
 function cv_print_date(string $date): string
@@ -152,6 +186,46 @@ function cv_print_date(string $date): string
     return $timestamp ? date('d/m/Y', $timestamp) : $date;
 }
 
+function clean_cv_section_settings(array $source, array $existingSettings, array $sectionConfig): array
+{
+    $settings = [];
+    foreach ($sectionConfig as $sectionKey => $config) {
+        $sectionInput = is_array($source[$sectionKey] ?? null) ? $source[$sectionKey] : [];
+        $existingSection = is_array($existingSettings[$sectionKey] ?? null) ? $existingSettings[$sectionKey] : [];
+        $settings[$sectionKey] = [
+            'active' => array_key_exists('active', $sectionInput)
+                ? (string) $sectionInput['active'] === '1'
+                : (bool) ($existingSection['active'] ?? true),
+            'order' => max(1, (int) ($sectionInput['order'] ?? ($existingSection['order'] ?? ($config['default_order'] ?? 99)))),
+        ];
+    }
+
+    return $settings;
+}
+
+function cv_section_is_active(array $profile, string $sectionKey): bool
+{
+    $settings = is_array($profile['section_settings'][$sectionKey] ?? null) ? $profile['section_settings'][$sectionKey] : [];
+    return (bool) ($settings['active'] ?? true);
+}
+
+function cv_entry_is_active(array $entry): bool
+{
+    return (bool) ($entry['is_active'] ?? true);
+}
+
+function cv_print_sections(array $profile, array $sectionConfig): array
+{
+    $sections = $sectionConfig;
+    uksort($sections, static function (string $leftKey, string $rightKey) use ($profile, $sectionConfig): int {
+        $leftSettings = is_array($profile['section_settings'][$leftKey] ?? null) ? $profile['section_settings'][$leftKey] : [];
+        $rightSettings = is_array($profile['section_settings'][$rightKey] ?? null) ? $profile['section_settings'][$rightKey] : [];
+        return ((int) ($leftSettings['order'] ?? ($sectionConfig[$leftKey]['default_order'] ?? 99))) <=> ((int) ($rightSettings['order'] ?? ($sectionConfig[$rightKey]['default_order'] ?? 99)));
+    });
+
+    return $sections;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') === 'update_profile') {
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
         $profileErrors[] = 'La sesion ha caducado. Vuelve a intentarlo.';
@@ -162,6 +236,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') ==
         if ($photoPath) {
             $memberProfile['main_photo_path'] = $photoPath;
         }
+
+        $cvHeaderImagePath = save_member_cv_image_upload($_FILES['cv_header_image'] ?? null, $profileErrors);
+        if ($cvHeaderImagePath) {
+            $memberProfile['cv_header_image_path'] = $cvHeaderImagePath;
+        }
     }
 
     if (!$profileErrors) {
@@ -171,23 +250,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') ==
         $memberProfile['public_fields'] = $publicFields;
         $submittedSortOrders = is_array($_POST['sort_orders'] ?? null) ? $_POST['sort_orders'] : [];
         $memberProfile['sort_orders'] = array_map(
-            static fn ($value): string => $value === 'asc' ? 'asc' : 'desc',
+            static fn ($value): string => normalize_cv_sort_order($value),
             array_intersect_key($submittedSortOrders, $publicFieldOptions)
         );
+        $submittedSectionSettings = is_array($_POST['section_settings'] ?? null) ? $_POST['section_settings'] : [];
+        $memberProfile['section_settings'] = clean_cv_section_settings(
+            $submittedSectionSettings,
+            is_array($memberProfile['section_settings'] ?? null) ? $memberProfile['section_settings'] : [],
+            $cvSectionConfig
+        );
         $entryMediaOptions = ['requires_title_description' => false, 'allows_image' => true];
-        $memberProfile['experience'] = clean_cv_entries(
-            $_POST,
-            'experience',
-            ['category', 'description', 'date_start', 'date_end', 'location'],
-            $entryMediaOptions + ['title' => 'Experiencia profesional'],
-            $memberProfile['experience'],
-            $_FILES,
-            $profileErrors
-        );
-        $memberProfile['experience'] = sort_cv_entries_by_date(
-            $memberProfile['experience'],
-            $memberProfile['sort_orders']['experience'] ?? 'desc'
-        );
+        foreach ($cvSectionConfig as $sectionKey => $sectionConfig) {
+            $memberProfile[$sectionKey] = clean_cv_entries(
+                $_POST,
+                $sectionKey,
+                array_keys($sectionConfig['fields']),
+                $entryMediaOptions + ['title' => $sectionConfig['title']],
+                is_array($memberProfile[$sectionKey] ?? null) ? $memberProfile[$sectionKey] : [],
+                $_FILES,
+                $profileErrors
+            );
+            $memberProfile[$sectionKey] = sort_cv_entries(
+                $memberProfile[$sectionKey],
+                $memberProfile['sort_orders'][$sectionKey] ?? 'desc'
+            );
+        }
         $memberProfile['completed_at'] = profile_is_complete($memberProfile) ? ($memberProfile['completed_at'] ?? gmdate('c')) : null;
     }
 
@@ -196,7 +283,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') ==
         update_user($user);
         $profileMessages[] = profile_is_complete($memberProfile)
             ? 'Perfil artistico actualizado.'
-            : 'Perfil guardado. Sigue pendiente completar nombre publico, descripcion, ciudad, provincia, fotografia principal y al menos una experiencia profesional.';
+            : 'Perfil guardado. Sigue pendiente completar nombre artistico, descripcion, ciudad, provincia, fotografia principal y al menos una experiencia profesional o formacion.';
     }
 }
 
@@ -212,20 +299,14 @@ $profileRequiredFields = [
     $memberProfile['city'] ?? '',
     $memberProfile['province'] ?? '',
     $memberProfile['main_photo_path'] ?? '',
-    !empty($memberProfile['experience']) ? 'experience' : '',
+    (!empty($memberProfile['education']) || !empty($memberProfile['experience'])) ? 'curriculum' : '',
 ];
 $completedProfileFields = count(array_filter($profileRequiredFields, static fn ($value): bool => clean_text((string) $value) !== ''));
 $profileCompletion = (int) round(($completedProfileFields / count($profileRequiredFields)) * 100);
-$cvSectionConfig = [
-    'experience' => [
-        'title' => 'Experiencia profesional',
-        'public_field' => 'experience',
-        'fields' => ['category' => 'Categoria / cargo', 'description' => 'Descripcion', 'date_start' => 'Inicio', 'date_end' => 'Fin', 'location' => 'Lugar / entidad'],
-        'sortable' => true,
-        'requires_title_description' => false,
-        'allows_image' => true,
-    ],
-];
+$cvHeaderBackground = clean_text((string) ($memberProfile['cv_header_image_path'] ?? ''));
+$cvHeaderStyle = $cvHeaderBackground !== ''
+    ? "background-image: linear-gradient(135deg, rgba(17, 17, 20, 0.82), rgba(32, 56, 71, 0.74)), url('" . $cvHeaderBackground . "');"
+    : '';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -286,13 +367,13 @@ $cvSectionConfig = [
                         <div class="section-heading-content">
                             <p class="section-kicker">Perfil</p>
                             <h2>Ficha artistica</h2>
-                            <p>Este bloque quedará conectado a la tabla de miembros para editar avatar, nombre público, tipo de miembro, biografía, provincia y redes.</p>
+                            <p>Este bloque quedará conectado a la tabla de miembros para editar avatar, nombre artistico, tipo de miembro, biografia, provincia y redes.</p>
                         </div>
                         <span class="status-pill <?= e($profileStatusClass) ?>"><?= e($profileStatus) ?></span>
                     </div>
                     <div class="member-summary-grid">
                         <article class="member-summary-card">
-                            <span>Nombre público</span>
+                            <span>Nombre artistico</span>
                             <strong><?= e($displayName) ?></strong>
                         </article>
                         <article class="member-summary-card">
@@ -342,6 +423,9 @@ $cvSectionConfig = [
 
                             <fieldset class="cv-fieldset profile-tab-panel active" data-profile-tab="artistica">
                                 <legend>Identidad artistica</legend>
+                                <label for="artistic_headline">Especialidad o titular artistico
+                                    <input id="artistic_headline" name="artistic_headline" type="text" value="<?= e($memberProfile['artistic_headline']) ?>" placeholder="Ej. Bailaor flamenco, cantaora, guitarrista, profesora de baile">
+                                </label>
                                 <div class="form-grid-two">
                                     <label for="member_type">Tipo de espacio
                                         <select id="member_type" name="member_type" required>
@@ -350,18 +434,13 @@ $cvSectionConfig = [
                                             <?php endforeach; ?>
                                         </select>
                                     </label>
-                                    <label for="public_name">Nombre publico
+                                    <label for="public_name">Nombre artistico
                                         <input id="public_name" name="public_name" type="text" value="<?= e($displayName) ?>" required>
                                     </label>
                                 </div>
-                                <div class="form-grid-two">
-                                    <label for="artistic_headline">Especialidad o titular artistico
-                                        <input id="artistic_headline" name="artistic_headline" type="text" value="<?= e($memberProfile['artistic_headline']) ?>" placeholder="Ej. Bailaor flamenco y profesor de compas">
-                                    </label>
-                                    <label for="specialties">Especialidades
-                                        <input id="specialties" name="specialties" type="text" value="<?= e($memberProfile['specialties']) ?>" placeholder="Baile, cante, guitarra, palmas, coreografia...">
-                                    </label>
-                                </div>
+                                <label for="specialties">Especialidades
+                                    <input id="specialties" name="specialties" type="text" value="<?= e($memberProfile['specialties']) ?>" placeholder="Baile, cante, guitarra, palmas, coreografia...">
+                                </label>
                                 <label for="short_description">Descripcion breve publica
                                     <textarea id="short_description" name="short_description" rows="3" maxlength="700" required><?= e($memberProfile['short_description']) ?></textarea>
                                 </label>
@@ -409,6 +488,17 @@ $cvSectionConfig = [
                                     <button type="button" class="button button-secondary button-small" data-main-photo-trigger>Seleccionar imagen</button>
                                 </div>
                                 <p class="field-help">Cada espacio debe tener al menos una fotografia principal. JPG, PNG o WebP, maximo 5 MB.</p>
+                                <label class="cv-header-background-field" for="cv_header_image">Fondo de cabecera del curriculum PDF
+                                    <span class="cv-header-background-preview" <?= $cvHeaderBackground !== '' ? 'style="background-image: linear-gradient(135deg, rgba(17, 17, 20, 0.72), rgba(32, 56, 71, 0.68)), url(' . e($cvHeaderBackground) . ');"' : '' ?>>
+                                        <?= $cvHeaderBackground !== '' ? 'Fondo actual' : 'Sin fondo personalizado' ?>
+                                    </span>
+                                    <input id="cv_header_image" name="cv_header_image" type="file" accept="image/jpeg,image/png,image/webp">
+                                </label>
+                                <label class="visibility-toggle">
+                                    <input type="hidden" name="print_professional_data" value="0">
+                                    <input type="checkbox" name="print_professional_data" value="1" <?= !empty($memberProfile['print_professional_data']) ? 'checked' : '' ?>>
+                                    <span>Imprimir datos profesionales en el PDF</span>
+                                </label>
                                 <div class="visibility-grid" aria-label="Campos visibles en perfil publico">
                                     <?php foreach ($publicFieldOptions as $fieldValue => $fieldLabel): ?>
                                         <label class="visibility-toggle">
@@ -420,20 +510,33 @@ $cvSectionConfig = [
                             </fieldset>
 
                             <?php foreach ($cvSectionConfig as $sectionKey => $sectionConfig): ?>
+                                <?php
+                                $sectionSettings = is_array($memberProfile['section_settings'][$sectionKey] ?? null) ? $memberProfile['section_settings'][$sectionKey] : [];
+                                $sectionActive = (bool) ($sectionSettings['active'] ?? true);
+                                $sectionDisplayOrder = (int) ($sectionSettings['order'] ?? ($sectionConfig['default_order'] ?? 1));
+                                ?>
                                 <fieldset class="cv-fieldset cv-repeat-section">
                                     <div class="cv-section-heading">
                                         <legend><?= e($sectionConfig['title']) ?></legend>
                                         <div class="cv-section-tools">
+                                            <input type="hidden" name="section_settings[<?= e($sectionKey) ?>][active]" value="0">
+                                            <label class="cv-section-toggle">
+                                                <input type="checkbox" name="section_settings[<?= e($sectionKey) ?>][active]" value="1" <?= $sectionActive ? 'checked' : '' ?>>
+                                                Activa en PDF
+                                            </label>
+                                            <label>Orden seccion
+                                                <input name="section_settings[<?= e($sectionKey) ?>][order]" type="number" min="1" step="1" value="<?= e((string) $sectionDisplayOrder) ?>">
+                                            </label>
                                             <?php if (!empty($sectionConfig['sortable'])): ?>
-                                                <label>Orden
+                                                <label>Orden entradas
                                                     <select name="sort_orders[<?= e($sectionKey) ?>]">
-                                                        <?php $sortOrder = ($memberProfile['sort_orders'][$sectionKey] ?? 'desc') === 'asc' ? 'asc' : 'desc'; ?>
+                                                        <?php $sortOrder = normalize_cv_sort_order($memberProfile['sort_orders'][$sectionKey] ?? 'desc'); ?>
                                                         <option value="desc" <?= $sortOrder === 'desc' ? 'selected' : '' ?>>Mas reciente primero</option>
                                                         <option value="asc" <?= $sortOrder === 'asc' ? 'selected' : '' ?>>Mas antiguo primero</option>
+                                                        <option value="manual" <?= $sortOrder === 'manual' ? 'selected' : '' ?>>Orden manual</option>
                                                     </select>
                                                 </label>
                                             <?php endif; ?>
-                                            <span><?= e(cv_public_badge($memberProfile, $sectionConfig['public_field'])) ?></span>
                                         </div>
                                     </div>
                                     <?php if (!empty($sectionConfig['requires_title_description'])): ?>
@@ -444,6 +547,15 @@ $cvSectionConfig = [
                                     <?php foreach ($sectionRows as $rowIndex => $entry): ?>
                                         <?php $entry = is_array($memberProfile[$sectionKey][$rowIndex] ?? null) ? $memberProfile[$sectionKey][$rowIndex] : []; ?>
                                         <div class="cv-repeat-row <?= !empty($sectionConfig['allows_image']) ? 'cv-repeat-row-with-media' : '' ?>">
+                                            <div class="cv-entry-controls">
+                                                <label class="visibility-toggle">
+                                                    <input type="checkbox" name="<?= e($sectionKey) ?>[<?= e((string) $rowIndex) ?>][is_active]" value="1" <?= ((bool) ($entry['is_active'] ?? true)) ? 'checked' : '' ?> data-default-checked="1">
+                                                    <span>Incluir en PDF</span>
+                                                </label>
+                                                <label>Orden
+                                                    <input name="<?= e($sectionKey) ?>[<?= e((string) $rowIndex) ?>][display_order]" type="number" min="1" step="1" value="<?= e((string) ($entry['display_order'] ?? ($rowIndex + 1))) ?>">
+                                                </label>
+                                            </div>
                                             <?php if (!empty($sectionConfig['allows_image'])): ?>
                                                 <label class="cv-entry-image-field">
                                                     Imagen de la entrada
@@ -493,15 +605,14 @@ $cvSectionConfig = [
                             </div>
                         </form>
                         <section class="cv-print-document" aria-label="Curriculum imprimible">
-                            <header class="cv-print-header">
+                            <header class="cv-print-header" <?= $cvHeaderStyle !== '' ? 'style="' . e($cvHeaderStyle) . '"' : '' ?>>
                                 <?php if (!empty($memberProfile['main_photo_path'])): ?>
                                     <img src="<?= e($memberProfile['main_photo_path']) ?>" alt="Fotografia principal de <?= e($displayName) ?>">
                                 <?php endif; ?>
                                 <div>
-                                    <span><?= e($memberTypeLabel) ?></span>
-                                    <h1><?= e($displayName) ?></h1>
-                                    <?php if ($memberProfile['artistic_headline']): ?><p><?= e($memberProfile['artistic_headline']) ?></p><?php endif; ?>
-                                    <p><?= e($memberProfile['city']) ?><?= $memberProfile['city'] && $memberProfile['province'] ? ', ' : '' ?><?= e($memberProfile['province']) ?></p>
+                                    <h1><?= e($cardHeadline !== '' ? $cardHeadline : $displayName) ?></h1>
+                                    <?php if ($cardHeadline !== '' && $displayName !== ''): ?><p class="cv-print-name"><?= e($displayName) ?></p><?php endif; ?>
+                                    <p><?= e($memberProfile['city']) ?><?= $memberProfile['city'] && $memberProfile['province'] ? ' ' : '' ?><?= e($memberProfile['province']) ?></p>
                                 </div>
                             </header>
                             <?php if ($memberProfile['cv_summary'] || $memberProfile['short_description']): ?>
@@ -510,22 +621,25 @@ $cvSectionConfig = [
                                     <p><?= e($memberProfile['cv_summary'] ?: $memberProfile['short_description']) ?></p>
                                 </section>
                             <?php endif; ?>
-                            <section>
-                                <h2>Datos profesionales</h2>
-                                <dl>
-                                    <?php if ($memberProfile['specialties']): ?><div><dt>Especialidades</dt><dd><?= e($memberProfile['specialties']) ?></dd></div><?php endif; ?>
-                                    <?php if ($memberProfile['years_active']): ?><div><dt>Trayectoria</dt><dd><?= e($memberProfile['years_active']) ?></dd></div><?php endif; ?>
-                                    <?php if ($memberProfile['availability']): ?><div><dt>Disponibilidad</dt><dd><?= e($memberProfile['availability']) ?></dd></div><?php endif; ?>
-                                    <?php if ($memberProfile['website_url']): ?><div><dt>Web</dt><dd><?= e($memberProfile['website_url']) ?></dd></div><?php endif; ?>
-                                    <?php if ($memberProfile['instagram_url']): ?><div><dt>Instagram</dt><dd><?= e($memberProfile['instagram_url']) ?></dd></div><?php endif; ?>
-                                </dl>
-                            </section>
-                            <?php foreach ($cvSectionConfig as $sectionKey => $sectionConfig): ?>
-                                <?php if (!empty($memberProfile[$sectionKey])): ?>
+                            <?php if (!empty($memberProfile['print_professional_data'])): ?>
+                                <section>
+                                    <h2>Datos profesionales</h2>
+                                    <dl>
+                                        <?php if ($memberProfile['specialties']): ?><div><dt>Especialidades</dt><dd><?= e($memberProfile['specialties']) ?></dd></div><?php endif; ?>
+                                        <?php if ($memberProfile['years_active']): ?><div><dt>Trayectoria</dt><dd><?= e($memberProfile['years_active']) ?></dd></div><?php endif; ?>
+                                        <?php if ($memberProfile['availability']): ?><div><dt>Disponibilidad</dt><dd><?= e($memberProfile['availability']) ?></dd></div><?php endif; ?>
+                                        <?php if ($memberProfile['website_url']): ?><div><dt>Web</dt><dd><?= e($memberProfile['website_url']) ?></dd></div><?php endif; ?>
+                                        <?php if ($memberProfile['instagram_url']): ?><div><dt>Instagram</dt><dd><?= e($memberProfile['instagram_url']) ?></dd></div><?php endif; ?>
+                                    </dl>
+                                </section>
+                            <?php endif; ?>
+                            <?php foreach (cv_print_sections($memberProfile, $cvSectionConfig) as $sectionKey => $sectionConfig): ?>
+                                <?php $printEntries = array_values(array_filter(is_array($memberProfile[$sectionKey] ?? null) ? $memberProfile[$sectionKey] : [], 'cv_entry_is_active')); ?>
+                                <?php if (cv_section_is_active($memberProfile, $sectionKey) && $printEntries): ?>
                                     <section>
                                         <h2><?= e($sectionConfig['title']) ?></h2>
                                         <div class="cv-print-list">
-                                            <?php foreach ($memberProfile[$sectionKey] as $entry): ?>
+                                            <?php foreach ($printEntries as $entry): ?>
                                                 <?php
                                                 $entryDescription = clean_html_text((string) ($entry['description'] ?? ''));
                                                 $entryStart = cv_print_date((string) ($entry['date_start'] ?? ''));
@@ -682,10 +796,18 @@ $cvSectionConfig = [
                     placeholder.hidden = false;
                 });
                 row.querySelectorAll('input, textarea, select').forEach((input) => {
-                    input.value = '';
                     if (input.name) {
                         input.name = input.name.replace(/\[\d+\]/, `[${nextIndex}]`);
                     }
+                    if (input instanceof HTMLInputElement && input.type === 'checkbox') {
+                        input.checked = input.dataset.defaultChecked !== '0';
+                        return;
+                    }
+                    if (input instanceof HTMLInputElement && input.type === 'number' && input.name.includes('[display_order]')) {
+                        input.value = String(nextIndex + 1);
+                        return;
+                    }
+                    input.value = '';
                 });
                 const richEditor = row.querySelector('[data-rich-editor]');
                 const textarea = row.querySelector('textarea[hidden]');
@@ -735,6 +857,14 @@ $cvSectionConfig = [
                     placeholder.hidden = true;
                 });
             }
+
+            if (input.matches('#cv_header_image') && input.files?.[0]) {
+                const preview = document.querySelector('.cv-header-background-preview');
+                if (preview instanceof HTMLElement) {
+                    preview.style.backgroundImage = `linear-gradient(135deg, rgba(17, 17, 20, 0.72), rgba(32, 56, 71, 0.68)), url("${URL.createObjectURL(input.files[0])}")`;
+                    preview.textContent = 'Nuevo fondo seleccionado';
+                }
+            }
         });
 
         document.querySelectorAll('.profile-tab-button').forEach((button) => {
@@ -767,6 +897,28 @@ $cvSectionConfig = [
                 toolbar.innerHTML = '';
 
                 const controls = [
+                    {
+                        kind: 'select',
+                        title: 'Fuente',
+                        command: 'fontName',
+                        options: [
+                            ['Inter', 'Inter'],
+                            ['Georgia', 'Georgia'],
+                            ['Arial', 'Arial'],
+                            ['Playfair', 'Playfair Display'],
+                        ],
+                    },
+                    {
+                        kind: 'select',
+                        title: 'Tamano',
+                        command: 'fontSize',
+                        options: [
+                            ['Normal', '3'],
+                            ['Grande', '4'],
+                            ['Destacado', '5'],
+                            ['Pequeno', '2'],
+                        ],
+                    },
                     { label: 'B', title: 'Negrita', command: 'bold' },
                     { label: 'I', title: 'Cursiva', command: 'italic' },
                     { label: 'U', title: 'Subrayado', command: 'underline' },
@@ -782,11 +934,74 @@ $cvSectionConfig = [
                     { label: 'X', title: 'Limpiar formato', command: 'removeFormat' },
                 ];
 
+                const sizeMap = {
+                    1: '0.82rem',
+                    2: '0.94rem',
+                    3: '1rem',
+                    4: '1.16rem',
+                    5: '1.34rem',
+                    6: '1.55rem',
+                    7: '1.85rem',
+                };
+                const normalizeLegacyEditorTags = (targetEditor = editor) => {
+                    targetEditor.querySelectorAll('font').forEach((fontTag) => {
+                        const span = document.createElement('span');
+                        const styles = [];
+                        const size = fontTag.getAttribute('size');
+                        const face = fontTag.getAttribute('face');
+                        const color = fontTag.getAttribute('color');
+                        if (size && sizeMap[size]) {
+                            styles.push(`font-size: ${sizeMap[size]}`);
+                        }
+                        if (face) {
+                            styles.push(`font-family: ${face}`);
+                        }
+                        if (color) {
+                            styles.push(`color: ${color}`);
+                        }
+                        if (styles.length) {
+                            span.setAttribute('style', styles.join('; '));
+                        }
+                        while (fontTag.firstChild) {
+                            span.appendChild(fontTag.firstChild);
+                        }
+                        fontTag.replaceWith(span);
+                    });
+                };
+
                 const syncEditor = () => {
+                    normalizeLegacyEditorTags();
                     textarea.value = editor.innerHTML;
                 };
 
                 controls.forEach((control) => {
+                    if (control.kind === 'select') {
+                        const select = document.createElement('select');
+                        select.className = 'rich-text-select';
+                        select.title = control.title;
+                        select.setAttribute('aria-label', control.title);
+                        select.innerHTML = `<option value="">${control.title}</option>`;
+                        control.options.forEach(([label, value]) => {
+                            const option = document.createElement('option');
+                            option.value = value;
+                            option.textContent = label;
+                            select.appendChild(option);
+                        });
+                        select.addEventListener('change', () => {
+                            if (!select.value) {
+                                return;
+                            }
+                            editor.focus();
+                            document.execCommand('styleWithCSS', false, true);
+                            document.execCommand(control.command, false, select.value);
+                            normalizeLegacyEditorTags();
+                            syncEditor();
+                            select.selectedIndex = 0;
+                        });
+                        toolbar.appendChild(select);
+                        return;
+                    }
+
                     const button = document.createElement('button');
                     button.type = 'button';
                     button.className = 'rich-text-button';
@@ -800,6 +1015,7 @@ $cvSectionConfig = [
                         editor.focus();
                         document.execCommand('styleWithCSS', false, true);
                         document.execCommand(control.command, false, control.value || null);
+                        normalizeLegacyEditorTags();
                         syncEditor();
                     });
                     toolbar.appendChild(button);
@@ -814,6 +1030,7 @@ $cvSectionConfig = [
                     form.dataset.richEditorSubmitBound = '1';
                     form.addEventListener('submit', () => {
                         form.querySelectorAll('[data-rich-editor]').forEach((formEditor) => {
+                            normalizeLegacyEditorTags(formEditor);
                             const formTextarea = formEditor.parentElement?.querySelector('textarea[hidden]');
                             if (formTextarea instanceof HTMLTextAreaElement) {
                                 formTextarea.value = formEditor.innerHTML;

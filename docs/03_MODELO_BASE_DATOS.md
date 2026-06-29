@@ -71,7 +71,7 @@ Mantener una base documental para disenar y evolucionar el modelo de base de dat
 - El registro inicial creara miembros simpatizantes por defecto.
 - El codigo de miembro solo sera utilizable para descuentos si el miembro ha pasado a Miembro VIP mediante pago.
 - Un miembro tendra una tarjeta identificativa configurable con imagen, nombre visible, nivel de membresia, numero y codigo.
-- Un miembro debera tener tipo de espacio, nombre publico, descripcion, ciudad, provincia y fotografia principal para considerar completo su perfil.
+- Un miembro debera tener tipo de espacio, nombre artistico, descripcion, ciudad, provincia y fotografia principal para considerar completo su perfil.
 - Un miembro podra tener multiples items de curriculum clasificados como formacion, experiencia, docencia, actuaciones, premios, repertorio y redes sociales.
 - Los items principales de curriculum tendran titulo y descripcion obligatorios cuando se publiquen como entrada, y podran incluir una imagen asociada.
 - Cada item de curriculum podra marcarse como visible publico o privado.

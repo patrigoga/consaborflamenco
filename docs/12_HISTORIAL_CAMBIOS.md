@@ -290,3 +290,4 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - 2026-06-29: Ajustado el panel de usuario para guardar fotografia principal en perfiles pendientes, mejorar el editor de experiencia profesional y compactar la imagen del email de verificacion.
 - 2026-06-29: Reforzada la verificacion obligatoria de email antes del panel privado y redisenada la salida impresa del curriculum para evitar elementos del panel, conservar texto enriquecido y compactar fechas.
 - 2026-06-29: Corregido el acceso de usuarios no verificados para impedir la creacion de sesion tras registro o login y permitir reenvio de verificacion sin estar autenticado.
+- 2026-06-30: Ampliado el curriculum del area de usuario con nombre artistico, titular como H1 del PDF, fondo de cabecera personalizable, datos profesionales opcionales en impresion, secciones Formacion/Experiencia activables, entradas activables, orden manual y controles de fuente/tamano en el editor.
