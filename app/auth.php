@@ -1233,14 +1233,86 @@ function send_password_reset_email(string $email, string $plainToken): bool
 function send_email_verification(string $email, string $plainToken, string $name = ''): bool
 {
     $verifyUrl = app_url('verify-email.php?token=' . urlencode($plainToken));
-    $subject = 'Verifica tu correo en ' . APP_NAME;
-    $body = "Hola " . ($name !== '' ? $name : '') . "\n\nGracias por registrarte en " . APP_NAME . ".\n\nConfirma tu correo electrónico mediante este enlace:\n{$verifyUrl}\n\nEl enlace caduca en 24 horas.\n\n" . APP_NAME;
+    $subject = 'Bienvenido a ' . APP_NAME;
+    $recipientName = $name !== '' ? $name : 'Miembro';
+    $brand = APP_NAME;
+    $headerImage = app_url('assets/images/auth/registro-flamenco.png');
+    $profileUrl = app_url('panel-usuario.php');
+
+    $plainText = "Hola {$recipientName},\n\n"
+        . "Gracias por registrarte en {$brand}.\n\n"
+        . "Activa tu cuenta aquí:\n{$verifyUrl}\n\n"
+        . "El enlace caduca en 24 horas.\n\n"
+        . "{$brand}";
+
+    $htmlBody = <<<HTML
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bienvenido a {$brand}</title>
+</head>
+<body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;background:#0f1720;color:#111114;">
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#0f1720;padding:32px 0;">
+        <tr>
+            <td align="center">
+                <table width="680" cellpadding="0" cellspacing="0" role="presentation" style="background:#111114;border-radius:28px;overflow:hidden;box-shadow:0 30px 90px rgba(0,0,0,0.35);">
+                    <tr>
+                        <td style="padding:0;">
+                            <img src="{$headerImage}" alt="{$brand}" width="680" style="display:block;width:100%;height:auto;object-fit:cover;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:36px 44px 28px;">
+                            <p style="margin:0 0 10px;color:#c9a45a;font-size:0.85rem;letter-spacing:0.16em;text-transform:uppercase;">Bienvenido a tu espacio flamenco</p>
+                            <h1 style="margin:0 0 20px;font-size:2.4rem;line-height:1.1;color:#ffffff;">Hola {$recipientName}, estamos felices de tenerte aquí</h1>
+                            <p style="margin:0 0 22px;font-size:1rem;line-height:1.7;color:rgba(255,255,255,0.86);max-width:600px;">Gracias por unirte a <strong>{$brand}</strong>. Ya puedes empezar a crear tu perfil artístico y mostrar tu esencia flamenca.</p>
+                            <table cellpadding="0" cellspacing="0" role="presentation" style="margin:0 auto 28px;">
+                                <tr>
+                                    <td align="center" style="border-radius:999px;background:linear-gradient(135deg,#c94f5c,#5f8fb8);">
+                                        <a href="{$verifyUrl}" target="_blank" style="display:inline-block;padding:16px 28px;font-size:1rem;color:#ffffff;text-decoration:none;font-weight:700;border-radius:999px;">Verificar mi correo</a>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="margin:0 0 20px;font-size:0.95rem;line-height:1.75;color:rgba(255,255,255,0.72);">Verifica tu correo para activar tu cuenta y acceder al panel de miembro.</p>
+                            <div style="padding:22px 24px;border-radius:20px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                                <p style="margin:0 0 10px;font-size:0.95rem;color:#ffffff;font-weight:700;">Tu panel incluye</p>
+                                <ul style="margin:0;padding-left:20px;color:rgba(255,255,255,0.72);font-size:0.95rem;line-height:1.7;">
+                                    <li>Perfil con foto, biografía y datos de contacto.</li>
+                                    <li>Acceso a promoción y oportunidades en la comunidad.</li>
+                                    <li>Control de tu imagen y contenidos flamencos.</li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:24px 48px 32px;background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.68);font-size:0.92rem;line-height:1.7;">
+                            <p style="margin:0 0 10px;font-weight:700;">Ya casi estás listo</p>
+                            <p style="margin:0;color:rgba(255,255,255,0.66);">Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
+                            <p style="margin:6px 0 0;color:#c9a45a;word-break:break-all;"><a href="{$verifyUrl}" target="_blank" style="color:#c9a45a;text-decoration:none;">{$verifyUrl}</a></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:20px 48px 34px;background:#0d111a;color:rgba(255,255,255,0.55);font-size:0.9rem;line-height:1.7;">
+                            <p style="margin:0;">Gracias por elegir {$brand}. Si necesitas ayuda, responde este correo o visita nuestra web.</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+HTML;
+
     $fromAddress = csf_env('CSF_MAIL_FROM_ADDRESS', APP_EMAIL);
     $fromName = csf_env('CSF_MAIL_FROM_NAME', APP_NAME);
     $headers = [
         'From: ' . $fromName . ' <' . $fromAddress . '>',
         'Reply-To: ' . $fromAddress,
-        'Content-Type: text/plain; charset=UTF-8',
+        'MIME-Version: 1.0',
+        'Content-Type: text/html; charset=UTF-8',
     ];
 
     $headerText = implode("\r\n", $headers);
@@ -1249,16 +1321,16 @@ function send_email_verification(string $email, string $plainToken, string $name
 
     if (!csf_env_bool('CSF_MAIL_USE_SMTP', false) && function_exists('mail')) {
         $sendParams = '-f' . escapeshellarg($fromAddress);
-        $sent = @mail($email, $subject, $body, $headerText, $sendParams);
+        $sent = @mail($email, $subject, $htmlBody, $headerText, $sendParams);
         $usedMethod = 'mail';
     }
 
     if (!$sent && csf_env('CSF_SMTP_HOST')) {
-        $sent = smtp_send_email($email, $subject, $body, $headers);
+        $sent = smtp_send_email($email, $subject, $htmlBody, $headers);
         $usedMethod = 'smtp';
     }
 
-    $logEntry = '[' . gmdate('c') . '] ' . ($sent ? 'SENT' : 'FAILED') . " METHOD: {$usedMethod} To: {$email}\nSubject: {$subject}\nHeaders: {$headerText}\n\n{$body}\n\n";
+    $logEntry = '[' . gmdate('c') . '] ' . ($sent ? 'SENT' : 'FAILED') . " METHOD: {$usedMethod} To: {$email}\nSubject: {$subject}\nHeaders: {$headerText}\n\n{$plainText}\n\n";
     if (!is_dir(dirname(MAIL_LOG_FILE))) {
         @mkdir(dirname(MAIL_LOG_FILE), 0775, true);
     }
