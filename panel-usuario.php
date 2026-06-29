@@ -367,7 +367,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                         <div class="section-heading-content">
                             <p class="section-kicker">Perfil</p>
                             <h2>Ficha artistica</h2>
-                            <p>Este bloque quedará conectado a la tabla de miembros para editar avatar, nombre artistico, tipo de miembro, biografia, provincia y redes.</p>
+                            <p>Este bloque queda conectado a la tabla de miembros para editar avatar, nombre artistico, descripcion breve, provincia y redes.</p>
                         </div>
                         <span class="status-pill <?= e($profileStatusClass) ?>"><?= e($profileStatus) ?></span>
                     </div>
@@ -452,9 +452,6 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                 </label>
                                 <label for="short_description">Descripcion breve publica
                                     <textarea id="short_description" name="short_description" rows="3" maxlength="700" required><?= e($memberProfile['short_description']) ?></textarea>
-                                </label>
-                                <label for="cv_summary">Biografia / resumen curricular
-                                    <textarea id="cv_summary" name="cv_summary" rows="6" maxlength="1600" placeholder="Trayectoria, lenguaje artistico, experiencia principal y enfoque profesional."><?= e($memberProfile['cv_summary']) ?></textarea>
                                 </label>
                             </fieldset>
 
@@ -619,10 +616,10 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                     <p><?= e($memberProfile['city']) ?><?= $memberProfile['city'] && $memberProfile['province'] ? ' ' : '' ?><?= e($memberProfile['province']) ?></p>
                                 </div>
                             </header>
-                            <?php if ($memberProfile['cv_summary'] || $memberProfile['short_description']): ?>
+                            <?php if ($memberProfile['short_description']): ?>
                                 <section>
                                     <h2>Perfil artistico</h2>
-                                    <p><?= e($memberProfile['cv_summary'] ?: $memberProfile['short_description']) ?></p>
+                                    <p><?= e($memberProfile['short_description']) ?></p>
                                 </section>
                             <?php endif; ?>
                             <?php if (!empty($memberProfile['print_professional_data'])): ?>

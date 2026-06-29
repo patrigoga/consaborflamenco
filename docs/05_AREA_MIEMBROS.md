@@ -28,7 +28,7 @@ Los miembros podran:
 - Ver un avatar de perfil en la cabecera con menu desplegable.
 - Cambiar contrasena desde el area privada.
 - Subir o gestionar imagenes.
-- Anadir biografia.
+- Anadir descripcion breve publica.
 - Anadir redes sociales.
 - Anadir videos.
 - Publicar o solicitar publicacion de eventos.
@@ -67,7 +67,7 @@ El panel de miembro se organiza con:
 - Sidebar izquierdo oscuro con accesos a Perfil, Tarjeta de miembro, Banners y Seguridad.
 - Cabecera privada tipo dashboard con fotografia principal, nombre artistico, tipo de espacio, ubicacion y metricas de estado.
 - Bloque de perfil con datos principales del miembro.
-- Editor de perfil artistico con tipo de espacio, nombre artistico, titular artistico, descripcion, ubicacion, contacto, redes y fotografia principal.
+- Editor de perfil artistico con tipo de espacio, nombre artistico, titular artistico, descripcion breve publica, ubicacion, contacto, redes y fotografia principal.
 - Editor de curriculum artistico con formacion, experiencia escenica, docencia, actuaciones destacadas, premios, repertorio, disponibilidad y notas privadas.
 - Control de visibilidad por bloques para decidir que datos se publican y que datos quedan privados.
 - Bloques repetibles con boton para anadir nuevas entradas sin limite fijo inicial.
@@ -76,6 +76,7 @@ El panel de miembro se organiza con:
 - Boton para imprimir o guardar el curriculum en PDF desde el navegador.
 - La plantilla PDF debe ser compacta, aprovechar el ancho del papel y mantener la foto en color.
 - La cabecera del PDF usa el titular artistico como H1, puede tener imagen de fondo personalizada y no muestra el tipo de espacio.
+- El PDF usa la descripcion breve publica como texto de perfil artistico; se retira el campo independiente de biografia/resumen curricular.
 - Bloque de tarjeta identificativa con imagen a pantalla completa, nombre y nivel de membresia visible.
 - Bloque de banners para preparar la compra de espacios publicitarios mediante Stripe.
 
