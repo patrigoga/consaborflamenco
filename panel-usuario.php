@@ -421,6 +421,15 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                 <button class="button button-secondary" type="button" onclick="window.print()">Imprimir / guardar PDF</button>
                             </div>
 
+                            <fieldset class="cv-fieldset cv-print-options">
+                                <legend>Opciones del PDF</legend>
+                                <label class="visibility-toggle">
+                                    <input type="hidden" name="print_professional_data" value="0">
+                                    <input type="checkbox" name="print_professional_data" value="1" <?= !empty($memberProfile['print_professional_data']) ? 'checked' : '' ?>>
+                                    <span>Imprimir apartado Datos profesionales</span>
+                                </label>
+                            </fieldset>
+
                             <fieldset class="cv-fieldset profile-tab-panel active" data-profile-tab="artistica">
                                 <legend>Identidad artistica</legend>
                                 <label for="artistic_headline">Especialidad o titular artistico
@@ -493,11 +502,6 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                         <?= $cvHeaderBackground !== '' ? 'Fondo actual' : 'Sin fondo personalizado' ?>
                                     </span>
                                     <input id="cv_header_image" name="cv_header_image" type="file" accept="image/jpeg,image/png,image/webp">
-                                </label>
-                                <label class="visibility-toggle">
-                                    <input type="hidden" name="print_professional_data" value="0">
-                                    <input type="checkbox" name="print_professional_data" value="1" <?= !empty($memberProfile['print_professional_data']) ? 'checked' : '' ?>>
-                                    <span>Imprimir datos profesionales en el PDF</span>
                                 </label>
                                 <div class="visibility-grid" aria-label="Campos visibles en perfil publico">
                                     <?php foreach ($publicFieldOptions as $fieldValue => $fieldLabel): ?>
