@@ -909,10 +909,23 @@ function send_password_reset_email(string $email, string $plainToken): bool
         'Reply-To: ' . APP_EMAIL,
         'Content-Type: text/plain; charset=UTF-8',
     ];
+    $headerText = implode("\r\n", $headers);
 
-    $sent = @mail($email, $subject, $body, implode("\r\n", $headers));
+    $sendParams = '-f' . escapeshellarg(APP_EMAIL);
+    $sent = false;
+
+    if (function_exists('mail')) {
+        $sent = @mail($email, $subject, $body, $headerText, $sendParams);
+    }
+
+    $logEntry = '[' . gmdate('c') . '] ' . ($sent ? 'SENT' : 'FAILED') . " To: {$email}\nSubject: {$subject}\nHeaders: {$headerText}\n\n{$body}\n\n";
+    if (!is_dir(dirname(MAIL_LOG_FILE))) {
+        @mkdir(dirname(MAIL_LOG_FILE), 0775, true);
+    }
+    @file_put_contents(MAIL_LOG_FILE, $logEntry, FILE_APPEND | LOCK_EX);
+
     if (!$sent) {
-        file_put_contents(MAIL_LOG_FILE, '[' . gmdate('c') . "] To: {$email}\nSubject: {$subject}\n{$body}\n\n", FILE_APPEND | LOCK_EX);
+        error_log(sprintf('[%s] [CSF MAIL] Password reset email FAILED for %s', gmdate('c'), $email));
     }
 
     return $sent;
