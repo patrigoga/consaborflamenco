@@ -305,11 +305,14 @@ $cvSectionConfig = [
                             </div>
                         <?php endif; ?>
                         <article class="member-profile-preview">
-                            <?php if (!empty($memberProfile['main_photo_path'])): ?>
-                                <img src="<?= e($memberProfile['main_photo_path']) ?>" alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy">
-                            <?php else: ?>
-                                <div class="member-photo-placeholder">Foto pendiente</div>
-                            <?php endif; ?>
+                            <div class="member-profile-photo">
+                                <?php if (!empty($memberProfile['main_photo_path'])): ?>
+                                    <img src="<?= e($memberProfile['main_photo_path']) ?>" alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview>
+                                <?php else: ?>
+                                    <div class="member-photo-placeholder" data-main-photo-placeholder>Foto pendiente</div>
+                                <?php endif; ?>
+                                <button type="button" class="button button-secondary button-small" data-main-photo-trigger>Editar imagen</button>
+                            </div>
                             <div>
                                 <span><?= e($memberTypeLabel) ?></span>
                                 <strong><?= e($displayName) ?></strong>
@@ -388,9 +391,11 @@ $cvSectionConfig = [
                                         <input id="instagram_url" name="instagram_url" type="url" value="<?= e($memberProfile['instagram_url']) ?>" placeholder="https://instagram.com/...">
                                     </label>
                                 </div>
-                                <label for="main_photo">Fotografia principal
-                                    <input id="main_photo" name="main_photo" type="file" accept="image/jpeg,image/png,image/webp" <?= empty($memberProfile['main_photo_path']) ? 'required' : '' ?>>
-                                </label>
+                                <div class="main-photo-field">
+                                    <label for="main_photo">Fotografia principal</label>
+                                    <input id="main_photo" name="main_photo" type="file" accept="image/jpeg,image/png,image/webp" <?= empty($memberProfile['main_photo_path']) ? 'required' : '' ?> data-main-photo-input>
+                                    <button type="button" class="button button-secondary button-small" data-main-photo-trigger>Seleccionar imagen</button>
+                                </div>
                                 <p class="field-help">Cada espacio debe tener al menos una fotografia principal. JPG, PNG o WebP, maximo 5 MB.</p>
                                 <div class="visibility-grid" aria-label="Campos visibles en perfil publico">
                                     <?php foreach ($publicFieldOptions as $fieldValue => $fieldLabel): ?>
@@ -650,21 +655,45 @@ $cvSectionConfig = [
 
         document.addEventListener('change', (event) => {
             const input = event.target;
-            if (!(input instanceof HTMLInputElement) || !input.matches('[data-cv-image-input]') || !input.files?.[0]) {
+            if (!(input instanceof HTMLInputElement)) {
                 return;
             }
 
-            const field = input.closest('.cv-entry-image-field');
-            const preview = field?.querySelector('[data-cv-image-preview]');
-            const placeholder = field?.querySelector('[data-cv-image-placeholder]');
-            if (!(preview instanceof HTMLImageElement)) {
-                return;
+            if (input.matches('[data-cv-image-input]') && input.files?.[0]) {
+                const field = input.closest('.cv-entry-image-field');
+                const preview = field?.querySelector('[data-cv-image-preview]');
+                const placeholder = field?.querySelector('[data-cv-image-placeholder]');
+                if (preview instanceof HTMLImageElement) {
+                    preview.src = URL.createObjectURL(input.files[0]);
+                    preview.hidden = false;
+                }
+                if (placeholder instanceof HTMLElement) {
+                    placeholder.hidden = true;
+                }
             }
 
-            preview.src = URL.createObjectURL(input.files[0]);
-            preview.hidden = false;
-            if (placeholder instanceof HTMLElement) {
-                placeholder.hidden = true;
+            if (input.matches('#main_photo') && input.files?.[0]) {
+                const fileUrl = URL.createObjectURL(input.files[0]);
+                const previewImage = document.querySelector('[data-main-photo-preview]');
+                const placeholder = document.querySelector('[data-main-photo-placeholder]');
+                if (previewImage instanceof HTMLImageElement) {
+                    previewImage.src = fileUrl;
+                    previewImage.hidden = false;
+                } else if (placeholder instanceof HTMLElement) {
+                    const img = document.createElement('img');
+                    img.dataset.mainPhotoPreview = '';
+                    img.src = fileUrl;
+                    img.alt = 'Fotografia principal de ' + document.querySelector('.member-profile-preview strong')?.textContent?.trim();
+                    img.loading = 'lazy';
+                    placeholder.replaceWith(img);
+                }
+                if (placeholder instanceof HTMLElement) {
+                    placeholder.hidden = true;
+                }
+                const dashboardImage = document.querySelector('.member-dashboard-identity img[data-main-photo-preview]');
+                if (dashboardImage instanceof HTMLImageElement) {
+                    dashboardImage.src = fileUrl;
+                }
             }
         });
 
@@ -743,6 +772,15 @@ $cvSectionConfig = [
                 cardImage.src = input.dataset.cardSrc || cardImage.src;
                 cardPreview.classList.toggle('member-card-preview-woman', input.dataset.cardFigure === 'woman');
                 cardPreview.classList.toggle('member-card-preview-man', input.dataset.cardFigure === 'man');
+            });
+        });
+
+        document.querySelectorAll('[data-main-photo-trigger]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const input = document.querySelector('#main_photo');
+                if (input instanceof HTMLInputElement) {
+                    input.click();
+                }
             });
         });
 

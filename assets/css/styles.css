@@ -2255,15 +2255,58 @@ h3 {
     padding: 8px 12px;
     cursor: pointer;
     font-weight: 700;
-}
+    }
 
-.rich-text-editor {
-    min-height: 160px;
-    padding: 14px;
-    border-radius: 18px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    background: rgba(255, 255, 255, 0.04);
-    color: var(--color-white);
+    .button-small {
+        font-size: 0.85rem;
+        padding: 8px 14px;
+        min-width: auto;
+    }
+
+    .member-profile-photo {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .member-profile-photo img,
+    .member-profile-photo .member-photo-placeholder {
+        width: 132px;
+        height: 132px;
+        object-fit: cover;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .member-profile-photo button {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        z-index: 2;
+        padding: 8px 12px;
+        border-radius: 999px;
+    }
+
+    .main-photo-field {
+        display: grid;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .main-photo-field input[type="file"] {
+        opacity: 0;
+        position: absolute;
+        pointer-events: none;
+        width: 0;
+        height: 0;
+    }
+
+    .main-photo-field label {
+        font-weight: 700;
+        color: var(--color-white);
+    }
     overflow-wrap: break-word;
 }
 
