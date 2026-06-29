@@ -899,26 +899,168 @@ function db_to_iso(mixed $value): ?string
     return $timestamp ? gmdate('c', $timestamp) : $value;
 }
 
+function smtp_send_email(string $to, string $subject, string $body, array $headers): bool
+{
+    $host = csf_env('CSF_SMTP_HOST');
+    if (!is_string($host) || $host === '') {
+        return false;
+    }
+
+    $port = (int) csf_env('CSF_SMTP_PORT', '587');
+    $encryption = strtolower((string) csf_env('CSF_SMTP_ENCRYPTION', 'tls'));
+    $username = csf_env('CSF_SMTP_USERNAME');
+    $password = csf_env('CSF_SMTP_PASSWORD');
+    $timeout = 15;
+    $transport = $encryption === 'ssl' ? 'ssl://' : '';
+    $socket = @stream_socket_client(sprintf('%s%s:%d', $transport, $host, $port), $errno, $errstr, $timeout, STREAM_CLIENT_CONNECT);
+    if (!$socket) {
+        error_log(sprintf('[%s] [CSF SMTP] Connection failed: %s (%s:%d)', gmdate('c'), $errstr ?: 'unknown', $host, $port));
+        return false;
+    }
+
+    stream_set_timeout($socket, $timeout);
+    $readResponse = static function () use ($socket): string {
+        $response = '';
+        while (($line = fgets($socket, 512)) !== false) {
+            $response .= $line;
+            if (preg_match('/^[0-9]{3} /', $line)) {
+                break;
+            }
+        }
+        return trim($response);
+    };
+
+    $sendCommand = static function (string $command) use ($socket): void {
+        fwrite($socket, $command . "\r\n");
+    };
+
+    $expected = $readResponse();
+    if (!str_starts_with($expected, '220')) {
+        fclose($socket);
+        error_log(sprintf('[%s] [CSF SMTP] Server did not respond with 220: %s', gmdate('c'), $expected));
+        return false;
+    }
+
+    $hostname = gethostname() ?: 'localhost';
+    $sendCommand('EHLO ' . $hostname);
+    $response = $readResponse();
+    if ($encryption === 'tls') {
+        if (!str_contains($response, 'STARTTLS')) {
+            fclose($socket);
+            error_log(sprintf('[%s] [CSF SMTP] STARTTLS unsupported by server: %s', gmdate('c'), $response));
+            return false;
+        }
+        $sendCommand('STARTTLS');
+        $response = $readResponse();
+        if (!str_starts_with($response, '220')) {
+            fclose($socket);
+            error_log(sprintf('[%s] [CSF SMTP] STARTTLS failed: %s', gmdate('c'), $response));
+            return false;
+        }
+        if (!stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+            fclose($socket);
+            error_log(sprintf('[%s] [CSF SMTP] TLS handshake failed', gmdate('c')));
+            return false;
+        }
+        $sendCommand('EHLO ' . $hostname);
+        $response = $readResponse();
+    }
+
+    if ($username !== null && $username !== '' && $password !== null && $password !== '') {
+        $sendCommand('AUTH LOGIN');
+        $response = $readResponse();
+        if (!str_starts_with($response, '334')) {
+            fclose($socket);
+            error_log(sprintf('[%s] [CSF SMTP] AUTH LOGIN rejected: %s', gmdate('c'), $response));
+            return false;
+        }
+        $sendCommand(base64_encode($username));
+        $response = $readResponse();
+        if (!str_starts_with($response, '334')) {
+            fclose($socket);
+            error_log(sprintf('[%s] [CSF SMTP] Username rejected: %s', gmdate('c'), $response));
+            return false;
+        }
+        $sendCommand(base64_encode($password));
+        $response = $readResponse();
+        if (!str_starts_with($response, '235')) {
+            fclose($socket);
+            error_log(sprintf('[%s] [CSF SMTP] Authentication failed: %s', gmdate('c'), $response));
+            return false;
+        }
+    }
+
+    $fromAddress = csf_env('CSF_MAIL_FROM_ADDRESS', APP_EMAIL);
+    $sendCommand('MAIL FROM:<' . $fromAddress . '>');
+    $response = $readResponse();
+    if (!str_starts_with($response, '250')) {
+        fclose($socket);
+        error_log(sprintf('[%s] [CSF SMTP] MAIL FROM rejected: %s', gmdate('c'), $response));
+        return false;
+    }
+
+    $sendCommand('RCPT TO:<' . $to . '>');
+    $response = $readResponse();
+    if (!str_starts_with($response, '250') && !str_starts_with($response, '251')) {
+        fclose($socket);
+        error_log(sprintf('[%s] [CSF SMTP] RCPT TO rejected: %s', gmdate('c'), $response));
+        return false;
+    }
+
+    $sendCommand('DATA');
+    $response = $readResponse();
+    if (!str_starts_with($response, '354')) {
+        fclose($socket);
+        error_log(sprintf('[%s] [CSF SMTP] DATA command rejected: %s', gmdate('c'), $response));
+        return false;
+    }
+
+    $message = "To: {$to}\r\nSubject: {$subject}\r\n" . implode("\r\n", $headers) . "\r\n\r\n";
+    $bodyLines = explode("\n", str_replace(["\r\n", "\r"], "\n", $body));
+    foreach ($bodyLines as $line) {
+        if (str_starts_with($line, '.')) {
+            $message .= '.';
+        }
+        $message .= $line . "\r\n";
+    }
+    $message .= ".\r\n";
+    fwrite($socket, $message);
+
+    $response = $readResponse();
+    $sendCommand('QUIT');
+    fclose($socket);
+
+    return str_starts_with($response, '250');
+}
+
 function send_password_reset_email(string $email, string $plainToken): bool
 {
     $resetUrl = app_url('restablecer-contrasena.php?token=' . urlencode($plainToken));
     $subject = 'Recupera tu contraseña en ' . APP_NAME;
     $body = "Hola,\n\nHemos recibido una solicitud para recuperar tu contraseña.\n\nPuedes crear una nueva contraseña en este enlace:\n{$resetUrl}\n\nEl enlace caduca en 1 hora. Si no has solicitado este cambio, puedes ignorar este correo.\n\n" . APP_NAME;
+    $fromAddress = csf_env('CSF_MAIL_FROM_ADDRESS', APP_EMAIL);
+    $fromName = csf_env('CSF_MAIL_FROM_NAME', APP_NAME);
     $headers = [
-        'From: ' . APP_NAME . ' <' . APP_EMAIL . '>',
-        'Reply-To: ' . APP_EMAIL,
+        'From: ' . $fromName . ' <' . $fromAddress . '>',
+        'Reply-To: ' . $fromAddress,
         'Content-Type: text/plain; charset=UTF-8',
     ];
     $headerText = implode("\r\n", $headers);
-
-    $sendParams = '-f' . escapeshellarg(APP_EMAIL);
     $sent = false;
+    $usedMethod = 'none';
 
-    if (function_exists('mail')) {
+    if (!csf_env_bool('CSF_MAIL_USE_SMTP', false) && function_exists('mail')) {
+        $sendParams = '-f' . escapeshellarg($fromAddress);
         $sent = @mail($email, $subject, $body, $headerText, $sendParams);
+        $usedMethod = 'mail';
     }
 
-    $logEntry = '[' . gmdate('c') . '] ' . ($sent ? 'SENT' : 'FAILED') . " To: {$email}\nSubject: {$subject}\nHeaders: {$headerText}\n\n{$body}\n\n";
+    if (!$sent && csf_env('CSF_SMTP_HOST')) {
+        $sent = smtp_send_email($email, $subject, $body, $headers);
+        $usedMethod = 'smtp';
+    }
+
+    $logEntry = '[' . gmdate('c') . '] ' . ($sent ? 'SENT' : 'FAILED') . " METHOD: {$usedMethod} To: {$email}\nSubject: {$subject}\nHeaders: {$headerText}\n\n{$body}\n\n";
     if (!is_dir(dirname(MAIL_LOG_FILE))) {
         @mkdir(dirname(MAIL_LOG_FILE), 0775, true);
     }
