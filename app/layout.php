@@ -6,6 +6,7 @@ require_once __DIR__ . '/config.php';
 function page_head(string $title, string $description, bool $includeRankings = true): void
 {
     $stylesVersion = (string) (@filemtime(__DIR__ . '/../assets/css/styles.css') ?: time());
+    $isAdmin = strpos($_SERVER['REQUEST_URI'] ?? '', 'panel-admin.php') !== false;
     ?>
     <head>
         <meta charset="UTF-8">
@@ -20,6 +21,7 @@ function page_head(string $title, string $description, bool $includeRankings = t
         <script src="assets/js/advertising.js" defer></script>
         <script src="assets/js/navigation.js" defer></script>
         <script src="assets/js/password-visibility.js" defer></script>
+        <?php if ($isAdmin): ?><script src="assets/js/admin-sidebar.js" defer></script><?php endif; ?>
         <?php if ($includeRankings): ?><script src="assets/js/section-rankings.js" defer></script><?php endif; ?>
     </head>
     <?php

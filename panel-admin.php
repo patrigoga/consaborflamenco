@@ -54,7 +54,42 @@ function admin_date(?string $value): string
 <?php page_head('Panel de administracion | Con Sabor Flamenco', 'Panel de administracion de Con Sabor Flamenco.', false); ?>
 <body>
     <?php page_header(); ?>
-    <main>
+    
+    <!-- Sidebar de Administración -->
+    <div class="admin-container">
+        <button id="admin-sidebar-toggle" class="admin-sidebar-toggle" aria-label="Abrir menú de administración">
+            <span aria-hidden="true">☰</span>
+            <span>Menú</span>
+        </button>
+        
+        <aside class="admin-sidebar">
+            <div class="admin-sidebar-header">
+                <h2>Panel Admin</h2>
+                <button class="admin-sidebar-close" aria-label="Cerrar menú" style="display: none;">
+                    <span aria-hidden="true">✕</span>
+                </button>
+            </div>
+            
+            <nav class="admin-sidebar-nav">
+                <a href="#" class="admin-sidebar-link is-active" data-target="general">
+                    <span aria-hidden="true">📊</span> Vista General
+                </a>
+                <a href="#" class="admin-sidebar-link" data-target="miembros">
+                    <span aria-hidden="true">👥</span> Miembros
+                </a>
+                <a href="#" class="admin-sidebar-link" data-target="setters">
+                    <span aria-hidden="true">🎯</span> Setters
+                </a>
+                <a href="#" class="admin-sidebar-link" data-target="articulos">
+                    <span aria-hidden="true">📝</span> Artículos
+                </a>
+                <a href="#" class="admin-sidebar-link" data-target="banners">
+                    <span aria-hidden="true">🎨</span> Banners
+                </a>
+            </nav>
+        </aside>
+        
+        <main class="admin-main-content">
         <section class="page-intro" data-ad-category="GENERAL">
             <p class="section-kicker">Administracion</p>
             <h1>Panel de administracion</h1>
@@ -262,7 +297,8 @@ function admin_date(?string $value): string
                 </table>
             </div>
         </section>
-    </main>
+        </main>
+    </div>
     <?php page_footer(); ?>
     <?php province_modal('Asi podremos revisar la experiencia publica desde la provincia seleccionada.'); ?>
 </body>
