@@ -81,7 +81,7 @@ El panel queda protegido por sesion y rol administrativo.
 
 `panel-admin.php` permite ya:
 
-- Ver metricas de miembros, setters, articulos y banners.
+- Ver una vista general de KPIs agrupados por comunidad, miembros, perfiles, setters, revista, banners, ventas, leads y sistema.
 - Ver miembros registrados con tipo de espacio, membresia, numero y estado de perfil.
 - Ver appointment setters registrados y sus estados de cuenta, documentacion, comisiones y codigo.
 - Crear categorias editoriales.
@@ -121,3 +121,4 @@ El administrador debera poder revisar conversaciones, cambiar estados, asignarla
 - 2026-06-23: Documentado el acceso administrativo inicial y el panel protegido base.
 - 2026-06-28: Implementado panel admin inicial conectado a BD para miembros, setters, categorias, articulos y banners.
 - 2026-06-30: Corregida la carga del panel admin para evitar error 500 si falta una tabla de metricas; el bootstrap crea `usos_codigo_descuento` y las lecturas admin son tolerantes a migraciones incompletas.
+- 2026-06-30: Ampliada la vista general del panel admin con KPIs operativos completos de usuarios, verificacion, membresias, perfiles, setters, contenidos, banners, leads, pagos e ingresos.
