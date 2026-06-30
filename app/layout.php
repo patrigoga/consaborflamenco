@@ -97,6 +97,20 @@ function page_header(string $active = ''): void
             <a href="tablaos.php" data-ad-nav="TABLAOS"<?= nav_class($active, 'TABLAOS') ?>>Tablaos</a>
             <a href="servicios.php"<?= nav_class($active, 'SERVICIOS') ?>>Servicios</a>
             <a href="#contacto">Contacto</a>
+            <div class="mobile-nav-footer">
+                <button class="location-trigger mobile-location-trigger" type="button" data-open-province aria-label="Cambiar provincia">
+                    <span aria-hidden="true">●</span>
+                    <span data-current-province>Tu provincia</span>
+                </button>
+                <?php if ($user): ?>
+                    <a href="<?= e($panelHref) ?>#perfil">Editar perfil</a>
+                    <a href="<?= e($panelHref) ?>#seguridad">Cambiar contraseña</a>
+                    <a href="cerrar-sesion.php">Cerrar sesión</a>
+                <?php else: ?>
+                    <a class="link-access" href="acceso.php">Acceder</a>
+                    <a class="button button-primary" href="registro.php">Hazte miembro</a>
+                <?php endif; ?>
+            </div>
         </nav>
 
         <div class="header-actions">
