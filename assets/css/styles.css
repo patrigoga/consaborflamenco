@@ -2891,6 +2891,55 @@ h3 {
     background: #fff0c8;
 }
 
+.member-card-heading-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.member-card-qr-link {
+    display: grid;
+    grid-template-columns: 78px minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+    max-width: 280px;
+    padding: 10px 14px 10px 10px;
+    color: var(--color-white);
+    text-decoration: none;
+    background: rgba(17, 17, 20, 0.32);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
+}
+
+.member-card-qr-link img {
+    width: 78px;
+    height: 78px;
+    padding: 6px;
+    object-fit: contain;
+    background: #ffffff;
+    border-radius: 12px;
+}
+
+.member-card-qr-link span {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+.member-card-qr-link strong {
+    color: var(--color-white);
+    font-size: 0.9rem;
+    font-weight: 900;
+}
+
+.member-card-qr-link small {
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 0.76rem;
+    font-weight: 800;
+}
+
 .member-card-layout {
     display: grid;
     grid-template-columns: minmax(340px, 0.9fr) minmax(300px, 0.7fr);
@@ -3088,6 +3137,51 @@ h3 {
 
 .card-background-options input:checked + img {
     border-color: var(--color-red);
+}
+
+.member-card-public-page {
+    min-height: calc(100vh - 86px);
+    padding: clamp(28px, 5vw, 72px) var(--section-gutter);
+    background:
+        radial-gradient(circle at 18% 18%, rgba(201, 79, 92, 0.20), transparent 28%),
+        linear-gradient(135deg, #111114, #203847);
+}
+
+.member-card-public-shell {
+    display: grid;
+    gap: 28px;
+    width: min(1180px, 100%);
+    margin: 0 auto;
+    padding: clamp(20px, 3vw, 36px);
+    background: rgba(255, 250, 242, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 22px;
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.24);
+}
+
+.member-card-public-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+    color: var(--color-white);
+}
+
+.member-card-public-heading h1 {
+    margin: 0;
+    color: var(--color-white);
+    font-size: clamp(2.2rem, 5vw, 5rem);
+}
+
+.member-card-public-heading p:not(.section-kicker) {
+    margin: 10px 0 0;
+    color: rgba(255, 255, 255, 0.72);
+    font-weight: 800;
+}
+
+.member-card-public-stage {
+    width: min(980px, 100%);
+    margin: 0 auto;
 }
 
 .banner-dashboard-grid {

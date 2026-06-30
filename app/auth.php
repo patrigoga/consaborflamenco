@@ -421,6 +421,52 @@ function find_user_by_id(string $id): ?array
     return null;
 }
 
+function member_code_for_user(array $user): string
+{
+    $memberCode = clean_text((string) ($user['member_code'] ?? ''));
+
+    if ($memberCode !== '') {
+        return $memberCode;
+    }
+
+    return 'CSF-' . strtoupper(substr(hash('sha1', (string) ($user['id'] ?? '') . ($user['email'] ?? '')), 0, 8));
+}
+
+function member_number_for_user(array $user): string
+{
+    if (!empty($user['member_number'])) {
+        return str_pad((string) $user['member_number'], 6, '0', STR_PAD_LEFT);
+    }
+
+    return str_pad((string) ((hexdec(substr((string) ($user['id'] ?? '000000'), 0, 6)) % 90000) + 10000), 6, '0', STR_PAD_LEFT);
+}
+
+function find_user_by_member_code(string $memberCode): ?array
+{
+    $normalizedCode = strtoupper(clean_text($memberCode));
+
+    if ($normalizedCode === '') {
+        return null;
+    }
+
+    $pdo = auth_database();
+    if ($pdo) {
+        $statement = $pdo->prepare(db_user_select_sql() . ' WHERE m.codigo_descuento = :member_code LIMIT 1');
+        $statement->execute(['member_code' => $normalizedCode]);
+        $row = $statement->fetch();
+
+        return $row ? db_user_from_row($row) : null;
+    }
+
+    foreach (all_users() as $user) {
+        if (strtoupper(member_code_for_user($user)) === $normalizedCode) {
+            return $user;
+        }
+    }
+
+    return null;
+}
+
 function create_user(string $name, string $email, string $password, array $memberProfile = []): array
 {
     $normalizedEmail = normalize_email($email);

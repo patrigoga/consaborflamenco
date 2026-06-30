@@ -6,12 +6,8 @@ require_once __DIR__ . '/app/layout.php';
 
 $user = require_login();
 $userName = $user['name'] ?? 'Miembro';
-$memberNumber = !empty($user['member_number'])
-    ? str_pad((string) $user['member_number'], 6, '0', STR_PAD_LEFT)
-    : str_pad((string) ((hexdec(substr((string) ($user['id'] ?? '000000'), 0, 6)) % 90000) + 10000), 6, '0', STR_PAD_LEFT);
-$memberCode = !empty($user['member_code'])
-    ? (string) $user['member_code']
-    : 'CSF-' . strtoupper(substr(hash('sha1', (string) ($user['id'] ?? '') . ($user['email'] ?? '')), 0, 8));
+$memberNumber = member_number_for_user($user);
+$memberCode = member_code_for_user($user);
 $memberTier = strtolower((string) ($user['membership_tier'] ?? 'simpatizante'));
 $isVipMember = $memberTier === 'vip';
 $memberStatus = $isVipMember ? 'Miembro VIP' : 'Miembro simpatizante';
@@ -34,6 +30,9 @@ if (!isset($availableCardBackgrounds[$selectedCardBackground])) {
 }
 $cardBackground = $availableCardBackgrounds[$selectedCardBackground]['path'];
 $cardFigure = $availableCardBackgrounds[$selectedCardBackground]['figure'];
+$memberCardPublicUrlBase = app_url('tarjeta-miembro.php?m=' . rawurlencode($memberCode) . '&d=');
+$memberCardPublicUrl = $memberCardPublicUrlBase . rawurlencode($selectedCardBackground);
+$memberCardQrUrl = 'qr.php?data=' . rawurlencode($memberCardPublicUrl);
 $profileMessages = [];
 $profileErrors = [];
 $memberProfile = default_member_profile($user);
@@ -687,7 +686,16 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                             <h2>Tu tarjeta de miembro</h2>
                             <p>La tarjeta identifica al miembro. Los descuentos solo se activan al pagar la membresia VIP anual de <?= e($vipMembershipPrice) ?>.</p>
                         </div>
-                        <span class="status-pill <?= e($discountStatusClass) ?>"><?= e($discountStatus) ?></span>
+                        <div class="member-card-heading-actions">
+                            <a class="member-card-qr-link" href="<?= e($memberCardPublicUrl) ?>" target="_blank" rel="noopener" data-member-card-link data-card-url-base="<?= e($memberCardPublicUrlBase) ?>">
+                                <img src="<?= e($memberCardQrUrl) ?>" alt="Codigo QR para ver la tarjeta de miembro" loading="lazy" data-member-card-qr data-qr-base="qr.php?data=">
+                                <span>
+                                    <strong>QR tarjeta</strong>
+                                    <small>Escanea para verla</small>
+                                </span>
+                            </a>
+                            <span class="status-pill <?= e($discountStatusClass) ?>"><?= e($discountStatus) ?></span>
+                        </div>
                     </div>
 
                     <div class="member-card-layout">
@@ -1036,6 +1044,8 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
 
         const cardPreview = document.querySelector('[data-card-preview]');
         const cardImage = document.querySelector('[data-card-image]');
+        const memberCardLink = document.querySelector('[data-member-card-link]');
+        const memberCardQr = document.querySelector('[data-member-card-qr]');
         document.querySelectorAll('[data-card-option]').forEach((input) => {
             input.addEventListener('change', () => {
                 if (!cardPreview || !cardImage || !input.checked) {
@@ -1045,6 +1055,14 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                 cardImage.src = input.dataset.cardSrc || cardImage.src;
                 cardPreview.classList.toggle('member-card-preview-woman', input.dataset.cardFigure === 'woman');
                 cardPreview.classList.toggle('member-card-preview-man', input.dataset.cardFigure === 'man');
+
+                if (memberCardLink instanceof HTMLAnchorElement && memberCardQr instanceof HTMLImageElement) {
+                    const publicUrlBase = memberCardLink.dataset.cardUrlBase || '';
+                    const qrBase = memberCardQr.dataset.qrBase || 'qr.php?data=';
+                    const publicUrl = `${publicUrlBase}${encodeURIComponent(input.value)}`;
+                    memberCardLink.href = publicUrl;
+                    memberCardQr.src = `${qrBase}${encodeURIComponent(publicUrl)}`;
+                }
             });
         });
 
