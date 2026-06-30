@@ -358,6 +358,13 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                         </div>
                     </div>
                     <div class="member-dashboard-actions">
+                        <a class="member-card-qr-link member-dashboard-qr-link" href="<?= e($memberCardPublicUrl) ?>" target="_blank" rel="noopener" data-member-card-link data-card-url-base="<?= e($memberCardPublicUrlBase) ?>">
+                            <img src="<?= e($memberCardQrUrl) ?>" alt="Codigo QR para ver la tarjeta de miembro" loading="lazy" data-member-card-qr data-qr-base="<?= e($memberCardQrBase) ?>">
+                            <span>
+                                <strong>QR tarjeta</strong>
+                                <small>Ver / imprimir</small>
+                            </span>
+                        </a>
                         <span class="status-pill <?= e($profileStatusClass) ?>"><?= e($profileStatus) ?></span>
                         <button class="button button-primary" type="button" onclick="window.print()">Imprimir curriculum PDF</button>
                     </div>
@@ -542,16 +549,19 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                                     default => '',
                                                 };
                                                 ?>
-                                                <label class="<?= e($fieldClass) ?>">
-                                                    <?= e($fieldLabel) ?>
-                                                    <?php if ($fieldName === 'description'): ?>
+                                                <?php if ($fieldName === 'description'): ?>
+                                                    <div class="cv-editor-field <?= e($fieldClass) ?>">
+                                                        <span class="field-label"><?= e($fieldLabel) ?></span>
                                                         <div class="rich-text-toolbar" data-editor-toolbar></div>
                                                         <div class="rich-text-editor" contenteditable="true" data-rich-editor><?= $entry['description'] ?? '' ?></div>
                                                         <textarea name="<?= e($sectionKey) ?>[<?= e((string) $rowIndex) ?>][<?= e($fieldName) ?>]" rows="5" hidden><?= e((string) ($entry[$fieldName] ?? '')) ?></textarea>
-                                                    <?php else: ?>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <label class="<?= e($fieldClass) ?>">
+                                                        <?= e($fieldLabel) ?>
                                                         <input name="<?= e($sectionKey) ?>[<?= e((string) $rowIndex) ?>][<?= e($fieldName) ?>]" type="<?= str_starts_with($fieldName, 'date_') ? 'date' : 'text' ?>" value="<?= e((string) ($entry[$fieldName] ?? '')) ?>">
-                                                    <?php endif; ?>
-                                                </label>
+                                                    </label>
+                                                <?php endif; ?>
                                             <?php endforeach; ?>
                                         </div>
                                     <?php endforeach; ?>
@@ -662,16 +672,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                             <h2>Tu tarjeta de miembro</h2>
                             <p>La tarjeta identifica al miembro. Los descuentos solo se activan al pagar la membresia VIP anual de <?= e($vipMembershipPrice) ?>.</p>
                         </div>
-                        <div class="member-card-heading-actions">
-                            <a class="member-card-qr-link" href="<?= e($memberCardPublicUrl) ?>" target="_blank" rel="noopener" data-member-card-link data-card-url-base="<?= e($memberCardPublicUrlBase) ?>">
-                                <img src="<?= e($memberCardQrUrl) ?>" alt="Codigo QR para ver la tarjeta de miembro" loading="lazy" data-member-card-qr data-qr-base="<?= e($memberCardQrBase) ?>">
-                                <span>
-                                    <strong>QR tarjeta</strong>
-                                    <small>Escanea para verla</small>
-                                </span>
-                            </a>
-                            <span class="status-pill <?= e($discountStatusClass) ?>"><?= e($discountStatus) ?></span>
-                        </div>
+                        <span class="status-pill <?= e($discountStatusClass) ?>"><?= e($discountStatus) ?></span>
                     </div>
 
                     <div class="member-card-layout">
@@ -906,6 +907,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                     {
                         kind: 'select',
                         title: 'Fuente',
+                        defaultLabel: 'Inter',
                         command: 'fontName',
                         options: [
                             ['Inter', 'Inter'],
@@ -917,6 +919,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                     {
                         kind: 'select',
                         title: 'Tamano',
+                        defaultLabel: 'Normal',
                         command: 'fontSize',
                         options: [
                             ['Normal', '3'],
@@ -986,7 +989,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                         select.className = 'rich-text-select';
                         select.title = control.title;
                         select.setAttribute('aria-label', control.title);
-                        select.innerHTML = `<option value="">${control.title}</option>`;
+                        select.innerHTML = `<option value="">${control.defaultLabel || control.title}</option>`;
                         control.options.forEach(([label, value]) => {
                             const option = document.createElement('option');
                             option.value = value;

@@ -2382,6 +2382,9 @@ h3 {
     border-radius: 0 0 14px 14px;
     background: #ffffff;
     color: #111114;
+    font-family: "Inter", Arial, sans-serif;
+    font-size: 1rem;
+    font-weight: 400;
     line-height: 1.75;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
     overflow-wrap: break-word;
@@ -2406,6 +2409,12 @@ h3 {
 .rich-text-editor ol,
 .rich-text-editor blockquote {
     margin: 0 0 12px;
+    font-weight: 400;
+}
+
+.rich-text-editor strong,
+.rich-text-editor b {
+    font-weight: 800;
 }
 
 .rich-text-editor blockquote {
@@ -2587,6 +2596,19 @@ h3 {
     gap: 12px;
 }
 
+.member-card-qr-link.member-dashboard-qr-link {
+    grid-template-columns: 58px minmax(0, 1fr);
+    max-width: 230px;
+    padding: 8px 12px 8px 8px;
+    background: rgba(17, 17, 20, 0.24);
+}
+
+.member-card-qr-link.member-dashboard-qr-link img {
+    width: 58px;
+    height: 58px;
+    border-radius: 10px;
+}
+
 .member-summary-grid,
 .banner-dashboard-grid {
     display: grid;
@@ -2681,6 +2703,17 @@ h3 {
     display: grid;
     gap: 6px;
     color: var(--color-ink);
+    font-weight: 800;
+}
+
+.cv-editor-field {
+    display: grid;
+    gap: 6px;
+    color: var(--color-ink);
+    font-weight: 400;
+}
+
+.cv-editor-field .field-label {
     font-weight: 800;
 }
 
@@ -4329,5 +4362,55 @@ h3 {
 
     .cv-print-footer strong {
         color: #c94f5c;
+    }
+
+    body.member-card-public-body,
+    body.member-card-public-body * {
+        visibility: visible !important;
+    }
+
+    body.member-card-public-body {
+        width: 100%;
+        min-height: auto;
+        background: #ffffff !important;
+    }
+
+    body.member-card-public-body .site-header,
+    body.member-card-public-body .site-footer,
+    body.member-card-public-body .province-modal,
+    body.member-card-public-body .member-card-public-heading {
+        display: none !important;
+    }
+
+    body.member-card-public-body .member-card-public-page {
+        display: block !important;
+        min-height: auto;
+        padding: 12mm 10mm;
+        background: #ffffff !important;
+    }
+
+    body.member-card-public-body .member-card-public-shell {
+        display: block !important;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        background: transparent !important;
+        border: 0;
+        box-shadow: none;
+    }
+
+    body.member-card-public-body .member-card-public-stage {
+        width: 100%;
+        margin: 0;
+    }
+
+    body.member-card-public-body .member-card-preview {
+        width: 180mm;
+        max-width: 100%;
+        margin: 0 auto;
+        border-radius: 7mm;
+        box-shadow: none;
+        break-inside: avoid;
+        page-break-inside: avoid;
     }
 }
