@@ -18,6 +18,11 @@ function admin_dashboard_stats(): array
             'setters' => count(array_filter($users, static fn (array $user): bool => ($user['role'] ?? 'user') === 'setter')),
             'articles' => 0,
             'banners' => 0,
+            'categories' => 0,
+            'leads' => 0,
+            'sales' => 0,
+            'member_types' => 0,
+            'member_cards' => 0,
         ];
     }
 
@@ -26,6 +31,11 @@ function admin_dashboard_stats(): array
         'setters' => (int) $pdo->query("SELECT COUNT(*) FROM usuarios WHERE rol = 'SETTER'")->fetchColumn(),
         'articles' => (int) $pdo->query('SELECT COUNT(*) FROM articulos')->fetchColumn(),
         'banners' => (int) $pdo->query('SELECT COUNT(*) FROM banners_miembro')->fetchColumn(),
+        'categories' => (int) $pdo->query('SELECT COUNT(*) FROM categorias_articulos')->fetchColumn(),
+        'leads' => (int) $pdo->query('SELECT COUNT(*) FROM usos_codigo_descuento')->fetchColumn(),
+        'sales' => (int) $pdo->query('SELECT COUNT(*) FROM pagos_stripe')->fetchColumn(),
+        'member_types' => (int) $pdo->query('SELECT COUNT(*) FROM tipos_miembro WHERE activo = TRUE')->fetchColumn(),
+        'member_cards' => (int) $pdo->query('SELECT COUNT(*) FROM tarjetas_miembro')->fetchColumn(),
     ];
 }
 

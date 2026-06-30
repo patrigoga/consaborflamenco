@@ -118,10 +118,15 @@ function admin_date(?string $value): string
             <?php endif; ?>
 
             <div class="admin-metric-grid">
-                <article class="admin-metric-card"><span>Miembros</span><strong><?= e((string) $stats['members']) ?></strong></article>
-                <article class="admin-metric-card"><span>Setters</span><strong><?= e((string) $stats['setters']) ?></strong></article>
-                <article class="admin-metric-card"><span>Articulos</span><strong><?= e((string) $stats['articles']) ?></strong></article>
-                <article class="admin-metric-card"><span>Banners</span><strong><?= e((string) $stats['banners']) ?></strong></article>
+                <article class="admin-metric-card"><span>👥 Miembros</span><strong><?= e((string) $stats['members']) ?></strong></article>
+                <article class="admin-metric-card"><span>🎯 Setters</span><strong><?= e((string) $stats['setters']) ?></strong></article>
+                <article class="admin-metric-card"><span>📝 Artículos</span><strong><?= e((string) $stats['articles']) ?></strong></article>
+                <article class="admin-metric-card"><span>📂 Categorías</span><strong><?= e((string) $stats['categories']) ?></strong></article>
+                <article class="admin-metric-card"><span>🎨 Banners</span><strong><?= e((string) $stats['banners']) ?></strong></article>
+                <article class="admin-metric-card"><span>🏷️ Leads</span><strong><?= e((string) $stats['leads']) ?></strong></article>
+                <article class="admin-metric-card"><span>💳 Ventas</span><strong><?= e((string) $stats['sales']) ?></strong></article>
+                <article class="admin-metric-card"><span>🎭 Tipos Miembro</span><strong><?= e((string) $stats['member_types']) ?></strong></article>
+                <article class="admin-metric-card"><span>🪧 Tarjetas</span><strong><?= e((string) $stats['member_cards']) ?></strong></article>
             </div>
         </section>
 
