@@ -47,10 +47,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Ya existe una cuenta con ese email.';
     }
     if (strlen($password) < 8) {
-        $errors[] = 'La contrasena debe tener al menos 8 caracteres.';
+        $errors[] = 'La contraseña debe tener al menos 8 caracteres.';
     }
     if ($password !== $passwordConfirm) {
-        $errors[] = 'Las contrasenas no coinciden.';
+        $errors[] = 'Las contraseñas no coinciden.';
     }
     if (!$acceptedTerms) {
         $errors[] = 'Debes aceptar los terminos y condiciones para crear tu cuenta.';
@@ -122,12 +122,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <label for="email">Email</label>
                 <input id="email" name="email" type="email" autocomplete="email" value="<?= e($values['email']) ?>" required>
 
-                <label for="password">Contrasena</label>
-                <input id="password" name="password" type="password" autocomplete="new-password" minlength="8" required>
-                <p class="field-help">Minimo 8 caracteres.</p>
+                <label for="password">Contraseña</label>
+                <div class="password-field">
+                    <input id="password" name="password" type="password" autocomplete="new-password" minlength="8" required>
+                    <button type="button" class="password-toggle" aria-label="Mostrar contraseña" aria-pressed="false">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5c-7.633 0-11 6.818-11 7s3.367 7 11 7 11-6.818 11-7-3.367-7-11-7zm0 12c-2.761 0-5-2.243-5-5 0-2.757 2.239-5 5-5s5 2.243 5 5c0 2.757-2.239 5-5 5zm0-8.5c-1.932 0-3.5 1.568-3.5 3.5s1.568 3.5 3.5 3.5 3.5-1.568 3.5-3.5-1.568-3.5-3.5-3.5z"/></svg>
+                    </button>
+                </div>
+                <p class="field-help">Mínimo 8 caracteres.</p>
 
-                <label for="password_confirm">Repetir contrasena</label>
-                <input id="password_confirm" name="password_confirm" type="password" autocomplete="new-password" minlength="8" required>
+                <label for="password_confirm">Repetir contraseña</label>
+                <div class="password-field">
+                    <input id="password_confirm" name="password_confirm" type="password" autocomplete="new-password" minlength="8" required>
+                    <button type="button" class="password-toggle" aria-label="Mostrar contraseña" aria-pressed="false">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5c-7.633 0-11 6.818-11 7s3.367 7 11 7 11-6.818 11-7-3.367-7-11-7zm0 12c-2.761 0-5-2.243-5-5 0-2.757 2.239-5 5-5s5 2.243 5 5c0 2.757-2.239 5-5 5zm0-8.5c-1.932 0-3.5 1.568-3.5 3.5s1.568 3.5 3.5 3.5 3.5-1.568 3.5-3.5-1.568-3.5-3.5-3.5z"/></svg>
+                    </button>
+                </div>
 
                 <label class="checkbox-field" for="terms">
                     <input id="terms" name="terms" type="checkbox" required>

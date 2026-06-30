@@ -80,7 +80,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <label for="email">Email</label>
                 <input id="email" name="email" type="email" autocomplete="email" value="<?= e($email) ?>" required>
                 <label for="password">Contraseña</label>
-                <input id="password" name="password" type="password" autocomplete="current-password" required>
+                <div class="password-field">
+                    <input id="password" name="password" type="password" autocomplete="current-password" required>
+                    <button type="button" class="password-toggle" aria-label="Mostrar contraseña" aria-pressed="false">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5c-7.633 0-11 6.818-11 7s3.367 7 11 7 11-6.818 11-7-3.367-7-11-7zm0 12c-2.761 0-5-2.243-5-5 0-2.757 2.239-5 5-5s5 2.243 5 5c0 2.757-2.239 5-5 5zm0-8.5c-1.932 0-3.5 1.568-3.5 3.5s1.568 3.5 3.5 3.5 3.5-1.568 3.5-3.5-1.568-3.5-3.5-3.5z"/></svg>
+                    </button>
+                </div>
                 <button class="button button-primary" type="submit">Entrar</button>
                 <p class="auth-switch"><a href="recuperar-contrasena.php">He olvidado mi contraseña</a></p>
                 <p class="auth-switch">¿Aún no tienes cuenta? <a href="registro.php">Crea una aquí</a>.</p>

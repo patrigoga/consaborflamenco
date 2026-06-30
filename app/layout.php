@@ -19,6 +19,7 @@ function page_head(string $title, string $description, bool $includeRankings = t
         <link rel="stylesheet" href="assets/css/styles.css?v=<?= e($stylesVersion) ?>">
         <script src="assets/js/advertising.js" defer></script>
         <script src="assets/js/navigation.js" defer></script>
+        <script src="assets/js/password-visibility.js" defer></script>
         <?php if ($includeRankings): ?><script src="assets/js/section-rankings.js" defer></script><?php endif; ?>
     </head>
     <?php

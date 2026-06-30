@@ -2011,6 +2011,40 @@ h3 {
     background: #fbf8f3;
 }
 
+.password-field {
+    position: relative;
+}
+
+.password-field input {
+    padding-right: 48px;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border: none;
+    background: transparent;
+    color: var(--color-ink);
+    cursor: pointer;
+    padding: 0;
+}
+
+.password-toggle svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+}
+
+.password-toggle.is-active svg {
+    opacity: 0.75;
+}
+
 .auth-card-register input[type="text"],
 .auth-card-register input[type="email"],
 .auth-card-register input[type="password"],
