@@ -283,7 +283,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') ==
         update_user($user);
         $profileMessages[] = profile_is_complete($memberProfile)
             ? 'Perfil artistico actualizado.'
-            : 'Perfil guardado. Sigue pendiente completar nombre artistico, descripcion, ciudad, provincia, fotografia principal y al menos una experiencia profesional o formacion.';
+            : 'Perfil guardado. Sigue pendiente completar nombre artistico, ciudad, provincia, fotografia principal y al menos una formacion, experiencia profesional o actuacion.';
     }
 }
 
@@ -292,14 +292,12 @@ $profileStatus = profile_is_complete($memberProfile) ? 'Perfil completo' : 'Perf
 $profileStatusClass = profile_is_complete($memberProfile) ? 'status-pill-active' : 'status-pill-pending';
 $displayName = $memberProfile['public_name'] !== '' ? $memberProfile['public_name'] : $userName;
 $cardHeadline = clean_text((string) ($memberProfile['artistic_headline'] ?? ''));
-$cardSpecialties = clean_text((string) ($memberProfile['specialties'] ?? ''));
 $profileRequiredFields = [
     $memberProfile['public_name'] ?? '',
-    $memberProfile['short_description'] ?? '',
     $memberProfile['city'] ?? '',
     $memberProfile['province'] ?? '',
     $memberProfile['main_photo_path'] ?? '',
-    (!empty($memberProfile['education']) || !empty($memberProfile['experience'])) ? 'curriculum' : '',
+    (!empty($memberProfile['education']) || !empty($memberProfile['experience']) || !empty($memberProfile['performances'])) ? 'curriculum' : '',
 ];
 $completedProfileFields = count(array_filter($profileRequiredFields, static fn ($value): bool => clean_text((string) $value) !== ''));
 $profileCompletion = (int) round(($completedProfileFields / count($profileRequiredFields)) * 100);
@@ -367,7 +365,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                         <div class="section-heading-content">
                             <p class="section-kicker">Perfil</p>
                             <h2>Ficha artistica</h2>
-                            <p>Este bloque queda conectado a la tabla de miembros para editar avatar, nombre artistico, descripcion breve, provincia y redes.</p>
+                            <p>Este bloque queda conectado a la tabla de miembros para editar avatar, nombre artistico, ubicacion, fotografia, redes y curriculum.</p>
                         </div>
                         <span class="status-pill <?= e($profileStatusClass) ?>"><?= e($profileStatus) ?></span>
                     </div>
@@ -447,12 +445,6 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                         <input id="public_name" name="public_name" type="text" value="<?= e($displayName) ?>" required>
                                     </label>
                                 </div>
-                                <label for="specialties">Especialidades
-                                    <input id="specialties" name="specialties" type="text" value="<?= e($memberProfile['specialties']) ?>" placeholder="Baile, cante, guitarra, palmas, coreografia...">
-                                </label>
-                                <label for="short_description">Descripcion breve publica
-                                    <textarea id="short_description" name="short_description" rows="3" maxlength="700" required><?= e($memberProfile['short_description']) ?></textarea>
-                                </label>
                             </fieldset>
 
                             <fieldset class="cv-fieldset profile-tab-panel" data-profile-tab="datos">
@@ -616,17 +608,16 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                     <p><?= e($memberProfile['city']) ?><?= $memberProfile['city'] && $memberProfile['province'] ? ' ' : '' ?><?= e($memberProfile['province']) ?></p>
                                 </div>
                             </header>
-                            <?php if ($memberProfile['short_description']): ?>
-                                <section>
-                                    <h2>Perfil artistico</h2>
-                                    <p><?= e($memberProfile['short_description']) ?></p>
-                                </section>
-                            <?php endif; ?>
-                            <?php if (!empty($memberProfile['print_professional_data'])): ?>
+                            <?php
+                            $hasProfessionalData = !empty($memberProfile['years_active'])
+                                || !empty($memberProfile['availability'])
+                                || !empty($memberProfile['website_url'])
+                                || !empty($memberProfile['instagram_url']);
+                            ?>
+                            <?php if (!empty($memberProfile['print_professional_data']) && $hasProfessionalData): ?>
                                 <section>
                                     <h2>Datos profesionales</h2>
                                     <dl>
-                                        <?php if ($memberProfile['specialties']): ?><div><dt>Especialidades</dt><dd><?= e($memberProfile['specialties']) ?></dd></div><?php endif; ?>
                                         <?php if ($memberProfile['years_active']): ?><div><dt>Trayectoria</dt><dd><?= e($memberProfile['years_active']) ?></dd></div><?php endif; ?>
                                         <?php if ($memberProfile['availability']): ?><div><dt>Disponibilidad</dt><dd><?= e($memberProfile['availability']) ?></dd></div><?php endif; ?>
                                         <?php if ($memberProfile['website_url']): ?><div><dt>Web</dt><dd><?= e($memberProfile['website_url']) ?></dd></div><?php endif; ?>
@@ -707,7 +698,6 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                 <span class="member-card-space"><?= e($memberTypeLabel) ?></span>
                                 <strong><?= e($displayName) ?></strong>
                                 <?php if ($cardHeadline !== ''): ?><span class="member-card-headline"><?= e($cardHeadline) ?></span><?php endif; ?>
-                                <?php if ($cardSpecialties !== ''): ?><span class="member-card-specialties"><?= e($cardSpecialties) ?></span><?php endif; ?>
                                 <?php if ($isVipMember): ?><code><?= e($memberCode) ?></code><?php endif; ?>
                             </div>
                             <div class="member-card-footer">

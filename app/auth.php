@@ -201,7 +201,6 @@ function default_member_profile(array $user = []): array
 function profile_is_complete(array $profile): bool
 {
     return clean_text((string) ($profile['public_name'] ?? '')) !== ''
-        && clean_text((string) ($profile['short_description'] ?? '')) !== ''
         && clean_text((string) ($profile['city'] ?? '')) !== ''
         && clean_text((string) ($profile['province'] ?? '')) !== ''
         && clean_text((string) ($profile['main_photo_path'] ?? '')) !== ''
@@ -218,9 +217,9 @@ function member_profile_from_input(array $input, array $existingProfile = []): a
     $profile['member_type'] = normalize_member_type((string) ($input['member_type'] ?? $profile['member_type']));
     $profile['public_name'] = clean_text((string) ($input['public_name'] ?? $input['name'] ?? $profile['public_name']));
     $profile['artistic_headline'] = clean_text((string) ($input['artistic_headline'] ?? $profile['artistic_headline']));
-    $profile['short_description'] = clean_text((string) ($input['short_description'] ?? $profile['short_description']));
-    $profile['cv_summary'] = clean_text((string) ($input['cv_summary'] ?? $profile['cv_summary']));
-    $profile['specialties'] = clean_text((string) ($input['specialties'] ?? $profile['specialties']));
+    $profile['short_description'] = '';
+    $profile['cv_summary'] = '';
+    $profile['specialties'] = '';
     $profile['years_active'] = clean_text((string) ($input['years_active'] ?? $profile['years_active']));
     $profile['availability'] = clean_text((string) ($input['availability'] ?? $profile['availability']));
     $profile['birth_place'] = clean_text((string) ($input['birth_place'] ?? $profile['birth_place']));
@@ -808,9 +807,6 @@ function db_user_from_row(array $row): array
     if (($profile['public_name'] ?? '') === '' && !empty($row['nombre_publico'])) {
         $profile['public_name'] = (string) $row['nombre_publico'];
     }
-    if (($profile['short_description'] ?? '') === '' && !empty($row['biografia'])) {
-        $profile['short_description'] = (string) $row['biografia'];
-    }
     if (($profile['city'] ?? '') === '' && !empty($row['ciudad'])) {
         $profile['city'] = (string) $row['ciudad'];
     }
@@ -979,7 +975,7 @@ function db_upsert_member_for_user(PDO $pdo, int $userId, array $user): void
         'numero_miembro' => $memberNumber,
         'codigo_descuento' => $memberCode,
         'estado' => strtolower((string) ($user['membership_tier'] ?? 'simpatizante')) === 'vip' ? 'VIP' : 'SIMPATIZANTE',
-        'biografia' => clean_text((string) ($profile['short_description'] ?? '')),
+        'biografia' => '',
         'ciudad' => clean_text((string) ($profile['city'] ?? '')),
         'provincia_texto' => clean_text((string) ($profile['province'] ?? '')),
         'telefono' => clean_text((string) ($profile['phone'] ?? '')),

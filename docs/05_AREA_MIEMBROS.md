@@ -28,7 +28,6 @@ Los miembros podran:
 - Ver un avatar de perfil en la cabecera con menu desplegable.
 - Cambiar contrasena desde el area privada.
 - Subir o gestionar imagenes.
-- Anadir descripcion breve publica.
 - Anadir redes sociales.
 - Anadir videos.
 - Publicar o solicitar publicacion de eventos.
@@ -67,7 +66,7 @@ El panel de miembro se organiza con:
 - Sidebar izquierdo oscuro con accesos a Perfil, Tarjeta de miembro, Banners y Seguridad.
 - Cabecera privada tipo dashboard con fotografia principal, nombre artistico, tipo de espacio, ubicacion y metricas de estado.
 - Bloque de perfil con datos principales del miembro.
-- Editor de perfil artistico con tipo de espacio, nombre artistico, titular artistico, descripcion breve publica, ubicacion, contacto, redes y fotografia principal.
+- Editor de perfil artistico con tipo de espacio, nombre artistico, titular artistico, ubicacion, contacto, redes y fotografia principal.
 - Editor de curriculum artistico con formacion, experiencia escenica, docencia, actuaciones destacadas, premios, repertorio, disponibilidad y notas privadas.
 - Control de visibilidad por bloques para decidir que datos se publican y que datos quedan privados.
 - Bloques repetibles con boton para anadir nuevas entradas sin limite fijo inicial.
@@ -76,7 +75,6 @@ El panel de miembro se organiza con:
 - Boton para imprimir o guardar el curriculum en PDF desde el navegador.
 - La plantilla PDF debe ser compacta, aprovechar el ancho del papel y mantener la foto en color.
 - La cabecera del PDF usa el titular artistico como H1, puede tener imagen de fondo personalizada y no muestra el tipo de espacio.
-- El PDF usa la descripcion breve publica como texto de perfil artistico; se retira el campo independiente de biografia/resumen curricular.
 - Bloque de tarjeta identificativa con imagen a pantalla completa, nombre y nivel de membresia visible.
 - Bloque de banners para preparar la compra de espacios publicitarios mediante Stripe.
 
@@ -89,7 +87,6 @@ Datos previstos:
 - Imagen de fondo al 100%.
 - Nombre visible del miembro.
 - Especialidad o titular artistico.
-- Especialidades.
 - Nivel visible: Miembro simpatizante o Miembro VIP.
 - Numero de miembro unico.
 - Codigo de descuento unico con formato `CSF-...`.
@@ -110,7 +107,6 @@ Cada miembro debe tener un espacio publico minimo desde el registro. Para consid
 
 - Tipo de espacio.
 - Nombre artistico.
-- Descripcion artistica.
 - Ciudad.
 - Provincia.
 - Al menos una fotografia principal.
@@ -127,7 +123,7 @@ El curriculum artistico debe permitir registrar:
 - Premios y reconocimientos: ano, titulo y entidad.
 - Repertorio y palos: palo/estilo y notas.
 - Redes sociales y enlaces: plataforma, URL y descripcion.
-- Datos profesionales: especialidades, trayectoria, disponibilidad, web, Instagram y contacto.
+- Datos profesionales: trayectoria, disponibilidad, web, Instagram y contacto.
 - Opcion para ocultar los datos profesionales en la impresion PDF sin eliminarlos del perfil.
 - Notas privadas no publicables.
 - Pie de pagina del PDF con la marca `Creado con consaborflamenco.com`.
@@ -200,3 +196,4 @@ Los miembros podran contratar servicios digitales ofrecidos por la plataforma. E
 - 2026-06-29: Corregida la persistencia de fotografia principal aunque el perfil siga pendiente y refinado el editor de experiencia profesional con mas controles de formato.
 - 2026-06-29: Bloqueado el acceso al area de usuario hasta verificar email y revisado el formato de impresion del curriculum con cabecera directa, descripcion limpia, fechas compactas y sello de marca en el pie.
 - 2026-06-29: Ajustado el flujo de verificacion para que un miembro sin email validado no cree sesion ni aparezca como logueado; la pantalla pendiente permite reenviar el enlace por email.
+- 2026-06-30: Retirados los campos Especialidades y Descripcion breve publica del panel, la tarjeta y el PDF; ya no cuentan para completar el perfil.
