@@ -201,3 +201,4 @@ Los miembros podran contratar servicios digitales ofrecidos por la plataforma. E
 - 2026-06-29: Ajustado el flujo de verificacion para que un miembro sin email validado no cree sesion ni aparezca como logueado; la pantalla pendiente permite reenviar el enlace por email.
 - 2026-06-30: Retirados los campos Especialidades y Descripcion breve publica del panel, la tarjeta y el PDF; ya no cuentan para completar el perfil.
 - 2026-06-30: Anadido nombre y apellidos al registro, movida la bienvenida a la verificacion correcta, eliminada la imagen duplicada del perfil y compactados los controles de PDF por seccion.
+- 2026-06-30: Movido el QR de tarjeta a la cabecera del panel, corregido el editor enriquecido con fuente/peso por defecto y preparada la impresion exclusiva de la tarjeta de miembro.
