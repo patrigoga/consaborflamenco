@@ -5,7 +5,44 @@ require_once __DIR__ . '/auth.php';
 
 function admin_database(): ?PDO
 {
-    return auth_database();
+    try {
+        return auth_database();
+    } catch (Throwable $exception) {
+        admin_record_error($exception);
+        return null;
+    }
+}
+
+function admin_record_error(Throwable $exception): void
+{
+    $GLOBALS['CSF_ADMIN_LAST_ERROR'] = $exception->getMessage();
+    error_log('[CSF admin] ' . $exception->getMessage());
+}
+
+function admin_last_error(): ?string
+{
+    return isset($GLOBALS['CSF_ADMIN_LAST_ERROR']) ? (string) $GLOBALS['CSF_ADMIN_LAST_ERROR'] : null;
+}
+
+function admin_safe_count(PDO $pdo, string $sql): int
+{
+    try {
+        return (int) $pdo->query($sql)->fetchColumn();
+    } catch (Throwable $exception) {
+        admin_record_error($exception);
+        return 0;
+    }
+}
+
+function admin_safe_fetch_all(PDO $pdo, string $sql): array
+{
+    try {
+        $statement = $pdo->query($sql);
+        return $statement ? $statement->fetchAll() : [];
+    } catch (Throwable $exception) {
+        admin_record_error($exception);
+        return [];
+    }
 }
 
 function admin_dashboard_stats(): array
@@ -27,15 +64,15 @@ function admin_dashboard_stats(): array
     }
 
     return [
-        'members' => (int) $pdo->query("SELECT COUNT(*) FROM usuarios WHERE rol = 'MIEMBRO'")->fetchColumn(),
-        'setters' => (int) $pdo->query("SELECT COUNT(*) FROM usuarios WHERE rol = 'SETTER'")->fetchColumn(),
-        'articles' => (int) $pdo->query('SELECT COUNT(*) FROM articulos')->fetchColumn(),
-        'banners' => (int) $pdo->query('SELECT COUNT(*) FROM banners_miembro')->fetchColumn(),
-        'categories' => (int) $pdo->query('SELECT COUNT(*) FROM categorias_articulos')->fetchColumn(),
-        'leads' => (int) $pdo->query('SELECT COUNT(*) FROM usos_codigo_descuento')->fetchColumn(),
-        'sales' => (int) $pdo->query('SELECT COUNT(*) FROM pagos_stripe')->fetchColumn(),
-        'member_types' => (int) $pdo->query('SELECT COUNT(*) FROM tipos_miembro WHERE activo = TRUE')->fetchColumn(),
-        'member_cards' => (int) $pdo->query('SELECT COUNT(*) FROM tarjetas_miembro')->fetchColumn(),
+        'members' => admin_safe_count($pdo, "SELECT COUNT(*) FROM usuarios WHERE rol = 'MIEMBRO'"),
+        'setters' => admin_safe_count($pdo, "SELECT COUNT(*) FROM usuarios WHERE rol = 'SETTER'"),
+        'articles' => admin_safe_count($pdo, 'SELECT COUNT(*) FROM articulos'),
+        'banners' => admin_safe_count($pdo, 'SELECT COUNT(*) FROM banners_miembro'),
+        'categories' => admin_safe_count($pdo, 'SELECT COUNT(*) FROM categorias_articulos'),
+        'leads' => admin_safe_count($pdo, 'SELECT COUNT(*) FROM usos_codigo_descuento'),
+        'sales' => admin_safe_count($pdo, 'SELECT COUNT(*) FROM pagos_stripe'),
+        'member_types' => admin_safe_count($pdo, 'SELECT COUNT(*) FROM tipos_miembro WHERE activo = TRUE'),
+        'member_cards' => admin_safe_count($pdo, 'SELECT COUNT(*) FROM tarjetas_miembro'),
     ];
 }
 
@@ -46,7 +83,8 @@ function admin_members(): array
         return array_filter(all_users(), static fn (array $user): bool => ($user['role'] ?? 'user') === 'user');
     }
 
-    $statement = $pdo->query(
+    return admin_safe_fetch_all(
+        $pdo,
         "SELECT
             u.nombre,
             u.email,
@@ -64,8 +102,6 @@ function admin_members(): array
         WHERE u.rol = 'MIEMBRO'
         ORDER BY u.created_at DESC, u.id DESC"
     );
-
-    return $statement->fetchAll();
 }
 
 function admin_setters(): array
@@ -75,7 +111,8 @@ function admin_setters(): array
         return array_filter(all_users(), static fn (array $user): bool => ($user['role'] ?? 'user') === 'setter');
     }
 
-    $statement = $pdo->query(
+    return admin_safe_fetch_all(
+        $pdo,
         "SELECT
             u.nombre,
             u.email,
@@ -91,8 +128,6 @@ function admin_setters(): array
         WHERE u.rol = 'SETTER'
         ORDER BY u.created_at DESC, u.id DESC"
     );
-
-    return $statement->fetchAll();
 }
 
 function admin_article_categories(): array
@@ -102,7 +137,7 @@ function admin_article_categories(): array
         return [];
     }
 
-    return $pdo->query('SELECT * FROM categorias_articulos ORDER BY nombre ASC')->fetchAll();
+    return admin_safe_fetch_all($pdo, 'SELECT * FROM categorias_articulos ORDER BY nombre ASC');
 }
 
 function admin_articles(): array
@@ -112,7 +147,8 @@ function admin_articles(): array
         return [];
     }
 
-    $statement = $pdo->query(
+    return admin_safe_fetch_all(
+        $pdo,
         "SELECT a.*, c.nombre AS categoria_nombre, u.nombre AS autor_nombre
         FROM articulos a
         LEFT JOIN categorias_articulos c ON c.id = a.categoria_id
@@ -120,8 +156,6 @@ function admin_articles(): array
         ORDER BY a.created_at DESC, a.id DESC
         LIMIT 30"
     );
-
-    return $statement->fetchAll();
 }
 
 function admin_banners(): array
@@ -131,7 +165,8 @@ function admin_banners(): array
         return [];
     }
 
-    $statement = $pdo->query(
+    return admin_safe_fetch_all(
+        $pdo,
         "SELECT
             b.*,
             m.nombre_publico,
@@ -142,8 +177,6 @@ function admin_banners(): array
         ORDER BY b.created_at DESC, b.id DESC
         LIMIT 40"
     );
-
-    return $statement->fetchAll();
 }
 
 function admin_create_category(string $name): void

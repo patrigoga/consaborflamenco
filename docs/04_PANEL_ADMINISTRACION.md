@@ -120,3 +120,4 @@ El administrador debera poder revisar conversaciones, cambiar estados, asignarla
 - 2026-06-21: Definida la futura gestion administrativa de publicidad y metricas.
 - 2026-06-23: Documentado el acceso administrativo inicial y el panel protegido base.
 - 2026-06-28: Implementado panel admin inicial conectado a BD para miembros, setters, categorias, articulos y banners.
+- 2026-06-30: Corregida la carga del panel admin para evitar error 500 si falta una tabla de metricas; el bootstrap crea `usos_codigo_descuento` y las lecturas admin son tolerantes a migraciones incompletas.

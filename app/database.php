@@ -246,6 +246,21 @@ function db_bootstrap(PDO $pdo): void
             CONSTRAINT fk_reset_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
             INDEX idx_reset_usuario_estado (usuario_id, expires_at, used_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS usos_codigo_descuento (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            miembro_id BIGINT UNSIGNED NOT NULL,
+            codigo_descuento VARCHAR(40) NOT NULL,
+            usuario_id BIGINT UNSIGNED NULL,
+            contexto VARCHAR(80) NULL,
+            importe_base_centimos INT UNSIGNED NULL,
+            descuento_centimos INT UNSIGNED NULL,
+            usado_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT fk_usos_codigo_miembro FOREIGN KEY (miembro_id) REFERENCES miembros(id) ON DELETE CASCADE,
+            CONSTRAINT fk_usos_codigo_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL,
+            INDEX idx_usos_codigo (codigo_descuento),
+            INDEX idx_usos_miembro_fecha (miembro_id, usado_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     ];
 
     foreach ($statements as $statement) {
