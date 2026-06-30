@@ -7,8 +7,10 @@ require_once __DIR__ . '/app/layout.php';
 $token = (string) ($_GET['token'] ?? '');
 $verified = false;
 $error = null;
+$verifiedUser = null;
 
 if ($token !== '') {
+    $verifiedUser = find_user_by_email_verification_token($token);
     if (consume_email_verification_token($token)) {
         $verified = true;
     } else {
@@ -30,7 +32,8 @@ if ($token !== '') {
                 <p class="section-kicker">Verificación</p>
                 <h1>Verifica tu correo</h1>
                 <?php if ($verified): ?>
-                    <div class="form-alert form-alert-success"><p>Tu correo ha sido verificado. Ya puedes acceder a tu cuenta.</p></div>
+                    <?php $welcomeName = clean_text((string) ($verifiedUser['name'] ?? '')); ?>
+                    <div class="form-alert form-alert-success"><p><?= $welcomeName !== '' ? 'Bienvenido/a, ' . e($welcomeName) . '. ' : '' ?>Tu correo ha sido verificado. Ya puedes acceder a tu cuenta.</p></div>
                     <p><a class="button" href="acceso.php">Ir a acceso</a></p>
                 <?php else: ?>
                     <div class="form-alert form-alert-error"><p><?= e($error) ?></p></div>

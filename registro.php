@@ -6,6 +6,7 @@ require_once __DIR__ . '/app/layout.php';
 
 $errors = [];
 $values = [
+    'full_name' => '',
     'email' => '',
     'member_type' => 'artista',
 ];
@@ -26,6 +27,7 @@ if ($currentUser) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $values['full_name'] = clean_text((string) ($_POST['full_name'] ?? ''));
     $values['email'] = normalize_email($_POST['email'] ?? '');
     $values['member_type'] = normalize_member_type((string) ($_POST['member_type'] ?? 'artista'));
     $password = (string) ($_POST['password'] ?? '');
@@ -34,6 +36,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
         $errors[] = 'La sesion ha caducado. Vuelve a intentarlo.';
+    }
+    if ($values['full_name'] === '') {
+        $errors[] = 'Introduce tu nombre y apellidos.';
     }
     if (!filter_var($values['email'], FILTER_VALIDATE_EMAIL)) {
         $errors[] = 'Introduce un email valido.';
@@ -53,15 +58,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$errors) {
         try {
-            $user = create_user('', $values['email'], $password, [
+            $user = create_user($values['full_name'], $values['email'], $password, [
                 'member_type' => $values['member_type'],
             ]);
 
             // Send email verification token (best-effort)
             $token = create_email_verification_token($user['email']);
             if ($token) {
-                // try to use public name or name in greeting
-                $displayName = $user['name'] ?? ($user['public_name'] ?? '');
+                $displayName = $user['name'] ?? $values['full_name'];
                 @send_email_verification($user['email'], $token, $displayName);
             }
 
@@ -104,6 +108,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php foreach ($errors as $error): ?><p><?= e($error) ?></p><?php endforeach; ?>
                     </div>
                 <?php endif; ?>
+
+                <label for="full_name">Nombre y apellidos</label>
+                <input id="full_name" name="full_name" type="text" autocomplete="name" value="<?= e($values['full_name']) ?>" required>
 
                 <label for="member_type">Tipo de espacio</label>
                 <select id="member_type" name="member_type" required>

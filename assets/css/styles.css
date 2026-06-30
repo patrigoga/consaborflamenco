@@ -2466,6 +2466,21 @@ h3 {
     align-items: center;
 }
 
+.member-dashboard-photo-edit {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 132px;
+    aspect-ratio: 1;
+    padding: 0;
+    overflow: hidden;
+    color: var(--color-white);
+    background: transparent;
+    border: 0;
+    border-radius: 16px;
+    cursor: pointer;
+}
+
 .member-dashboard-identity img,
 .member-dashboard-photo-placeholder {
     width: 132px;
@@ -2473,6 +2488,33 @@ h3 {
     object-fit: cover;
     border-radius: 16px;
     border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.member-dashboard-photo-edit > span {
+    position: absolute;
+    inset: auto 10px 10px;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    min-height: 34px;
+    color: var(--color-white);
+    background: rgba(17, 17, 20, 0.70);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    font-size: 0.78rem;
+    font-weight: 900;
+    text-transform: none;
+    letter-spacing: 0;
+    backdrop-filter: blur(10px);
+}
+
+.member-dashboard-photo-edit:hover > span,
+.member-dashboard-photo-edit:focus-visible > span {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .member-dashboard-photo-placeholder {
@@ -2491,6 +2533,13 @@ h3 {
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.08em;
+}
+
+.member-dashboard-photo-edit > span {
+    color: var(--color-white);
+    font-size: 0.78rem;
+    text-transform: none;
+    letter-spacing: 0;
 }
 
 .member-dashboard-identity h2 {
@@ -2690,11 +2739,35 @@ h3 {
     height: 18px;
 }
 
+.visibility-toggle.compact-toggle {
+    justify-self: start;
+    max-width: 360px;
+    padding: 8px 10px;
+    color: #3d3a36;
+    background: rgba(255, 255, 255, 0.54);
+}
+
 .cv-section-heading {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(17, 17, 20, 0.08);
+}
+
+.cv-section-heading legend {
+    display: grid;
+    gap: 5px;
+}
+
+.cv-section-heading legend span {
+    color: #c94f5c;
+    font-family: "Inter", Arial, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
 }
 
 .cv-section-tools {
@@ -2710,7 +2783,7 @@ h3 {
     align-items: center;
     gap: 8px;
     color: var(--color-muted);
-    font-size: 0.78rem;
+    font-size: 0.72rem;
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -2730,11 +2803,17 @@ h3 {
 }
 
 .cv-section-toggle {
-    padding: 7px 10px;
+    padding: 6px 9px;
     color: #173d2c;
     border: 1px solid rgba(23, 61, 44, 0.16);
     border-radius: 999px;
-    background: #e5f5ec;
+    background: rgba(229, 245, 236, 0.74);
+}
+
+.cv-section-toggle input,
+.cv-entry-controls .visibility-toggle input {
+    width: 16px;
+    height: 16px;
 }
 
 .cv-repeat-row {
@@ -2748,7 +2827,7 @@ h3 {
 }
 
 .cv-repeat-row-with-media {
-    grid-template-columns: minmax(170px, 220px) repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(220px, 280px) repeat(3, minmax(0, 1fr));
     gap: 14px 16px;
     align-items: start;
 }
@@ -2810,7 +2889,7 @@ h3 {
 .cv-entry-image-box {
     display: grid;
     place-items: center;
-    min-height: 190px;
+    min-height: 240px;
     color: var(--color-muted);
     border: 1px dashed rgba(17, 17, 20, 0.18);
     border-radius: 14px;
@@ -2821,7 +2900,7 @@ h3 {
 .cv-entry-image-preview {
     width: 100%;
     height: 100%;
-    min-height: 190px;
+    min-height: 240px;
     object-fit: cover;
 }
 
@@ -2840,7 +2919,9 @@ h3 {
 }
 
 .cv-header-background-preview {
+    position: relative;
     display: grid;
+    gap: 7px;
     min-height: 110px;
     place-items: center;
     color: var(--color-white);
@@ -2852,6 +2933,18 @@ h3 {
     background-size: cover;
     background-position: center;
     font-weight: 900;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.cv-header-background-preview em {
+    padding: 7px 12px;
+    color: var(--color-white);
+    background: rgba(17, 17, 20, 0.62);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-style: normal;
 }
 
 .cv-repeat-section .cv-repeat-row:nth-of-type(n + 5) {

@@ -657,6 +657,25 @@ function create_email_verification_token(string $email): ?string
     return $plainToken;
 }
 
+function find_user_by_email_verification_token(string $plainToken): ?array
+{
+    $tokenHash = hash('sha256', $plainToken);
+
+    foreach (verification_tokens() as $token) {
+        $isValid = empty($token['used_at'])
+            && strtotime($token['expires_at'] ?? '') > time()
+            && hash_equals($token['token_hash'] ?? '', $tokenHash);
+
+        if (!$isValid) {
+            continue;
+        }
+
+        return find_user_by_email($token['email'] ?? '');
+    }
+
+    return null;
+}
+
 function consume_email_verification_token(string $plainToken): bool
 {
     $tokenHash = hash('sha256', $plainToken);
@@ -1319,15 +1338,13 @@ function send_password_reset_email(string $email, string $plainToken): bool
 function send_email_verification(string $email, string $plainToken, string $name = ''): bool
 {
     $verifyUrl = app_url('verify-email.php?token=' . urlencode($plainToken));
-    $subject = 'Bienvenido a ' . APP_NAME;
+    $subject = 'Verifica tu correo en ' . APP_NAME;
     $recipientName = $name !== '' ? $name : 'Miembro';
     $brand = APP_NAME;
     $headerImage = app_url('assets/images/flamenco-header-art.png');
-    $profileUrl = app_url('panel-usuario.php');
-
     $plainText = "Hola {$recipientName},\n\n"
-        . "Gracias por registrarte en {$brand}.\n\n"
-        . "Activa tu cuenta aquí:\n{$verifyUrl}\n\n"
+        . "Confirma tu correo para activar tu cuenta en {$brand}.\n\n"
+        . "Verifica tu correo aqui:\n{$verifyUrl}\n\n"
         . "El enlace caduca en 24 horas.\n\n"
         . "{$brand}";
 
@@ -1337,7 +1354,7 @@ function send_email_verification(string $email, string $plainToken, string $name
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bienvenido a {$brand}</title>
+    <title>Verifica tu correo en {$brand}</title>
 </head>
 <body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;background:#0f1720;color:#111114;">
     <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#0f1720;padding:32px 0;">
@@ -1351,9 +1368,9 @@ function send_email_verification(string $email, string $plainToken, string $name
                     </tr>
                     <tr>
                         <td style="padding:36px 44px 28px;">
-                            <p style="margin:0 0 10px;color:#c9a45a;font-size:0.85rem;letter-spacing:0.16em;text-transform:uppercase;">Bienvenido a tu espacio flamenco</p>
-                            <h1 style="margin:0 0 20px;font-size:2.4rem;line-height:1.1;color:#ffffff;">Hola {$recipientName}, estamos felices de tenerte aquí</h1>
-                            <p style="margin:0 0 22px;font-size:1rem;line-height:1.7;color:rgba(255,255,255,0.86);max-width:600px;">Gracias por unirte a <strong>{$brand}</strong>. Ya puedes empezar a crear tu perfil artístico y mostrar tu esencia flamenca.</p>
+                            <p style="margin:0 0 10px;color:#c9a45a;font-size:0.85rem;letter-spacing:0.16em;text-transform:uppercase;">Verificacion de cuenta</p>
+                            <h1 style="margin:0 0 20px;font-size:2.4rem;line-height:1.1;color:#ffffff;">Hola {$recipientName}, confirma tu correo</h1>
+                            <p style="margin:0 0 22px;font-size:1rem;line-height:1.7;color:rgba(255,255,255,0.86);max-width:600px;">Solo necesitamos validar este email para activar tu cuenta en <strong>{$brand}</strong>. Despues de verificarlo, te daremos la bienvenida y podras acceder al panel.</p>
                             <table cellpadding="0" cellspacing="0" role="presentation" style="margin:0 auto 28px;">
                                 <tr>
                                     <td align="center" style="border-radius:999px;background:linear-gradient(135deg,#c94f5c,#5f8fb8);">
@@ -1361,27 +1378,27 @@ function send_email_verification(string $email, string $plainToken, string $name
                                     </td>
                                 </tr>
                             </table>
-                            <p style="margin:0 0 20px;font-size:0.95rem;line-height:1.75;color:rgba(255,255,255,0.72);">Verifica tu correo para activar tu cuenta y acceder al panel de miembro.</p>
+                            <p style="margin:0 0 20px;font-size:0.95rem;line-height:1.75;color:rgba(255,255,255,0.72);">Este enlace caduca en 24 horas por seguridad.</p>
                             <div style="padding:22px 24px;border-radius:20px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
-                                <p style="margin:0 0 10px;font-size:0.95rem;color:#ffffff;font-weight:700;">Tu panel incluye</p>
+                                <p style="margin:0 0 10px;font-size:0.95rem;color:#ffffff;font-weight:700;">Despues de verificar</p>
                                 <ul style="margin:0;padding-left:20px;color:rgba(255,255,255,0.72);font-size:0.95rem;line-height:1.7;">
-                                    <li>Perfil con foto, biografía y datos de contacto.</li>
-                                    <li>Acceso a promoción y oportunidades en la comunidad.</li>
-                                    <li>Control de tu imagen y contenidos flamencos.</li>
+                                    <li>Accederas a tu area privada.</li>
+                                    <li>Podras configurar tu perfil y tarjeta de miembro.</li>
+                                    <li>Empezaras a construir tu curriculum artistico.</li>
                                 </ul>
                             </div>
                         </td>
                     </tr>
                     <tr>
                         <td style="padding:24px 48px 32px;background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.68);font-size:0.92rem;line-height:1.7;">
-                            <p style="margin:0 0 10px;font-weight:700;">Ya casi estás listo</p>
-                            <p style="margin:0;color:rgba(255,255,255,0.66);">Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
+                            <p style="margin:0 0 10px;font-weight:700;">Confirma tu email</p>
+                            <p style="margin:0;color:rgba(255,255,255,0.66);">Si el boton no funciona, copia y pega este enlace en tu navegador:</p>
                             <p style="margin:6px 0 0;color:#c9a45a;word-break:break-all;"><a href="{$verifyUrl}" target="_blank" style="color:#c9a45a;text-decoration:none;">{$verifyUrl}</a></p>
                         </td>
                     </tr>
                     <tr>
                         <td style="padding:20px 48px 34px;background:#0d111a;color:rgba(255,255,255,0.55);font-size:0.9rem;line-height:1.7;">
-                            <p style="margin:0;">Gracias por elegir {$brand}. Si necesitas ayuda, responde este correo o visita nuestra web.</p>
+                            <p style="margin:0;">Si no has creado esta cuenta, puedes ignorar este mensaje.</p>
                         </td>
                     </tr>
                 </table>

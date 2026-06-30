@@ -293,3 +293,4 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - 2026-06-30: Ampliado el curriculum del area de usuario con nombre artistico, titular como H1 del PDF, fondo de cabecera personalizable, datos profesionales opcionales en impresion, secciones Formacion/Experiencia activables, entradas activables, orden manual y controles de fuente/tamano en el editor.
 - 2026-06-30: Simplificado el perfil artistico retirando el campo Biografia/resumen curricular y usando Descripcion breve publica como texto de perfil en el PDF.
 - 2026-06-30: Retirados Especialidades y Descripcion breve publica del area de usuario, tarjeta y PDF, y eliminado su peso en el calculo de perfil completo.
+- 2026-06-30: Refinada el area de usuario con edicion de fotografia por hover, fondo de curriculum clicable, controles de seccion mas discretos, articulos con imagen mayor, nombre y apellidos en registro y bienvenida tras verificar email.

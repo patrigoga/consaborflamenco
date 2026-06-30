@@ -32,7 +32,8 @@ $cardBackground = $availableCardBackgrounds[$selectedCardBackground]['path'];
 $cardFigure = $availableCardBackgrounds[$selectedCardBackground]['figure'];
 $memberCardPublicUrlBase = app_url('tarjeta-miembro.php?m=' . rawurlencode($memberCode) . '&d=');
 $memberCardPublicUrl = $memberCardPublicUrlBase . rawurlencode($selectedCardBackground);
-$memberCardQrUrl = 'qr.php?data=' . rawurlencode($memberCardPublicUrl);
+$memberCardQrBase = 'qr.php?data=';
+$memberCardQrUrl = $memberCardQrBase . rawurlencode($memberCardPublicUrl);
 $profileMessages = [];
 $profileErrors = [];
 $memberProfile = default_member_profile($user);
@@ -341,12 +342,15 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                 </div>
                 <section class="member-dashboard-hero" aria-label="Resumen del espacio">
                     <div class="member-dashboard-identity">
-                        <?php if (!empty($memberProfile['main_photo_path'])): ?>
-                            <img src="<?= e($memberProfile['main_photo_path']) ?>" alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview>
-                        <?php else: ?>
-                            <img alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview hidden>
-                            <div class="member-dashboard-photo-placeholder" data-main-photo-placeholder><?= e(strtoupper(substr($displayName, 0, 1))) ?></div>
-                        <?php endif; ?>
+                        <button type="button" class="member-dashboard-photo-edit" data-main-photo-trigger aria-label="Editar fotografia principal">
+                            <?php if (!empty($memberProfile['main_photo_path'])): ?>
+                                <img src="<?= e($memberProfile['main_photo_path']) ?>" alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview>
+                            <?php else: ?>
+                                <img alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview hidden>
+                                <div class="member-dashboard-photo-placeholder" data-main-photo-placeholder><?= e(strtoupper(substr($displayName, 0, 1))) ?></div>
+                            <?php endif; ?>
+                            <span>Editar imagen</span>
+                        </button>
                         <div>
                             <span><?= e($memberTypeLabel) ?></span>
                             <h2><?= e($displayName) ?></h2>
@@ -393,23 +397,6 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                 <?php foreach ($profileMessages as $message): ?><p><?= e($message) ?></p><?php endforeach; ?>
                             </div>
                         <?php endif; ?>
-                        <article class="member-profile-preview">
-                            <div class="member-profile-photo">
-                                <?php if (!empty($memberProfile['main_photo_path'])): ?>
-                                    <img src="<?= e($memberProfile['main_photo_path']) ?>" alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview>
-                                <?php else: ?>
-                                    <img alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview hidden>
-                                    <div class="member-photo-placeholder" data-main-photo-placeholder>Foto pendiente</div>
-                                <?php endif; ?>
-                                <button type="button" class="button button-secondary button-small member-photo-edit-button" data-main-photo-trigger>Editar imagen</button>
-                            </div>
-                            <div>
-                                <span><?= e($memberTypeLabel) ?></span>
-                                <strong><?= e($displayName) ?></strong>
-                                <p><?= e($memberProfile['city']) ?><?= $memberProfile['city'] && $memberProfile['province'] ? ', ' : '' ?><?= e($memberProfile['province']) ?></p>
-                            </div>
-                            <span class="status-pill <?= e($profileStatusClass) ?>"><?= e($profileStatus) ?></span>
-                        </article>
                         <form class="member-profile-form cv-editor" action="panel-usuario.php#perfil" method="post" enctype="multipart/form-data">
                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="profile_action" value="update_profile">
@@ -417,15 +404,6 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                 <button class="button button-primary" type="submit">Guardar curriculum</button>
                                 <button class="button button-secondary" type="button" onclick="window.print()">Imprimir / guardar PDF</button>
                             </div>
-
-                            <fieldset class="cv-fieldset cv-print-options">
-                                <legend>Opciones del PDF</legend>
-                                <label class="visibility-toggle">
-                                    <input type="hidden" name="print_professional_data" value="0">
-                                    <input type="checkbox" name="print_professional_data" value="1" <?= !empty($memberProfile['print_professional_data']) ? 'checked' : '' ?>>
-                                    <span>Imprimir apartado Datos profesionales</span>
-                                </label>
-                            </fieldset>
 
                             <fieldset class="cv-fieldset profile-tab-panel active" data-profile-tab="artistica">
                                 <legend>Identidad artistica</legend>
@@ -481,24 +459,22 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                 </div>
                                 <div class="main-photo-field">
                                     <label for="main_photo">Fotografia principal</label>
-                                    <input id="main_photo" name="main_photo" type="file" accept="image/jpeg,image/png,image/webp" <?= empty($memberProfile['main_photo_path']) ? 'required' : '' ?> data-main-photo-input hidden>
-                                    <button type="button" class="button button-secondary button-small" data-main-photo-trigger>Seleccionar imagen</button>
+                                    <input id="main_photo" name="main_photo" type="file" accept="image/jpeg,image/png,image/webp" data-main-photo-input hidden>
+                                    <p class="field-help">Haz clic sobre la imagen de la cabecera para cambiarla.</p>
                                 </div>
                                 <p class="field-help">Cada espacio debe tener al menos una fotografia principal. JPG, PNG o WebP, maximo 5 MB.</p>
                                 <label class="cv-header-background-field" for="cv_header_image">Fondo de cabecera del curriculum PDF
                                     <span class="cv-header-background-preview" <?= $cvHeaderBackground !== '' ? 'style="background-image: linear-gradient(135deg, rgba(17, 17, 20, 0.72), rgba(32, 56, 71, 0.68)), url(' . e($cvHeaderBackground) . ');"' : '' ?>>
-                                        <?= $cvHeaderBackground !== '' ? 'Fondo actual' : 'Sin fondo personalizado' ?>
+                                        <strong><?= $cvHeaderBackground !== '' ? 'Fondo actual' : 'Sin fondo personalizado' ?></strong>
+                                        <em>Cambiar fondo</em>
                                     </span>
-                                    <input id="cv_header_image" name="cv_header_image" type="file" accept="image/jpeg,image/png,image/webp">
+                                    <input id="cv_header_image" name="cv_header_image" type="file" accept="image/jpeg,image/png,image/webp" hidden>
                                 </label>
-                                <div class="visibility-grid" aria-label="Campos visibles en perfil publico">
-                                    <?php foreach ($publicFieldOptions as $fieldValue => $fieldLabel): ?>
-                                        <label class="visibility-toggle">
-                                            <input type="checkbox" name="public_fields[]" value="<?= e($fieldValue) ?>" <?= is_public_field($memberProfile, $fieldValue) ? 'checked' : '' ?>>
-                                            <span>Mostrar <?= e($fieldLabel) ?></span>
-                                        </label>
-                                    <?php endforeach; ?>
-                                </div>
+                                <label class="visibility-toggle compact-toggle">
+                                    <input type="hidden" name="print_professional_data" value="0">
+                                    <input type="checkbox" name="print_professional_data" value="1" <?= !empty($memberProfile['print_professional_data']) ? 'checked' : '' ?>>
+                                    <span>Imprimir estos datos profesionales en PDF</span>
+                                </label>
                             </fieldset>
 
                             <?php foreach ($cvSectionConfig as $sectionKey => $sectionConfig): ?>
@@ -509,7 +485,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                 ?>
                                 <fieldset class="cv-fieldset cv-repeat-section">
                                     <div class="cv-section-heading">
-                                        <legend><?= e($sectionConfig['title']) ?></legend>
+                                        <legend><span>Seccion</span><?= e($sectionConfig['title']) ?></legend>
                                         <div class="cv-section-tools">
                                             <input type="hidden" name="section_settings[<?= e($sectionKey) ?>][active]" value="0">
                                             <label class="cv-section-toggle">
@@ -542,7 +518,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                             <div class="cv-entry-controls">
                                                 <label class="visibility-toggle">
                                                     <input type="checkbox" name="<?= e($sectionKey) ?>[<?= e((string) $rowIndex) ?>][is_active]" value="1" <?= ((bool) ($entry['is_active'] ?? true)) ? 'checked' : '' ?> data-default-checked="1">
-                                                    <span>Incluir en PDF</span>
+                                                    <span>Articulo activo en PDF</span>
                                                 </label>
                                                 <label>Orden
                                                     <input name="<?= e($sectionKey) ?>[<?= e((string) $rowIndex) ?>][display_order]" type="number" min="1" step="1" value="<?= e((string) ($entry['display_order'] ?? ($rowIndex + 1))) ?>">
@@ -688,7 +664,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                         </div>
                         <div class="member-card-heading-actions">
                             <a class="member-card-qr-link" href="<?= e($memberCardPublicUrl) ?>" target="_blank" rel="noopener" data-member-card-link data-card-url-base="<?= e($memberCardPublicUrlBase) ?>">
-                                <img src="<?= e($memberCardQrUrl) ?>" alt="Codigo QR para ver la tarjeta de miembro" loading="lazy" data-member-card-qr data-qr-base="qr.php?data=">
+                                <img src="<?= e($memberCardQrUrl) ?>" alt="Codigo QR para ver la tarjeta de miembro" loading="lazy" data-member-card-qr data-qr-base="<?= e($memberCardQrBase) ?>">
                                 <span>
                                     <strong>QR tarjeta</strong>
                                     <small>Escanea para verla</small>
@@ -861,7 +837,14 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                 const preview = document.querySelector('.cv-header-background-preview');
                 if (preview instanceof HTMLElement) {
                     preview.style.backgroundImage = `linear-gradient(135deg, rgba(17, 17, 20, 0.72), rgba(32, 56, 71, 0.68)), url("${URL.createObjectURL(input.files[0])}")`;
-                    preview.textContent = 'Nuevo fondo seleccionado';
+                    const title = preview.querySelector('strong');
+                    const action = preview.querySelector('em');
+                    if (title) {
+                        title.textContent = 'Nuevo fondo seleccionado';
+                    }
+                    if (action) {
+                        action.textContent = 'Cambiar fondo';
+                    }
                 }
             }
         });
@@ -894,6 +877,30 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
 
                 toolbar.dataset.editorReady = '1';
                 toolbar.innerHTML = '';
+                let savedRange = null;
+
+                const saveSelection = () => {
+                    const selection = window.getSelection();
+                    if (!selection || selection.rangeCount === 0) {
+                        return;
+                    }
+                    const anchorNode = selection.anchorNode;
+                    if (anchorNode && editor.contains(anchorNode)) {
+                        savedRange = selection.getRangeAt(0).cloneRange();
+                    }
+                };
+
+                const restoreSelection = () => {
+                    if (!savedRange) {
+                        return;
+                    }
+                    const selection = window.getSelection();
+                    if (!selection) {
+                        return;
+                    }
+                    selection.removeAllRanges();
+                    selection.addRange(savedRange);
+                };
 
                 const controls = [
                     {
@@ -991,6 +998,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                 return;
                             }
                             editor.focus();
+                            restoreSelection();
                             document.execCommand('styleWithCSS', false, true);
                             document.execCommand(control.command, false, select.value);
                             normalizeLegacyEditorTags();
@@ -1010,8 +1018,13 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                     if (control.color) {
                         button.style.color = control.color;
                     }
+                    button.addEventListener('mousedown', (event) => {
+                        event.preventDefault();
+                        restoreSelection();
+                    });
                     button.addEventListener('click', () => {
                         editor.focus();
+                        restoreSelection();
                         document.execCommand('styleWithCSS', false, true);
                         document.execCommand(control.command, false, control.value || null);
                         normalizeLegacyEditorTags();
@@ -1022,6 +1035,9 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
 
                 editor.addEventListener('input', syncEditor);
                 editor.addEventListener('blur', syncEditor);
+                editor.addEventListener('keyup', saveSelection);
+                editor.addEventListener('mouseup', saveSelection);
+                editor.addEventListener('focus', saveSelection);
                 syncEditor();
 
                 const form = toolbar.closest('form');
