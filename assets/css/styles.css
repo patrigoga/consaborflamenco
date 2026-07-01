@@ -119,6 +119,11 @@ a {
     flex: 0 0 auto;
 }
 
+.mobile-nav-footer {
+    display: none;
+    visibility: hidden;
+}
+
 .nav-accordion {
     position: relative;
     flex: 0 0 auto;
