@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Artist {
+  id         String   @id @default(uuid())
+  slug       String   @unique
+  name       String
+  stageName  String?
+  specialty  String?
+  location   String?
+  bio        String?
+  heroImage  String?
+  coverImage String?
+  social     Json?
+  meta       Json?
+  rating     Float?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  gallery    GalleryImage[]
+  shows      Show[]
+  events     Event[]
+  services   Service[]
+  press      PressItem[]
+  reviews    Review[]
+}
+
+model GalleryImage {
+  id        String  @id @default(uuid())
+  artist    Artist  @relation(fields: [artistId], references: [id])
+  artistId  String
+  url       String
+  alt       String?
+  width     Int?
+  height    Int?
+  ord       Int     @default(0)
+}
+
+model Show {
+  id           String  @id @default(uuid())
+  artist       Artist  @relation(fields: [artistId], references: [id])
+  artistId     String
+  title        String
+  description  String?
+  durationMins Int?
+  artistsCount Int?
+  image        String?
+}
+
+model Event {
+  id       String  @id @default(uuid())
+  artist   Artist  @relation(fields: [artistId], references: [id])
+  artistId String
+  title    String
+  date     DateTime
+  time     String?
+  venue    String?
+  city     String?
+  ticketUrl String?
+}
+
+model Service {
+  id          String @id @default(uuid())
+  artist      Artist @relation(fields: [artistId], references: [id])
+  artistId    String
+  title       String
+  priceFrom   Float?
+  description String?
+  durationMins Int?
+}
+
+model PressItem {
+  id         String @id @default(uuid())
+  artist     Artist @relation(fields: [artistId], references: [id])
+  artistId   String
+  title      String
+  url        String?
+  type       String?
+  publishedAt DateTime?
+  excerpt    String?
+}
+
+model Review {
+  id       String @id @default(uuid())
+  artist   Artist @relation(fields: [artistId], references: [id])
+  artistId String
+  author   String?
+  rating   Int
+  comment  String?
+  date     DateTime @default(now())
+}
