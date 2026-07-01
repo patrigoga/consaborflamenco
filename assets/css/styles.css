@@ -3603,6 +3603,63 @@ h3 {
     line-height: 1;
 }
 
+.admin-kpi-groups {
+    display: grid;
+    gap: 28px;
+}
+
+.admin-kpi-group {
+    display: grid;
+    gap: 12px;
+}
+
+.admin-kpi-group-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(17, 24, 39, 0.1);
+}
+
+.admin-kpi-group-heading span {
+    color: var(--color-red);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.admin-kpi-group-heading h3 {
+    margin: 0;
+    color: var(--color-black);
+    font-size: clamp(1.25rem, 2vw, 1.8rem);
+}
+
+.admin-kpi-grid {
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 12px;
+}
+
+.admin-kpi-card {
+    min-height: 124px;
+    padding: 16px;
+    box-shadow: none;
+}
+
+.admin-kpi-card strong {
+    font-size: clamp(1.45rem, 2.4vw, 2.05rem);
+}
+
+.admin-kpi-card small {
+    display: block;
+    margin-top: 10px;
+    color: var(--color-muted);
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
 .admin-table-wrap {
     overflow-x: auto;
     border: 1px solid rgba(17, 24, 39, 0.12);

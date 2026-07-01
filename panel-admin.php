@@ -48,6 +48,121 @@ function admin_date(?string $value): string
     $timestamp = strtotime($value);
     return $timestamp ? date('d/m/Y', $timestamp) : $value;
 }
+
+function admin_stat(array $stats, string $key): int
+{
+    return (int) ($stats[$key] ?? 0);
+}
+
+function admin_metric_number(int $value): string
+{
+    return number_format($value, 0, ',', '.');
+}
+
+function admin_metric_money(int $cents): string
+{
+    return number_format($cents / 100, 2, ',', '.') . ' €';
+}
+
+function admin_metric_percent(int $part, int $total): string
+{
+    if ($total <= 0) {
+        return '0%';
+    }
+
+    return number_format(($part / $total) * 100, 1, ',', '.') . '%';
+}
+
+$paidPayments = admin_stat($stats, 'payments_paid');
+$paidRevenueCents = admin_stat($stats, 'revenue_paid_cents');
+$averageTicketCents = $paidPayments > 0 ? (int) round($paidRevenueCents / $paidPayments) : 0;
+$vipAnnualPotentialCents = admin_stat($stats, 'members_vip') * 8000;
+
+$kpiGroups = [
+    [
+        'title' => 'Comunidad',
+        'kicker' => 'Usuarios',
+        'items' => [
+            ['label' => 'Usuarios totales', 'value' => admin_metric_number(admin_stat($stats, 'users_total')), 'detail' => 'Altas 30 dias: ' . admin_metric_number(admin_stat($stats, 'users_new_30d'))],
+            ['label' => 'Usuarios activos', 'value' => admin_metric_number(admin_stat($stats, 'users_active')), 'detail' => 'Suspendidos: ' . admin_metric_number(admin_stat($stats, 'users_suspended'))],
+            ['label' => 'Email verificado', 'value' => admin_metric_number(admin_stat($stats, 'users_verified')), 'detail' => admin_metric_percent(admin_stat($stats, 'users_verified'), admin_stat($stats, 'users_total')) . ' del total'],
+            ['label' => 'Email pendiente', 'value' => admin_metric_number(admin_stat($stats, 'users_email_pending')), 'detail' => 'Altas 7 dias: ' . admin_metric_number(admin_stat($stats, 'users_new_7d'))],
+            ['label' => 'Administradores', 'value' => admin_metric_number(admin_stat($stats, 'admins')), 'detail' => 'Acceso al panel admin'],
+            ['label' => 'Provincias', 'value' => admin_metric_number(admin_stat($stats, 'provinces')), 'detail' => 'Base territorial disponible'],
+        ],
+    ],
+    [
+        'title' => 'Miembros y perfiles',
+        'kicker' => 'Comunidad flamenca',
+        'items' => [
+            ['label' => 'Miembros', 'value' => admin_metric_number(admin_stat($stats, 'members')), 'detail' => 'Total con rol miembro'],
+            ['label' => 'Simpatizantes', 'value' => admin_metric_number(admin_stat($stats, 'members_sympathizer')), 'detail' => 'Sin descuentos VIP'],
+            ['label' => 'Miembros VIP', 'value' => admin_metric_number(admin_stat($stats, 'members_vip')), 'detail' => admin_metric_percent(admin_stat($stats, 'members_vip'), admin_stat($stats, 'members')) . ' de miembros'],
+            ['label' => 'Potencial VIP anual', 'value' => admin_metric_money($vipAnnualPotentialCents), 'detail' => '80 €/ano por VIP actual'],
+            ['label' => 'Perfiles completos', 'value' => admin_metric_number(admin_stat($stats, 'profiles_complete')), 'detail' => admin_metric_percent(admin_stat($stats, 'profiles_complete'), admin_stat($stats, 'members')) . ' completado'],
+            ['label' => 'Perfiles pendientes', 'value' => admin_metric_number(admin_stat($stats, 'profiles_pending')), 'detail' => 'Fichas por completar'],
+            ['label' => 'Tarjetas creadas', 'value' => admin_metric_number(admin_stat($stats, 'member_cards')), 'detail' => 'Activas: ' . admin_metric_number(admin_stat($stats, 'member_cards_active'))],
+            ['label' => 'Items curriculum', 'value' => admin_metric_number(admin_stat($stats, 'curriculum_items')), 'detail' => 'Visibles: ' . admin_metric_number(admin_stat($stats, 'curriculum_items_visible'))],
+            ['label' => 'Tipos de miembro', 'value' => admin_metric_number(admin_stat($stats, 'member_types')), 'detail' => 'Total: ' . admin_metric_number(admin_stat($stats, 'member_types_total'))],
+        ],
+    ],
+    [
+        'title' => 'Appointment setters',
+        'kicker' => 'Comercial',
+        'items' => [
+            ['label' => 'Setters', 'value' => admin_metric_number(admin_stat($stats, 'setters')), 'detail' => 'Usuarios comerciales'],
+            ['label' => 'Setters activos', 'value' => admin_metric_number(admin_stat($stats, 'setters_active')), 'detail' => admin_metric_percent(admin_stat($stats, 'setters_active'), admin_stat($stats, 'setters')) . ' activos'],
+            ['label' => 'Setters pendientes', 'value' => admin_metric_number(admin_stat($stats, 'setters_pending')), 'detail' => 'Pausados: ' . admin_metric_number(admin_stat($stats, 'setters_paused'))],
+            ['label' => 'Documentacion pendiente', 'value' => admin_metric_number(admin_stat($stats, 'setters_docs_pending')), 'detail' => 'Validada: ' . admin_metric_number(admin_stat($stats, 'setters_docs_validated'))],
+            ['label' => 'Comisiones pendientes', 'value' => admin_metric_number(admin_stat($stats, 'setters_commissions_pending')), 'detail' => 'Al dia: ' . admin_metric_number(admin_stat($stats, 'setters_commissions_paid'))],
+        ],
+    ],
+    [
+        'title' => 'Revista y contenido',
+        'kicker' => 'Editorial',
+        'items' => [
+            ['label' => 'Articulos', 'value' => admin_metric_number(admin_stat($stats, 'articles')), 'detail' => 'Nuevos 30 dias: ' . admin_metric_number(admin_stat($stats, 'articles_new_30d'))],
+            ['label' => 'Publicados', 'value' => admin_metric_number(admin_stat($stats, 'articles_published')), 'detail' => admin_metric_percent(admin_stat($stats, 'articles_published'), admin_stat($stats, 'articles')) . ' publicados'],
+            ['label' => 'Borradores', 'value' => admin_metric_number(admin_stat($stats, 'articles_draft')), 'detail' => 'En revision: ' . admin_metric_number(admin_stat($stats, 'articles_review'))],
+            ['label' => 'Archivados', 'value' => admin_metric_number(admin_stat($stats, 'articles_archived')), 'detail' => 'Fuera de publicacion'],
+            ['label' => 'Categorias', 'value' => admin_metric_number(admin_stat($stats, 'categories')), 'detail' => 'Activas: ' . admin_metric_number(admin_stat($stats, 'categories_active'))],
+        ],
+    ],
+    [
+        'title' => 'Publicidad y banners',
+        'kicker' => 'Inventario',
+        'items' => [
+            ['label' => 'Banners totales', 'value' => admin_metric_number(admin_stat($stats, 'banners')), 'detail' => 'Todos los estados'],
+            ['label' => 'Banners activos', 'value' => admin_metric_number(admin_stat($stats, 'banners_active')), 'detail' => 'Vigentes ahora: ' . admin_metric_number(admin_stat($stats, 'banners_current'))],
+            ['label' => 'Pendientes de pago', 'value' => admin_metric_number(admin_stat($stats, 'banners_pending_payment')), 'detail' => 'Pagados sin activar: ' . admin_metric_number(admin_stat($stats, 'banners_paid'))],
+            ['label' => 'Borradores', 'value' => admin_metric_number(admin_stat($stats, 'banners_draft')), 'detail' => 'Rechazados: ' . admin_metric_number(admin_stat($stats, 'banners_rejected'))],
+            ['label' => 'Caducados', 'value' => admin_metric_number(admin_stat($stats, 'banners_expired')), 'detail' => 'Caducan 7 dias: ' . admin_metric_number(admin_stat($stats, 'banners_expiring_7d'))],
+        ],
+    ],
+    [
+        'title' => 'Ventas, leads y cobros',
+        'kicker' => 'Ingresos',
+        'items' => [
+            ['label' => 'Leads por codigo', 'value' => admin_metric_number(admin_stat($stats, 'leads')), 'detail' => 'Ultimos 30 dias: ' . admin_metric_number(admin_stat($stats, 'leads_30d'))],
+            ['label' => 'Pagos totales', 'value' => admin_metric_number(admin_stat($stats, 'sales')), 'detail' => 'Registros Stripe'],
+            ['label' => 'Pagos cobrados', 'value' => admin_metric_number(admin_stat($stats, 'payments_paid')), 'detail' => 'Fallidos: ' . admin_metric_number(admin_stat($stats, 'payments_failed'))],
+            ['label' => 'Pagos pendientes', 'value' => admin_metric_number(admin_stat($stats, 'payments_pending')), 'detail' => 'Cancelados: ' . admin_metric_number(admin_stat($stats, 'payments_cancelled'))],
+            ['label' => 'Ingresos cobrados', 'value' => admin_metric_money($paidRevenueCents), 'detail' => 'Importe pagado confirmado'],
+            ['label' => 'Ingresos pendientes', 'value' => admin_metric_money(admin_stat($stats, 'revenue_pending_cents')), 'detail' => 'Pendiente de confirmar'],
+            ['label' => 'Ticket medio cobrado', 'value' => admin_metric_money($averageTicketCents), 'detail' => 'Sobre pagos cobrados'],
+            ['label' => 'Reembolsos', 'value' => admin_metric_number(admin_stat($stats, 'payments_refunded')), 'detail' => 'Pagos reembolsados'],
+        ],
+    ],
+    [
+        'title' => 'Sistema',
+        'kicker' => 'Operativa',
+        'items' => [
+            ['label' => 'Estado BD', 'value' => $databaseReady ? 'OK' : 'Sin BD', 'detail' => $databaseReady ? 'Conexion activa' : 'Lectura de respaldo'],
+            ['label' => 'Tokens reset', 'value' => admin_metric_number(admin_stat($stats, 'password_reset_tokens')), 'detail' => 'Activos: ' . admin_metric_number(admin_stat($stats, 'password_reset_tokens_active'))],
+            ['label' => 'Tokens usados', 'value' => admin_metric_number(admin_stat($stats, 'password_reset_tokens_used')), 'detail' => 'Recuperaciones completadas'],
+        ],
+    ],
+];
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -96,7 +211,7 @@ function admin_date(?string $value): string
             <p>Control inicial de miembros, setters, articulos, categorias y banners contratados.</p>
         </section>
 
-        <section class="content-section admin-shell">
+        <section class="content-section admin-shell" id="general">
             <div class="section-heading">
                 <div class="section-heading-content">
                     <p class="section-kicker">Control central</p>
@@ -117,16 +232,24 @@ function admin_date(?string $value): string
                 </div>
             <?php endif; ?>
 
-            <div class="admin-metric-grid">
-                <article class="admin-metric-card"><span>👥 Miembros</span><strong><?= e((string) $stats['members']) ?></strong></article>
-                <article class="admin-metric-card"><span>🎯 Setters</span><strong><?= e((string) $stats['setters']) ?></strong></article>
-                <article class="admin-metric-card"><span>📝 Artículos</span><strong><?= e((string) $stats['articles']) ?></strong></article>
-                <article class="admin-metric-card"><span>📂 Categorías</span><strong><?= e((string) $stats['categories']) ?></strong></article>
-                <article class="admin-metric-card"><span>🎨 Banners</span><strong><?= e((string) $stats['banners']) ?></strong></article>
-                <article class="admin-metric-card"><span>🏷️ Leads</span><strong><?= e((string) $stats['leads']) ?></strong></article>
-                <article class="admin-metric-card"><span>💳 Ventas</span><strong><?= e((string) $stats['sales']) ?></strong></article>
-                <article class="admin-metric-card"><span>🎭 Tipos Miembro</span><strong><?= e((string) $stats['member_types']) ?></strong></article>
-                <article class="admin-metric-card"><span>🪧 Tarjetas</span><strong><?= e((string) $stats['member_cards']) ?></strong></article>
+            <div class="admin-kpi-groups">
+                <?php foreach ($kpiGroups as $group): ?>
+                    <section class="admin-kpi-group" aria-label="<?= e($group['title']) ?>">
+                        <div class="admin-kpi-group-heading">
+                            <span><?= e($group['kicker']) ?></span>
+                            <h3><?= e($group['title']) ?></h3>
+                        </div>
+                        <div class="admin-metric-grid admin-kpi-grid">
+                            <?php foreach ($group['items'] as $item): ?>
+                                <article class="admin-metric-card admin-kpi-card">
+                                    <span><?= e($item['label']) ?></span>
+                                    <strong><?= e((string) $item['value']) ?></strong>
+                                    <?php if (!empty($item['detail'])): ?><small><?= e((string) $item['detail']) ?></small><?php endif; ?>
+                                </article>
+                            <?php endforeach; ?>
+                        </div>
+                    </section>
+                <?php endforeach; ?>
             </div>
         </section>
 

@@ -295,3 +295,6 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - 2026-06-30: Retirados Especialidades y Descripcion breve publica del area de usuario, tarjeta y PDF, y eliminado su peso en el calculo de perfil completo.
 - 2026-06-30: Refinada el area de usuario con edicion de fotografia por hover, fondo de curriculum clicable, controles de seccion mas discretos, articulos con imagen mayor, nombre y apellidos en registro y bienvenida tras verificar email.
 - 2026-06-30: Ajustado el editor enriquecido para escribir sin elegir fuente, movido el QR de tarjeta a la cabecera del miembro y anadida impresion especifica de tarjeta digital.
+- 2026-06-30: Corregida la carga de `panel-admin.php` en produccion anadiendo la tabla de usos de codigo al bootstrap y haciendo tolerantes las metricas/listados ante tablas pendientes.
+- 2026-06-30: Ampliada la vista general del panel admin con KPIs agrupados de comunidad, perfiles, setters, revista, banners, leads, pagos, ingresos y sistema.
+- 2026-06-30: Corregida la visibilidad de la vista general del admin para que el sidebar muestre el bloque completo de KPIs y versionado `admin-sidebar.js` para evitar cache antigua.
