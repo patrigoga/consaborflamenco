@@ -65,13 +65,14 @@ $cvSectionConfig = [
         'default_order' => 2,
     ],
     'custom_section' => [
-        'title' => 'Seccion personalizada',
+        'title' => $memberProfile['custom_section_title'] ?? 'Seccion personalizada',
         'public_field' => 'custom_section',
-        'fields' => ['category' => 'Titulo de la seccion', 'description' => 'Descripcion', 'location' => 'Información adicional'],
+        'fields' => ['category' => 'Titulo del articulo', 'description' => 'Descripcion', 'location' => 'Información adicional'],
         'sortable' => true,
         'requires_title_description' => false,
         'allows_image' => true,
         'default_order' => 3,
+        'allow_title_edit' => true,
     ],
 ];
 
@@ -268,6 +269,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') ==
             is_array($memberProfile['section_settings'] ?? null) ? $memberProfile['section_settings'] : [],
             $cvSectionConfig
         );
+        $customSectionTitle = clean_text((string) ($_POST['custom_section_title'] ?? ''));
+        if (!empty($customSectionTitle) && strlen($customSectionTitle) >= 2 && strlen($customSectionTitle) <= 100) {
+            $memberProfile['custom_section_title'] = $customSectionTitle;
+        }
         $entryMediaOptions = ['requires_title_description' => false, 'allows_image' => true];
         foreach ($cvSectionConfig as $sectionKey => $sectionConfig) {
             $memberProfile[$sectionKey] = clean_cv_entries(
@@ -498,10 +503,12 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                 $sectionSettings = is_array($memberProfile['section_settings'][$sectionKey] ?? null) ? $memberProfile['section_settings'][$sectionKey] : [];
                                 $sectionActive = (bool) ($sectionSettings['active'] ?? true);
                                 $sectionDisplayOrder = (int) ($sectionSettings['order'] ?? ($sectionConfig['default_order'] ?? 1));
+                                $isCustomSection = $sectionKey === 'custom_section';
+                                $sectionTitle = $sectionConfig['title'];
                                 ?>
                                 <fieldset class="cv-fieldset cv-repeat-section">
                                     <div class="cv-section-heading">
-                                        <legend><span>Seccion</span><?= e($sectionConfig['title']) ?></legend>
+                                        <legend><span>Seccion</span><?php if ($isCustomSection): ?><input type="text" name="custom_section_title" value="<?= e($sectionTitle) ?>" placeholder="Nombre de la seccion" class="cv-section-title-input"><?php else: ?><?= e($sectionTitle) ?><?php endif; ?></legend>
                                         <div class="cv-section-tools">
                                             <input type="hidden" name="section_settings[<?= e($sectionKey) ?>][active]" value="0">
                                             <label class="cv-section-toggle">

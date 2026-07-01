@@ -2908,6 +2908,29 @@ h3 {
     text-transform: uppercase;
 }
 
+.cv-section-title-input {
+    padding: 8px 12px;
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: clamp(1.35rem, 2vw, 2rem);
+    font-weight: 700;
+    color: var(--color-ink);
+    border: 1px solid rgba(201, 79, 92, 0.2);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.6);
+    transition: all 0.2s ease;
+}
+
+.cv-section-title-input:focus {
+    outline: none;
+    border-color: var(--color-red);
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 0 3px rgba(201, 79, 92, 0.1);
+}
+
+.cv-section-title-input::placeholder {
+    color: rgba(17, 17, 20, 0.3);
+}
+
 .cv-section-tools {
     display: flex;
     align-items: center;
