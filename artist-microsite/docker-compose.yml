@@ -1,0 +1,30 @@
+version: '3.9'
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: consaborflamenco
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/consaborflamenco
+      NODE_ENV: production
+    depends_on:
+      - db
+    ports:
+      - '3000:3000'
+    volumes:
+      - .:/app:cached
+    command: ["sh", "-c", "npm install && npx prisma generate && npx prisma db push && npm run seed && npm run build && npm run start"]
+
+volumes:
+  db_data:
