@@ -350,6 +350,7 @@ a {
 
     .main-nav.is-open .mobile-nav-footer {
         display: flex;
+        visibility: visible;
     }
 
     .nav-accordion::after {
