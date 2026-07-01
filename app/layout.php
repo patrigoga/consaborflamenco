@@ -35,6 +35,12 @@ function nav_class(string $active, string $section): string
 
 function page_header(string $active = ''): void
 {
+    static $headerRendered = false;
+    if ($headerRendered) {
+        return;
+    }
+    $headerRendered = true;
+
     $flamencoOpen = $active === 'FLAMENCO';
     $academiasOpen = in_array($active, ['ACADEMIAS', 'CURSOS'], true);
     $modaOpen = $active === 'MODA';
