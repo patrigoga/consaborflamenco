@@ -211,7 +211,7 @@ $kpiGroups = [
             <p>Control inicial de miembros, setters, articulos, categorias y banners contratados.</p>
         </section>
 
-        <section class="content-section admin-shell">
+        <section class="content-section admin-shell" id="general">
             <div class="section-heading">
                 <div class="section-heading-content">
                     <p class="section-kicker">Control central</p>
