@@ -26,17 +26,73 @@ function admin_dashboard_stats(): array
         ];
     }
 
-    return [
-        'members' => (int) $pdo->query("SELECT COUNT(*) FROM usuarios WHERE rol = 'MIEMBRO'")->fetchColumn(),
-        'setters' => (int) $pdo->query("SELECT COUNT(*) FROM usuarios WHERE rol = 'SETTER'")->fetchColumn(),
-        'articles' => (int) $pdo->query('SELECT COUNT(*) FROM articulos')->fetchColumn(),
-        'banners' => (int) $pdo->query('SELECT COUNT(*) FROM banners_miembro')->fetchColumn(),
-        'categories' => (int) $pdo->query('SELECT COUNT(*) FROM categorias_articulos')->fetchColumn(),
-        'leads' => (int) $pdo->query('SELECT COUNT(*) FROM usos_codigo_descuento')->fetchColumn(),
-        'sales' => (int) $pdo->query('SELECT COUNT(*) FROM pagos_stripe')->fetchColumn(),
-        'member_types' => (int) $pdo->query('SELECT COUNT(*) FROM tipos_miembro WHERE activo = TRUE')->fetchColumn(),
-        'member_cards' => (int) $pdo->query('SELECT COUNT(*) FROM tarjetas_miembro')->fetchColumn(),
+    $stats = [
+        'members' => 0,
+        'setters' => 0,
+        'articles' => 0,
+        'banners' => 0,
+        'categories' => 0,
+        'leads' => 0,
+        'sales' => 0,
+        'member_types' => 0,
+        'member_cards' => 0,
     ];
+
+    try {
+        $stats['members'] = (int) ($pdo->query("SELECT COUNT(*) FROM usuarios WHERE rol = 'MIEMBRO'")->fetchColumn() ?? 0);
+    } catch (Throwable) {
+        $stats['members'] = 0;
+    }
+
+    try {
+        $stats['setters'] = (int) ($pdo->query("SELECT COUNT(*) FROM usuarios WHERE rol = 'SETTER'")->fetchColumn() ?? 0);
+    } catch (Throwable) {
+        $stats['setters'] = 0;
+    }
+
+    try {
+        $stats['articles'] = (int) ($pdo->query('SELECT COUNT(*) FROM articulos')->fetchColumn() ?? 0);
+    } catch (Throwable) {
+        $stats['articles'] = 0;
+    }
+
+    try {
+        $stats['banners'] = (int) ($pdo->query('SELECT COUNT(*) FROM banners_miembro')->fetchColumn() ?? 0);
+    } catch (Throwable) {
+        $stats['banners'] = 0;
+    }
+
+    try {
+        $stats['categories'] = (int) ($pdo->query('SELECT COUNT(*) FROM categorias_articulos')->fetchColumn() ?? 0);
+    } catch (Throwable) {
+        $stats['categories'] = 0;
+    }
+
+    try {
+        $stats['leads'] = (int) ($pdo->query('SELECT COUNT(*) FROM usos_codigo_descuento')->fetchColumn() ?? 0);
+    } catch (Throwable) {
+        $stats['leads'] = 0;
+    }
+
+    try {
+        $stats['sales'] = (int) ($pdo->query('SELECT COUNT(*) FROM pagos_stripe')->fetchColumn() ?? 0);
+    } catch (Throwable) {
+        $stats['sales'] = 0;
+    }
+
+    try {
+        $stats['member_types'] = (int) ($pdo->query('SELECT COUNT(*) FROM tipos_miembro WHERE activo = TRUE')->fetchColumn() ?? 0);
+    } catch (Throwable) {
+        $stats['member_types'] = 0;
+    }
+
+    try {
+        $stats['member_cards'] = (int) ($pdo->query('SELECT COUNT(*) FROM tarjetas_miembro')->fetchColumn() ?? 0);
+    } catch (Throwable) {
+        $stats['member_cards'] = 0;
+    }
+
+    return $stats;
 }
 
 function admin_members(): array
