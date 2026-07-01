@@ -64,6 +64,15 @@ $cvSectionConfig = [
         'allows_image' => true,
         'default_order' => 2,
     ],
+    'custom_section' => [
+        'title' => 'Seccion personalizada',
+        'public_field' => 'custom_section',
+        'fields' => ['category' => 'Titulo de la seccion', 'description' => 'Descripcion', 'location' => 'Información adicional'],
+        'sortable' => true,
+        'requires_title_description' => false,
+        'allows_image' => true,
+        'default_order' => 3,
+    ],
 ];
 
 function is_public_field(array $profile, string $field): bool

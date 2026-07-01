@@ -2510,14 +2510,32 @@ h3 {
 }
 
 .member-panel-section .section-heading {
-    margin: 0 0 18px;
-    padding: clamp(22px, 3vw, 34px);
-    border-radius: 18px;
+    margin: 0 0 28px;
+    padding: clamp(24px, 3vw, 36px);
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(201, 79, 92, 0.08), rgba(95, 143, 184, 0.08));
+    border: 1px solid rgba(201, 79, 92, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.member-panel-section .section-heading h2 {
+    margin: 8px 0 0;
+    color: var(--color-ink);
+    font-size: clamp(24px, 4vw, 32px);
+}
+
+.member-panel-section .section-heading .section-kicker {
+    text-transform: uppercase;
+    color: var(--color-red);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
 }
 
 .member-panel-section .section-heading-content p:not(.section-kicker) {
     max-width: 680px;
     color: var(--color-muted);
+    margin-top: 6px;
 }
 
 .member-dashboard-hero {
@@ -2685,23 +2703,36 @@ h3 {
 
 .member-summary-card {
     display: grid;
-    gap: 8px;
-    min-height: 112px;
+    gap: 10px;
+    min-height: 120px;
     align-content: center;
+    padding: 20px;
+    background: linear-gradient(135deg, rgba(255, 250, 242, 0.96), rgba(244, 238, 229, 0.92));
+    border: 1px solid rgba(201, 164, 90, 0.2);
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s ease;
+}
+
+.member-summary-card:hover {
+    border-color: rgba(201, 79, 92, 0.3);
+    box-shadow: 0 8px 20px rgba(201, 79, 92, 0.1);
 }
 
 .member-summary-card span,
 .banner-status-card span {
-    color: var(--color-muted);
-    font-size: 0.8rem;
+    color: var(--color-red);
+    font-size: 0.75rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
 }
 
 .member-summary-card strong,
 .banner-status-card strong {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
+    color: var(--color-ink);
+    font-weight: 700;
 }
 
 .member-profile-editor {
@@ -2799,13 +2830,19 @@ h3 {
 
 .cv-fieldset {
     display: grid;
-    gap: 14px;
+    gap: 16px;
     min-width: 0;
     margin: 0;
-    padding: 18px;
-    border: 1px solid rgba(17, 17, 20, 0.08);
-    border-radius: 14px;
-    background: rgba(255, 250, 242, 0.78);
+    padding: 24px;
+    border: 1px solid rgba(201, 164, 90, 0.2);
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(255, 250, 242, 0.92), rgba(244, 238, 229, 0.88));
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.cv-fieldset:hover {
+    border-color: rgba(201, 79, 92, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .cv-fieldset legend,
@@ -2814,7 +2851,8 @@ h3 {
     color: var(--color-black);
     font-family: "Playfair Display", Georgia, serif;
     font-size: clamp(1.35rem, 2vw, 2rem);
-    line-height: 1;
+    line-height: 1.2;
+    font-weight: 700;
 }
 
 .visibility-grid {
@@ -2919,11 +2957,18 @@ h3 {
 .cv-repeat-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 12px;
-    padding: 14px;
-    border: 1px solid rgba(17, 17, 20, 0.08);
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.82);
+    gap: 14px;
+    padding: 18px;
+    border: 1px solid rgba(201, 164, 90, 0.18);
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(250, 248, 244, 0.82));
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+    transition: all 0.3s ease;
+}
+
+.cv-repeat-row:hover {
+    border-color: rgba(201, 79, 92, 0.2);
+    box-shadow: 0 4px 12px rgba(201, 79, 92, 0.08);
 }
 
 .cv-repeat-row-with-media {
@@ -3048,14 +3093,29 @@ h3 {
 }
 
 .cv-repeat-section .cv-repeat-row:nth-of-type(n + 5) {
-    opacity: 0.92;
+    opacity: 0.94;
 }
 
 .cv-add-row {
     justify-self: start;
-    color: var(--color-ink);
-    border-color: rgba(17, 17, 20, 0.16);
-    background: rgba(255, 255, 255, 0.74);
+    margin-top: 8px;
+    padding: 12px 22px;
+    color: var(--color-white);
+    background: linear-gradient(135deg, var(--color-red), rgba(201, 79, 92, 0.88));
+    border: 1px solid var(--color-red);
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.cv-add-row:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(201, 79, 92, 0.3);
+}
+
+.cv-add-row:active {
+    transform: translateY(0);
 }
 
 .cv-print-document {
