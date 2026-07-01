@@ -5,12 +5,16 @@ import NavSticky from '../../components/layout/NavSticky';
 import Hero from '../../components/artist/Hero';
 import Bio from '../../components/artist/Bio';
 import { Artist } from '../../types/artist';
-import { fetchArtist } from '../../lib/apiClient';
+import prisma from '../../lib/prisma';
 
 export const getServerSideProps: GetServerSideProps = async (ctx) => {
   const slug = ctx.params?.slug as string;
-  const artist = await fetchArtist(slug);
-  if (!artist) return { notFound: true };
+  const artistRaw = await prisma.artist.findUnique({
+    where: { slug },
+    include: { gallery: true, shows: true, events: true, services: true, press: true, reviews: true }
+  });
+  if (!artistRaw) return { notFound: true };
+  const artist = JSON.parse(JSON.stringify(artistRaw)) as Artist;
   return { props: { artist } };
 };
 
