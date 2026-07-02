@@ -29,3 +29,5 @@ export interface EventItem { id: string; title: string; date: string; time?: str
 export interface PressItem { id: string; title: string; url?: string; type?: 'article'|'pdf'|'interview'; publishedAt?: string; excerpt?: string; }
 export interface ServiceItem { id: string; title: string; priceFrom?: number; description?: string; durationMins?: number; }
 export interface Review { id: string; author?: string; rating: number; comment?: string; date?: string; }
+
+export interface User { id: string; externalId: string; email?: string; name?: string; artistId?: string }
