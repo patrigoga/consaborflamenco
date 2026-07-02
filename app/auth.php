@@ -345,7 +345,7 @@ function all_users(): array
 {
     $pdo = auth_database();
     if ($pdo) {
-        $statement = $pdo->query(db_user_select_sql() . ' ORDER BY u.created_at DESC, u.id DESC');
+        $statement = $pdo->query(db_user_select_sql($pdo) . ' ORDER BY u.created_at DESC, u.id DESC');
         return array_map('db_user_from_row', $statement->fetchAll());
     }
 
@@ -362,7 +362,7 @@ function find_user_by_email(string $email): ?array
     $normalizedEmail = normalize_email($email);
     $pdo = auth_database();
     if ($pdo) {
-        $statement = $pdo->prepare(db_user_select_sql() . ' WHERE u.email = :email LIMIT 1');
+        $statement = $pdo->prepare(db_user_select_sql($pdo) . ' WHERE u.email = :email LIMIT 1');
         $statement->execute(['email' => $normalizedEmail]);
         $row = $statement->fetch();
 
@@ -407,7 +407,7 @@ function find_user_by_id(string $id): ?array
 {
     $pdo = auth_database();
     if ($pdo) {
-        $statement = $pdo->prepare(db_user_select_sql() . ' WHERE u.uuid = :uuid LIMIT 1');
+        $statement = $pdo->prepare(db_user_select_sql($pdo) . ' WHERE u.uuid = :uuid LIMIT 1');
         $statement->execute(['uuid' => $id]);
         $row = $statement->fetch();
 
@@ -453,7 +453,7 @@ function find_user_by_member_code(string $memberCode): ?array
 
     $pdo = auth_database();
     if ($pdo) {
-        $statement = $pdo->prepare(db_user_select_sql() . ' WHERE m.codigo_descuento = :member_code LIMIT 1');
+        $statement = $pdo->prepare(db_user_select_sql($pdo) . ' WHERE m.codigo_descuento = :member_code LIMIT 1');
         $statement->execute(['member_code' => $normalizedCode]);
         $row = $statement->fetch();
 
@@ -830,26 +830,67 @@ function auth_database(): ?PDO
     return $pdo;
 }
 
-function db_user_select_sql(): string
+function db_column_exists(PDO $pdo, string $table, string $column): bool
 {
+    static $cache = [];
+
+    $cacheKey = DB_NAME . '|' . $table . '|' . $column;
+    if (array_key_exists($cacheKey, $cache)) {
+        return (bool) $cache[$cacheKey];
+    }
+
+    try {
+        $statement = $pdo->prepare(
+            'SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = :schema AND TABLE_NAME = :table_name AND COLUMN_NAME = :column_name'
+        );
+        $statement->execute([
+            'schema' => DB_NAME,
+            'table_name' => $table,
+            'column_name' => $column,
+        ]);
+        $cache[$cacheKey] = ((int) $statement->fetchColumn()) > 0;
+    } catch (Throwable $exception) {
+        $cache[$cacheKey] = false;
+    }
+
+    return (bool) $cache[$cacheKey];
+}
+
+function db_optional_select(PDO $pdo, string $tableAlias, string $tableName, string $column, ?string $alias = null): string
+{
+    $safeAlias = $alias ?? $column;
+    if (db_column_exists($pdo, $tableName, $column)) {
+        return $tableAlias . '.' . $column . ' AS ' . $safeAlias;
+    }
+
+    return 'NULL AS ' . $safeAlias;
+}
+
+function db_user_select_sql(?PDO $pdo = null): string
+{
+    $pdo = $pdo ?? db();
+    if (!$pdo) {
+        return "SELECT u.* FROM usuarios u";
+    }
+
     return "SELECT
         u.*,
-        m.id AS miembro_id,
-        m.nombre_publico,
-        m.numero_miembro,
-        m.codigo_descuento,
-        m.estado AS miembro_estado,
-        m.biografia,
-        m.ciudad,
-        m.provincia_texto,
-        m.telefono,
-        m.foto_principal_path,
-        m.web_url,
-        m.instagram_url,
-        m.perfil_json,
-        m.perfil_completo_at,
-        tm.slug AS tipo_miembro_slug,
-        tm.nombre AS tipo_miembro_nombre
+        " . db_optional_select($pdo, 'm', 'miembros', 'id', 'miembro_id') . ",
+        " . db_optional_select($pdo, 'm', 'miembros', 'nombre_publico') . ",
+        " . db_optional_select($pdo, 'm', 'miembros', 'numero_miembro') . ",
+        " . db_optional_select($pdo, 'm', 'miembros', 'codigo_descuento') . ",
+        " . db_optional_select($pdo, 'm', 'miembros', 'estado', 'miembro_estado') . ",
+        " . db_optional_select($pdo, 'm', 'miembros', 'biografia') . ",
+        " . db_optional_select($pdo, 'm', 'miembros', 'ciudad') . ",
+        " . db_optional_select($pdo, 'm', 'miembros', 'provincia_texto') . ",
+        " . db_optional_select($pdo, 'm', 'miembros', 'telefono') . ",
+        " . db_optional_select($pdo, 'm', 'miembros', 'foto_principal_path') . ",
+        " . db_optional_select($pdo, 'm', 'miembros', 'web_url') . ",
+        " . db_optional_select($pdo, 'm', 'miembros', 'instagram_url') . ",
+        " . db_optional_select($pdo, 'm', 'miembros', 'perfil_json') . ",
+        " . db_optional_select($pdo, 'm', 'miembros', 'perfil_completo_at') . ",
+        " . db_optional_select($pdo, 'tm', 'tipos_miembro', 'slug', 'tipo_miembro_slug') . ",
+        " . db_optional_select($pdo, 'tm', 'tipos_miembro', 'nombre', 'tipo_miembro_nombre') . "
     FROM usuarios u
     LEFT JOIN miembros m ON m.usuario_id = u.id
     LEFT JOIN tipos_miembro tm ON tm.id = m.tipo_miembro_id";
@@ -998,7 +1039,12 @@ function db_update_legacy_user(PDO $pdo, array $updatedUser): void
     ]);
 
     if (($updatedUser['role'] ?? 'user') !== 'admin') {
-        db_upsert_member_for_user($pdo, $userId, $updatedUser);
+        try {
+            db_upsert_member_for_user($pdo, $userId, $updatedUser);
+        } catch (Throwable $exception) {
+            // Keep auth flow alive if production DB is pending member-table migrations.
+            error_log('Member upsert skipped for user ' . $uuid . ': ' . $exception->getMessage());
+        }
     }
 }
 
