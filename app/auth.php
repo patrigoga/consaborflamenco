@@ -822,8 +822,18 @@ function auth_database(): ?PDO
         return $pdo;
     }
 
-    migrate_json_users_to_database($pdo);
-    ensure_default_admin_user($pdo);
+    try {
+        migrate_json_users_to_database($pdo);
+    } catch (Throwable $exception) {
+        error_log('JSON user migration skipped: ' . $exception->getMessage());
+    }
+
+    try {
+        ensure_default_admin_user($pdo);
+    } catch (Throwable $exception) {
+        error_log('Default admin ensure skipped: ' . $exception->getMessage());
+    }
+
     $ready = true;
     $available = true;
 
@@ -1005,7 +1015,11 @@ function db_insert_legacy_user(PDO $pdo, array $user): void
 
         $userId = (int) $pdo->lastInsertId();
         if ($role !== 'ADMIN') {
-            db_upsert_member_for_user($pdo, $userId, $user);
+            try {
+                db_upsert_member_for_user($pdo, $userId, $user);
+            } catch (Throwable $exception) {
+                error_log('Legacy member upsert skipped for user ' . ((string) ($user['id'] ?? 'unknown')) . ': ' . $exception->getMessage());
+            }
         }
 
         $pdo->commit();
