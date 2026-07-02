@@ -443,6 +443,12 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                         <input id="public_name" name="public_name" type="text" value="<?= e($displayName) ?>" required>
                                     </label>
                                 </div>
+                                <div class="form-grid-two">
+                                    <label for="slug">URL pública (slug)
+                                        <input id="slug" name="slug" type="text" value="<?= e($memberProfile['slug'] ?? slugify($displayName)) ?>" placeholder="nombre-artista" required>
+                                    </label>
+                                    <p class="field-help">Se usará en la URL pública: /artista/tu-slug</p>
+                                </div>
                             </fieldset>
 
                             <fieldset class="cv-fieldset profile-tab-panel" data-profile-tab="datos">

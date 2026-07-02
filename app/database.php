@@ -101,6 +101,7 @@ function db_bootstrap(PDO $pdo): void
             usuario_id BIGINT UNSIGNED NOT NULL UNIQUE,
             tipo_miembro_id BIGINT UNSIGNED NULL,
             nombre_publico VARCHAR(180) NOT NULL,
+            slug VARCHAR(180) NULL UNIQUE,
             numero_miembro INT UNSIGNED NOT NULL UNIQUE,
             codigo_descuento VARCHAR(40) NOT NULL UNIQUE,
             estado ENUM('SIMPATIZANTE','VIP','INACTIVO','SUSPENDIDO','PENDIENTE') NOT NULL DEFAULT 'SIMPATIZANTE',

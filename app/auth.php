@@ -216,6 +216,7 @@ function member_profile_from_input(array $input, array $existingProfile = []): a
     $profile = default_member_profile(['artistic_profile' => $existingProfile]);
     $profile['member_type'] = normalize_member_type((string) ($input['member_type'] ?? $profile['member_type']));
     $profile['public_name'] = clean_text((string) ($input['public_name'] ?? $input['name'] ?? $profile['public_name']));
+    $profile['slug'] = clean_text((string) ($input['slug'] ?? slugify($profile['public_name'] ?? $input['public_name'] ?? $input['name'] ?? '')));
     $profile['artistic_headline'] = clean_text((string) ($input['artistic_headline'] ?? $profile['artistic_headline']));
     $profile['short_description'] = '';
     $profile['cv_summary'] = '';
@@ -1012,14 +1013,15 @@ function db_upsert_member_for_user(PDO $pdo, int $userId, array $user): void
 
     $statement = $pdo->prepare(
         'INSERT INTO miembros (
-            usuario_id, tipo_miembro_id, nombre_publico, numero_miembro, codigo_descuento, estado, biografia,
+            usuario_id, tipo_miembro_id, nombre_publico, slug, numero_miembro, codigo_descuento, estado, biografia,
             ciudad, provincia_texto, telefono, foto_principal_path, web_url, instagram_url, perfil_json, perfil_completo_at
         ) VALUES (
-            :usuario_id, :tipo_miembro_id, :nombre_publico, :numero_miembro, :codigo_descuento, :estado, :biografia,
+            :usuario_id, :tipo_miembro_id, :nombre_publico, :slug, :numero_miembro, :codigo_descuento, :estado, :biografia,
             :ciudad, :provincia_texto, :telefono, :foto_principal_path, :web_url, :instagram_url, :perfil_json, :perfil_completo_at
         ) ON DUPLICATE KEY UPDATE
             tipo_miembro_id = VALUES(tipo_miembro_id),
             nombre_publico = VALUES(nombre_publico),
+            slug = VALUES(slug),
             estado = VALUES(estado),
             biografia = VALUES(biografia),
             ciudad = VALUES(ciudad),
@@ -1037,6 +1039,7 @@ function db_upsert_member_for_user(PDO $pdo, int $userId, array $user): void
         'usuario_id' => $userId,
         'tipo_miembro_id' => $memberTypeId,
         'nombre_publico' => clean_text((string) ($profile['public_name'] ?? $user['name'] ?? 'Miembro')),
+        'slug' => clean_text((string) ($profile['slug'] ?? slugify($profile['public_name'] ?? $user['name'] ?? ''))),
         'numero_miembro' => $memberNumber,
         'codigo_descuento' => $memberCode,
         'estado' => strtolower((string) ($user['membership_tier'] ?? 'simpatizante')) === 'vip' ? 'VIP' : 'SIMPATIZANTE',
