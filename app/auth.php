@@ -840,32 +840,6 @@ function auth_database(): ?PDO
     return $pdo;
 }
 
-function db_column_exists(PDO $pdo, string $table, string $column): bool
-{
-    static $cache = [];
-
-    $cacheKey = DB_NAME . '|' . $table . '|' . $column;
-    if (array_key_exists($cacheKey, $cache)) {
-        return (bool) $cache[$cacheKey];
-    }
-
-    try {
-        $statement = $pdo->prepare(
-            'SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = :schema AND TABLE_NAME = :table_name AND COLUMN_NAME = :column_name'
-        );
-        $statement->execute([
-            'schema' => DB_NAME,
-            'table_name' => $table,
-            'column_name' => $column,
-        ]);
-        $cache[$cacheKey] = ((int) $statement->fetchColumn()) > 0;
-    } catch (Throwable $exception) {
-        $cache[$cacheKey] = false;
-    }
-
-    return (bool) $cache[$cacheKey];
-}
-
 function db_optional_select(PDO $pdo, string $tableAlias, string $tableName, string $column, ?string $alias = null): string
 {
     $safeAlias = $alias ?? $column;
