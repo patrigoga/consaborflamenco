@@ -25,9 +25,9 @@
             { position: 3, type: "Intensivo", source: "Más votado", title: "Taller de cante y compás", image: images.pena, alt: "Taller intensivo en un encuentro flamenco", href: "#cursos-intensivos" }
         ],
         ARTISTAS: [
-            { position: 1, type: "Bailaora", source: "Más votado", title: "Bailaora en directo", description: "Una propuesta escénica marcada por la fuerza, la elegancia y la raíz.", image: images.artista, alt: "Bailaora actuando en un tablao", href: "#artistas" },
-            { position: 2, type: "Cantaora", source: "Promocionado", title: "Voz flamenca actual", image: images.evento, alt: "Cantaora acompañada por guitarra", href: "#artistas" },
-            { position: 3, type: "Guitarrista", source: "Más votado", title: "Guitarra de concierto", image: images.pena, alt: "Guitarrista en un encuentro flamenco", href: "#artistas" }
+            { position: 1, type: "Bailaora", source: "Más votado", title: "Bailaora en directo", description: "Una propuesta escénica marcada por la fuerza, la elegancia y la raíz.", image: images.artista, alt: "Bailaora actuando en un tablao", href: "artistas.php#directorio-artistas" },
+            { position: 2, type: "Cantaora", source: "Promocionado", title: "Voz flamenca actual", image: images.evento, alt: "Cantaora acompañada por guitarra", href: "artistas.php#directorio-artistas" },
+            { position: 3, type: "Guitarrista", source: "Más votado", title: "Guitarra de concierto", image: images.pena, alt: "Guitarrista en un encuentro flamenco", href: "artistas.php#directorio-artistas" }
         ],
         CONCURSOS: [
             { position: 1, type: "Cante", source: "Promocionado", title: "Concurso de cante joven", description: "Una convocatoria abierta para descubrir y proyectar nuevas voces.", image: images.evento, alt: "Cantaora en un escenario al aire libre", href: "#concursos" },

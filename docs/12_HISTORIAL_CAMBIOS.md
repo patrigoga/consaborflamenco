@@ -258,6 +258,16 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Definidos layouts alternos de imagen izquierda/derecha/izquierda y bloque de cuatro botones de color por slide.
 - Implementada navegacion de slider (anterior, siguiente, puntos) en `assets/js/landing-home.js`.
 
+### 2026-07-02 - Fase 6 - Landings por usuario conectadas extremo a extremo
+
+- Conectada la sincronizacion de miembros PHP con el microsite de artista mediante `app/artist_claim.php` desde la capa de persistencia en `app/auth.php`.
+- Anadida resolucion de slug unico por miembro en guardado a base de datos para evitar colisiones entre perfiles publicos.
+- Aplicada sincronizacion selectiva al microsite solo cuando cambian slug o nombre publico, evitando llamadas innecesarias en inicios de sesion.
+- Reforzado `artist-microsite/src/pages/api/artists/claim.ts` para usar `externalUserId` como identidad estable, controlar colisiones de slug y evitar reclamaciones cruzadas.
+- Corregido el import de Prisma en `artist-microsite/src/pages/api/artists/[slug].ts`.
+- Sustituida la pagina `artistas.php` por un directorio dinamico de miembros activos con enlaces reales a `artista.php?slug=...`.
+- Actualizados los enlaces del ranking de artistas en `assets/js/section-rankings.js` para llevar al directorio publico real.
+
 ## Reglas y decisiones
 
 - Registrar cambios por fecha.
