@@ -236,6 +236,27 @@ function cv_print_sections(array $profile, array $sectionConfig): array
     return $sections;
 }
 
+function member_slug_in_use(string $slug, int $excludeUserId = 0): bool
+{
+    $slug = slugify(clean_text($slug));
+    if ($slug === '') {
+        return false;
+    }
+
+    $pdo = db();
+    if (!$pdo) {
+        return false;
+    }
+
+    $statement = $pdo->prepare('SELECT COUNT(*) FROM miembros WHERE slug = :slug AND usuario_id != :usuario_id');
+    $statement->execute([
+        'slug' => $slug,
+        'usuario_id' => max(0, $excludeUserId),
+    ]);
+
+    return ((int) $statement->fetchColumn()) > 0;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') === 'update_profile') {
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
         $profileErrors[] = 'La sesion ha caducado. Vuelve a intentarlo.';
@@ -255,6 +276,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') ==
 
     if (!$profileErrors) {
         $memberProfile = member_profile_from_input($_POST, $memberProfile);
+        $slugLocked = clean_text((string) ($memberProfile['slug_locked_at'] ?? '')) !== '';
+        $currentSlug = clean_text((string) ($memberProfile['slug'] ?? ''));
+        if ($currentSlug === '') {
+            $profileErrors[] = 'La URL publica no es valida. Usa solo letras, numeros y guiones.';
+        } elseif (!$slugLocked && member_slug_in_use($currentSlug, (int) ($user['db_id'] ?? 0))) {
+            $profileErrors[] = 'La URL publica ya esta en uso. Elige otro slug.';
+        }
+
         $submittedPublicFields = is_array($_POST['public_fields'] ?? null) ? $_POST['public_fields'] : [];
         $publicFields = array_values(array_intersect(array_keys($publicFieldOptions), array_map('strval', $submittedPublicFields)));
         $memberProfile['public_fields'] = $publicFields;
@@ -290,6 +319,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') ==
             );
         }
         $memberProfile['completed_at'] = profile_is_complete($memberProfile) ? ($memberProfile['completed_at'] ?? gmdate('c')) : null;
+
+        if (!$profileErrors && !$slugLocked) {
+            $memberProfile['slug_locked_at'] = gmdate('c');
+        }
     }
 
     if (!$profileErrors) {
@@ -305,6 +338,9 @@ $memberTypeLabel = member_type_options()[$memberProfile['member_type']] ?? 'Arti
 $profileStatus = profile_is_complete($memberProfile) ? 'Perfil completo' : 'Perfil pendiente';
 $profileStatusClass = profile_is_complete($memberProfile) ? 'status-pill-active' : 'status-pill-pending';
 $displayName = $memberProfile['public_name'] !== '' ? $memberProfile['public_name'] : $userName;
+$publicSlug = clean_text((string) ($memberProfile['slug'] ?? slugify($displayName)));
+$slugLocked = clean_text((string) ($memberProfile['slug_locked_at'] ?? '')) !== '';
+$publicProfileUrl = app_url('artista.php?slug=' . rawurlencode($publicSlug));
 $cardHeadline = clean_text((string) ($memberProfile['artistic_headline'] ?? ''));
 $profileRequiredFields = [
     $memberProfile['public_name'] ?? '',
@@ -445,9 +481,10 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                 </div>
                                 <div class="form-grid-two">
                                     <label for="slug">URL pública (slug)
-                                        <input id="slug" name="slug" type="text" value="<?= e($memberProfile['slug'] ?? slugify($displayName)) ?>" placeholder="nombre-artista" required>
+                                        <input id="slug" name="slug" type="text" value="<?= e($publicSlug) ?>" placeholder="nombre-artista" required <?= $slugLocked ? 'readonly' : '' ?>>
                                     </label>
-                                    <p class="field-help">Se usará en la URL pública: /artista/tu-slug</p>
+                                    <p class="field-help">URL publica completa: <a href="<?= e($publicProfileUrl) ?>" target="_blank" rel="noopener"><?= e($publicProfileUrl) ?></a></p>
+                                    <?php if ($slugLocked): ?><p class="field-help">La URL publica ya esta fijada y no se puede modificar para evitar conflictos de enlaces.</p><?php endif; ?>
                                 </div>
                             </fieldset>
 

@@ -169,6 +169,8 @@ function default_member_profile(array $user = []): array
     return array_merge([
         'member_type' => 'artista',
         'public_name' => $user['name'] ?? '',
+        'slug' => slugify((string) ($user['name'] ?? 'miembro')),
+        'slug_locked_at' => null,
         'artistic_headline' => '',
         'short_description' => '',
         'cv_summary' => '',
@@ -217,7 +219,13 @@ function member_profile_from_input(array $input, array $existingProfile = []): a
     $profile = default_member_profile(['artistic_profile' => $existingProfile]);
     $profile['member_type'] = normalize_member_type((string) ($input['member_type'] ?? $profile['member_type']));
     $profile['public_name'] = clean_text((string) ($input['public_name'] ?? $input['name'] ?? $profile['public_name']));
-    $profile['slug'] = clean_text((string) ($input['slug'] ?? slugify($profile['public_name'] ?? $input['public_name'] ?? $input['name'] ?? '')));
+    $requestedSlug = clean_text((string) ($input['slug'] ?? $profile['slug'] ?? $profile['public_name'] ?? $input['public_name'] ?? $input['name'] ?? ''));
+    $normalizedSlug = slugify($requestedSlug !== '' ? $requestedSlug : ($profile['public_name'] ?? $input['public_name'] ?? $input['name'] ?? 'miembro'));
+    $isSlugLocked = clean_text((string) ($existingProfile['slug_locked_at'] ?? '')) !== '';
+    $profile['slug'] = $isSlugLocked
+        ? clean_text((string) ($existingProfile['slug'] ?? $normalizedSlug))
+        : $normalizedSlug;
+    $profile['slug_locked_at'] = clean_text((string) ($existingProfile['slug_locked_at'] ?? '')) ?: null;
     $profile['artistic_headline'] = clean_text((string) ($input['artistic_headline'] ?? $profile['artistic_headline']));
     $profile['short_description'] = '';
     $profile['cv_summary'] = '';
