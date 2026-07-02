@@ -1108,10 +1108,14 @@ function db_sync_member_to_artist_microsite(array $user, array $profile): void
         return;
     }
 
-    $result = csf_claim_artist($externalUserId, $name, $slug, $email !== '' ? $email : null);
-    if (empty($result['ok'])) {
-        $status = (string) ($result['status'] ?? 'n/a');
-        error_log('Artist microsite claim failed for user ' . $externalUserId . ' (status ' . $status . ')');
+    try {
+        $result = csf_claim_artist($externalUserId, $name, $slug, $email !== '' ? $email : null);
+        if (empty($result['ok'])) {
+            $status = (string) ($result['status'] ?? 'n/a');
+            error_log('Artist microsite claim failed for user ' . $externalUserId . ' (status ' . $status . ')');
+        }
+    } catch (Throwable $exception) {
+        error_log('Artist microsite claim exception for user ' . $externalUserId . ': ' . $exception->getMessage());
     }
 }
 
