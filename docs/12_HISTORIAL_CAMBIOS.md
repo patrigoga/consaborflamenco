@@ -309,3 +309,4 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - 2026-06-30: Ampliada la vista general del panel admin con KPIs agrupados de comunidad, perfiles, setters, revista, banners, leads, pagos, ingresos y sistema.
 - 2026-06-30: Corregida la visibilidad de la vista general del admin para que el sidebar muestre el bloque completo de KPIs y versionado `admin-sidebar.js` para evitar cache antigua.
 - 2026-06-30: Permitido que usuarios personalicen el nombre de la seccion custom en su curriculum, agregando input editable en lugar de etiqueta hardcodeada, mejorando la flexibilidad del perfil artistico.
+- 2026-07-03: Refinado el area de usuario con una capa visual mas elegante para sidebar, cabecera, tabs, tarjetas, formularios y secciones repetibles.
