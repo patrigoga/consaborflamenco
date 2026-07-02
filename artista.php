@@ -11,29 +11,20 @@ if (preg_match('#/artista/([a-z0-9\-_%]+)#i', $uri, $m)) {
     $slug = $_GET['slug'];
 }
 
-if (!$slug) {
+$slug = slugify((string) $slug);
+if ($slug === '') {
     header('HTTP/1.1 404 Not Found');
     echo 'Not found';
     exit;
 }
 
-$pdo = db();
-if (!$pdo) {
-    header('HTTP/1.1 500 Internal Server Error');
-    echo 'Database unavailable';
-    exit;
-}
-
-$stmt = $pdo->prepare(db_user_select_sql() . ' WHERE m.slug = :slug LIMIT 1');
-$stmt->execute(['slug' => $slug]);
-$row = $stmt->fetch(PDO::FETCH_ASSOC);
-if (!$row) {
+$member = find_user_by_member_slug($slug);
+if (!$member) {
     header('HTTP/1.1 404 Not Found');
     echo 'Artista no encontrado';
     exit;
 }
 
-$member = db_user_from_row($row);
 $profile = $member['artistic_profile'] ?? [];
 $title = $profile['public_name'] ?? $member['name'] ?? 'Artista';
 

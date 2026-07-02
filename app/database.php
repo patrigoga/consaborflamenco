@@ -268,6 +268,8 @@ function db_bootstrap(PDO $pdo): void
         $pdo->exec($statement);
     }
 
+    db_add_column_if_missing($pdo, 'miembros', 'slug', 'VARCHAR(180) NULL AFTER nombre_publico');
+    db_add_unique_index_if_missing($pdo, 'miembros', 'slug', 'slug');
     db_add_column_if_missing($pdo, 'miembros', 'perfil_json', 'LONGTEXT NULL');
     db_add_column_if_missing($pdo, 'miembros', 'ciudad', 'VARCHAR(120) NULL');
     db_add_column_if_missing($pdo, 'miembros', 'provincia_texto', 'VARCHAR(120) NULL');
@@ -299,6 +301,28 @@ function db_add_column_if_missing(PDO $pdo, string $table, string $column, strin
     }
 
     $pdo->exec('ALTER TABLE `' . str_replace('`', '``', $table) . '` ADD COLUMN `' . str_replace('`', '``', $column) . '` ' . $definition);
+}
+
+function db_index_exists(PDO $pdo, string $table, string $index): bool
+{
+    $statement = $pdo->prepare(
+        'SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :table AND INDEX_NAME = :index_name'
+    );
+    $statement->execute(['table' => $table, 'index_name' => $index]);
+
+    return (int) $statement->fetchColumn() > 0;
+}
+
+function db_add_unique_index_if_missing(PDO $pdo, string $table, string $index, string $column): void
+{
+    if (db_index_exists($pdo, $table, $index)) {
+        return;
+    }
+
+    $safeTable = str_replace('`', '``', $table);
+    $safeIndex = str_replace('`', '``', $index);
+    $safeColumn = str_replace('`', '``', $column);
+    $pdo->exec("ALTER TABLE `{$safeTable}` ADD UNIQUE KEY `{$safeIndex}` (`{$safeColumn}`)");
 }
 
 function db_normalize_member_status_column(PDO $pdo): void

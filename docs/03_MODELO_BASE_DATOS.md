@@ -68,6 +68,7 @@ Mantener una base documental para disenar y evolucionar el modelo de base de dat
 - Un miembro tendra un tipo de miembro.
 - Un miembro pertenecera a un usuario de acceso.
 - Un miembro tendra una numeracion unica y un codigo `CSF-...` unico.
+- Un miembro tendra un `slug` publico unico para construir URLs del tipo `artista.php?slug=nombre-artistico`.
 - El registro inicial creara miembros simpatizantes por defecto.
 - El codigo de miembro solo sera utilizable para descuentos si el miembro ha pasado a Miembro VIP mediante pago.
 - Un miembro tendra una tarjeta identificativa configurable con imagen, nombre visible, nivel de membresia, numero y codigo.
@@ -194,4 +195,5 @@ Estados comerciales a definir:
 - 2026-06-25: Anadida tabla prevista `miembros_curriculum_items` para curriculum artistico repetible y privacidad por item.
 - 2026-06-25: Ampliado el curriculum previsto con redes sociales, fechas, orden cronologico, titulo, descripcion e imagen por item principal.
 - 2026-06-28: Activada la conexion inicial a MySQL con bootstrap de tablas, migracion desde JSON, admin por defecto y almacenamiento de perfil completo en `miembros.perfil_json`.
+- 2026-07-03: Anadido `miembros.slug` como campo unico para resolver fichas publicas por URL y evitar errores 500 por columnas ausentes en produccion.
 - 2026-06-29: Anadida configuracion especifica para la base de produccion `u311361615_csf` y separacion de credenciales mediante `.env`.

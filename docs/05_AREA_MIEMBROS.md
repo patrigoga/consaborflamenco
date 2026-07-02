@@ -69,6 +69,7 @@ El panel de miembro se organiza con:
 - La fotografia principal se edita desde la propia imagen de cabecera mediante hover, evitando duplicar la misma imagen en el panel.
 - Bloque de perfil con datos principales del miembro.
 - Editor de perfil artistico con tipo de espacio, nombre artistico, titular artistico, ubicacion, contacto, redes y fotografia principal.
+- La URL publica del perfil se guarda con un boton propio y valida duplicados antes de persistir el slug.
 - Editor de curriculum artistico con formacion, experiencia escenica, docencia, actuaciones destacadas, premios, repertorio, disponibilidad y notas privadas.
 - Control de visibilidad por bloques para decidir que datos se publican y que datos quedan privados.
 - Bloques repetibles con boton para anadir nuevas entradas sin limite fijo inicial.

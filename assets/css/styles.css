@@ -2111,6 +2111,28 @@ h3 {
     gap: 12px;
 }
 
+.public-url-control {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 12px;
+}
+
+.public-url-control label {
+    margin: 0;
+}
+
+.public-url-save {
+    min-height: 52px;
+    padding-inline: 22px;
+    white-space: nowrap;
+}
+
+.public-url-preview {
+    grid-column: 1 / -1;
+    overflow-wrap: anywhere;
+}
+
 .auth-card-register label,
 .auth-card-register .checkbox-field {
     font-size: 0.78rem;
@@ -4716,28 +4738,33 @@ h3 {
         grid-template-columns: 1fr;
     }
 
-	    .three-columns,
-	    .feature-grid,
-	    .four-columns,
-	    .duo-grid,
-		    .member-summary-grid,
-	    .member-dashboard-stats,
-		    .form-grid-two,
-	    .form-grid-three,
-	    .cv-repeat-row,
-		    .banner-date-grid,
-		    .footer-links,
-		    .ad-slots {
-		        grid-template-columns: 1fr;
-		    }
+    .three-columns,
+    .feature-grid,
+    .four-columns,
+    .duo-grid,
+    .member-summary-grid,
+    .member-dashboard-stats,
+    .form-grid-two,
+    .form-grid-three,
+    .public-url-control,
+    .cv-repeat-row,
+    .banner-date-grid,
+    .footer-links,
+    .ad-slots {
+        grid-template-columns: 1fr;
+    }
 
-	    .member-dashboard-identity {
-	        grid-template-columns: 1fr;
-	    }
+    .member-dashboard-identity {
+        grid-template-columns: 1fr;
+    }
 
-	    .member-profile-preview {
-	        grid-template-columns: 1fr;
-	    }
+    .member-profile-preview {
+        grid-template-columns: 1fr;
+    }
+
+    .public-url-save {
+        width: 100%;
+    }
 
         .cv-repeat-row-with-media .cv-entry-image-field,
         .cv-repeat-row-with-media .cv-entry-controls,

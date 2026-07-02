@@ -247,6 +247,9 @@ function member_slug_in_use(string $slug, int $excludeUserId = 0): bool
     if (!$pdo) {
         return false;
     }
+    if (!db_column_exists($pdo, 'miembros', 'slug')) {
+        return false;
+    }
 
     $statement = $pdo->prepare('SELECT COUNT(*) FROM miembros WHERE slug = :slug AND usuario_id != :usuario_id');
     $statement->execute([
@@ -258,79 +261,93 @@ function member_slug_in_use(string $slug, int $excludeUserId = 0): bool
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') === 'update_profile') {
+    $isSlugSave = (string) ($_POST['slug_action'] ?? '') === 'save_public_slug';
+
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
         $profileErrors[] = 'La sesion ha caducado. Vuelve a intentarlo.';
     }
 
-    if (!$profileErrors) {
-        $photoPath = save_member_photo_upload($_FILES['main_photo'] ?? null, $profileErrors, empty($memberProfile['main_photo_path']));
-        if ($photoPath) {
-            $memberProfile['main_photo_path'] = $photoPath;
+    if ($isSlugSave) {
+        if (!$profileErrors) {
+            $requestedSlug = slugify(clean_text((string) ($_POST['slug'] ?? '')));
+            if ($requestedSlug === '') {
+                $profileErrors[] = 'La URL publica no es valida. Usa solo letras, numeros y guiones.';
+            } elseif (member_slug_in_use($requestedSlug, (int) ($user['db_id'] ?? 0))) {
+                $profileErrors[] = 'La URL publica ya esta en uso. Elige otro slug.';
+            } else {
+                $memberProfile['slug'] = $requestedSlug;
+                $memberProfile['slug_locked_at'] = null;
+                $user['artistic_profile'] = $memberProfile;
+                update_user($user);
+                $profileMessages[] = 'URL publica guardada. Ya puedes abrir tu ficha con este enlace.';
+            }
+        }
+    } else {
+        if (!$profileErrors) {
+            $photoPath = save_member_photo_upload($_FILES['main_photo'] ?? null, $profileErrors, empty($memberProfile['main_photo_path']));
+            if ($photoPath) {
+                $memberProfile['main_photo_path'] = $photoPath;
+            }
+
+            $cvHeaderImagePath = save_member_cv_image_upload($_FILES['cv_header_image'] ?? null, $profileErrors);
+            if ($cvHeaderImagePath) {
+                $memberProfile['cv_header_image_path'] = $cvHeaderImagePath;
+            }
         }
 
-        $cvHeaderImagePath = save_member_cv_image_upload($_FILES['cv_header_image'] ?? null, $profileErrors);
-        if ($cvHeaderImagePath) {
-            $memberProfile['cv_header_image_path'] = $cvHeaderImagePath;
-        }
-    }
+        if (!$profileErrors) {
+            $memberProfile = member_profile_from_input($_POST, $memberProfile);
+            $currentSlug = clean_text((string) ($memberProfile['slug'] ?? ''));
+            if ($currentSlug === '') {
+                $profileErrors[] = 'La URL publica no es valida. Usa solo letras, numeros y guiones.';
+            } elseif (member_slug_in_use($currentSlug, (int) ($user['db_id'] ?? 0))) {
+                $profileErrors[] = 'La URL publica ya esta en uso. Elige otro slug.';
+            }
 
-    if (!$profileErrors) {
-        $memberProfile = member_profile_from_input($_POST, $memberProfile);
-        $slugLocked = clean_text((string) ($memberProfile['slug_locked_at'] ?? '')) !== '';
-        $currentSlug = clean_text((string) ($memberProfile['slug'] ?? ''));
-        if ($currentSlug === '') {
-            $profileErrors[] = 'La URL publica no es valida. Usa solo letras, numeros y guiones.';
-        } elseif (!$slugLocked && member_slug_in_use($currentSlug, (int) ($user['db_id'] ?? 0))) {
-            $profileErrors[] = 'La URL publica ya esta en uso. Elige otro slug.';
-        }
-
-        $submittedPublicFields = is_array($_POST['public_fields'] ?? null) ? $_POST['public_fields'] : [];
-        $publicFields = array_values(array_intersect(array_keys($publicFieldOptions), array_map('strval', $submittedPublicFields)));
-        $memberProfile['public_fields'] = $publicFields;
-        $submittedSortOrders = is_array($_POST['sort_orders'] ?? null) ? $_POST['sort_orders'] : [];
-        $memberProfile['sort_orders'] = array_map(
-            static fn ($value): string => normalize_cv_sort_order($value),
-            array_intersect_key($submittedSortOrders, $publicFieldOptions)
-        );
-        $submittedSectionSettings = is_array($_POST['section_settings'] ?? null) ? $_POST['section_settings'] : [];
-        $memberProfile['section_settings'] = clean_cv_section_settings(
-            $submittedSectionSettings,
-            is_array($memberProfile['section_settings'] ?? null) ? $memberProfile['section_settings'] : [],
-            $cvSectionConfig
-        );
-        $customSectionTitle = clean_text((string) ($_POST['custom_section_title'] ?? ''));
-        if (!empty($customSectionTitle) && strlen($customSectionTitle) >= 2 && strlen($customSectionTitle) <= 100) {
-            $memberProfile['custom_section_title'] = $customSectionTitle;
-        }
-        $entryMediaOptions = ['requires_title_description' => false, 'allows_image' => true];
-        foreach ($cvSectionConfig as $sectionKey => $sectionConfig) {
-            $memberProfile[$sectionKey] = clean_cv_entries(
-                $_POST,
-                $sectionKey,
-                array_keys($sectionConfig['fields']),
-                $entryMediaOptions + ['title' => $sectionConfig['title']],
-                is_array($memberProfile[$sectionKey] ?? null) ? $memberProfile[$sectionKey] : [],
-                $_FILES,
-                $profileErrors
+            $submittedPublicFields = is_array($_POST['public_fields'] ?? null) ? $_POST['public_fields'] : [];
+            $publicFields = array_values(array_intersect(array_keys($publicFieldOptions), array_map('strval', $submittedPublicFields)));
+            $memberProfile['public_fields'] = $publicFields;
+            $submittedSortOrders = is_array($_POST['sort_orders'] ?? null) ? $_POST['sort_orders'] : [];
+            $memberProfile['sort_orders'] = array_map(
+                static fn ($value): string => normalize_cv_sort_order($value),
+                array_intersect_key($submittedSortOrders, $publicFieldOptions)
             );
-            $memberProfile[$sectionKey] = sort_cv_entries(
-                $memberProfile[$sectionKey],
-                $memberProfile['sort_orders'][$sectionKey] ?? 'desc'
+            $submittedSectionSettings = is_array($_POST['section_settings'] ?? null) ? $_POST['section_settings'] : [];
+            $memberProfile['section_settings'] = clean_cv_section_settings(
+                $submittedSectionSettings,
+                is_array($memberProfile['section_settings'] ?? null) ? $memberProfile['section_settings'] : [],
+                $cvSectionConfig
             );
+            $customSectionTitle = clean_text((string) ($_POST['custom_section_title'] ?? ''));
+            if (!empty($customSectionTitle) && strlen($customSectionTitle) >= 2 && strlen($customSectionTitle) <= 100) {
+                $memberProfile['custom_section_title'] = $customSectionTitle;
+            }
+            $entryMediaOptions = ['requires_title_description' => false, 'allows_image' => true];
+            foreach ($cvSectionConfig as $sectionKey => $sectionConfig) {
+                $memberProfile[$sectionKey] = clean_cv_entries(
+                    $_POST,
+                    $sectionKey,
+                    array_keys($sectionConfig['fields']),
+                    $entryMediaOptions + ['title' => $sectionConfig['title']],
+                    is_array($memberProfile[$sectionKey] ?? null) ? $memberProfile[$sectionKey] : [],
+                    $_FILES,
+                    $profileErrors
+                );
+                $memberProfile[$sectionKey] = sort_cv_entries(
+                    $memberProfile[$sectionKey],
+                    $memberProfile['sort_orders'][$sectionKey] ?? 'desc'
+                );
+            }
+            $memberProfile['completed_at'] = profile_is_complete($memberProfile) ? ($memberProfile['completed_at'] ?? gmdate('c')) : null;
         }
-        $memberProfile['completed_at'] = profile_is_complete($memberProfile) ? ($memberProfile['completed_at'] ?? gmdate('c')) : null;
 
-        if (!$profileErrors && !$slugLocked) {
-            $memberProfile['slug_locked_at'] = gmdate('c');
+        if (!$profileErrors) {
+            $user['artistic_profile'] = $memberProfile;
+            update_user($user);
+            $profileMessages[] = profile_is_complete($memberProfile)
+                ? 'Perfil artistico actualizado.'
+                : 'Perfil guardado. Sigue pendiente completar nombre artistico, ciudad, provincia, fotografia principal y al menos una formacion, experiencia profesional o actuacion.';
         }
-    }
-
-    if (!$profileErrors) {
-        $user['artistic_profile'] = $memberProfile;
-        update_user($user);
-        $profileMessages[] = profile_is_complete($memberProfile)
-            ? 'Perfil artistico actualizado.'
-            : 'Perfil guardado. Sigue pendiente completar nombre artistico, ciudad, provincia, fotografia principal y al menos una formacion, experiencia profesional o actuacion.';
     }
 }
 
@@ -339,7 +356,7 @@ $profileStatus = profile_is_complete($memberProfile) ? 'Perfil completo' : 'Perf
 $profileStatusClass = profile_is_complete($memberProfile) ? 'status-pill-active' : 'status-pill-pending';
 $displayName = $memberProfile['public_name'] !== '' ? $memberProfile['public_name'] : $userName;
 $publicSlug = clean_text((string) ($memberProfile['slug'] ?? slugify($displayName)));
-$slugLocked = clean_text((string) ($memberProfile['slug_locked_at'] ?? '')) !== '';
+$publicSlug = $publicSlug !== '' ? $publicSlug : slugify($displayName);
 $publicProfileUrl = app_url('artista.php?slug=' . rawurlencode($publicSlug));
 $cardHeadline = clean_text((string) ($memberProfile['artistic_headline'] ?? ''));
 $profileRequiredFields = [
@@ -479,12 +496,12 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                         <input id="public_name" name="public_name" type="text" value="<?= e($displayName) ?>" required>
                                     </label>
                                 </div>
-                                <div class="form-grid-two">
+                                <div class="public-url-control">
                                     <label for="slug">URL pública (slug)
-                                        <input id="slug" name="slug" type="text" value="<?= e($publicSlug) ?>" placeholder="nombre-artista" required <?= $slugLocked ? 'readonly' : '' ?>>
+                                        <input id="slug" name="slug" type="text" value="<?= e($publicSlug) ?>" placeholder="nombre-artista" required>
                                     </label>
-                                    <p class="field-help">URL publica completa: <a href="<?= e($publicProfileUrl) ?>" target="_blank" rel="noopener"><?= e($publicProfileUrl) ?></a></p>
-                                    <?php if ($slugLocked): ?><p class="field-help">La URL publica ya esta fijada y no se puede modificar para evitar conflictos de enlaces.</p><?php endif; ?>
+                                    <button class="button button-secondary public-url-save" type="submit" name="slug_action" value="save_public_slug" formnovalidate>Guardar URL</button>
+                                    <p class="field-help public-url-preview">URL publica completa: <a href="<?= e($publicProfileUrl) ?>" target="_blank" rel="noopener"><?= e($publicProfileUrl) ?></a></p>
                                 </div>
                             </fieldset>
 

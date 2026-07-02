@@ -221,10 +221,7 @@ function member_profile_from_input(array $input, array $existingProfile = []): a
     $profile['public_name'] = clean_text((string) ($input['public_name'] ?? $input['name'] ?? $profile['public_name']));
     $requestedSlug = clean_text((string) ($input['slug'] ?? $profile['slug'] ?? $profile['public_name'] ?? $input['public_name'] ?? $input['name'] ?? ''));
     $normalizedSlug = slugify($requestedSlug !== '' ? $requestedSlug : ($profile['public_name'] ?? $input['public_name'] ?? $input['name'] ?? 'miembro'));
-    $isSlugLocked = clean_text((string) ($existingProfile['slug_locked_at'] ?? '')) !== '';
-    $profile['slug'] = $isSlugLocked
-        ? clean_text((string) ($existingProfile['slug'] ?? $normalizedSlug))
-        : $normalizedSlug;
+    $profile['slug'] = $normalizedSlug;
     $profile['slug_locked_at'] = clean_text((string) ($existingProfile['slug_locked_at'] ?? '')) ?: null;
     $profile['artistic_headline'] = clean_text((string) ($input['artistic_headline'] ?? $profile['artistic_headline']));
     $profile['short_description'] = '';
@@ -424,6 +421,35 @@ function find_user_by_id(string $id): ?array
 
     foreach (all_users() as $user) {
         if (($user['id'] ?? '') === $id) {
+            return $user;
+        }
+    }
+
+    return null;
+}
+
+function find_user_by_member_slug(string $slug): ?array
+{
+    $slug = slugify($slug);
+    if ($slug === '') {
+        return null;
+    }
+
+    $pdo = auth_database();
+    if ($pdo && db_column_exists($pdo, 'miembros', 'slug')) {
+        $statement = $pdo->prepare(db_user_select_sql($pdo) . ' WHERE m.slug = :slug LIMIT 1');
+        $statement->execute(['slug' => $slug]);
+        $row = $statement->fetch();
+
+        if ($row) {
+            return db_user_from_row($row);
+        }
+    }
+
+    foreach (all_users() as $user) {
+        $profile = default_member_profile($user);
+        $candidate = slugify((string) ($profile['slug'] ?? $profile['public_name'] ?? $user['name'] ?? ''));
+        if ($candidate === $slug) {
             return $user;
         }
     }
@@ -869,6 +895,7 @@ function db_user_select_sql(?PDO $pdo = null): string
         u.*,
         " . db_optional_select($pdo, 'm', 'miembros', 'id', 'miembro_id') . ",
         " . db_optional_select($pdo, 'm', 'miembros', 'nombre_publico') . ",
+        " . db_optional_select($pdo, 'm', 'miembros', 'slug', 'miembro_slug') . ",
         " . db_optional_select($pdo, 'm', 'miembros', 'numero_miembro') . ",
         " . db_optional_select($pdo, 'm', 'miembros', 'codigo_descuento') . ",
         " . db_optional_select($pdo, 'm', 'miembros', 'estado', 'miembro_estado') . ",
@@ -906,6 +933,9 @@ function db_user_from_row(array $row): array
     }
     if (($profile['public_name'] ?? '') === '' && !empty($row['nombre_publico'])) {
         $profile['public_name'] = (string) $row['nombre_publico'];
+    }
+    if (!empty($row['miembro_slug'])) {
+        $profile['slug'] = (string) $row['miembro_slug'];
     }
     if (($profile['city'] ?? '') === '' && !empty($row['ciudad'])) {
         $profile['city'] = (string) $row['ciudad'];

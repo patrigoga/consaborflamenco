@@ -267,6 +267,8 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Corregido el import de Prisma en `artist-microsite/src/pages/api/artists/[slug].ts`.
 - Sustituida la pagina `artistas.php` por un directorio dinamico de miembros activos con enlaces reales a `artista.php?slug=...`.
 - Actualizados los enlaces del ranking de artistas en `assets/js/section-rankings.js` para llevar al directorio publico real.
+- 2026-07-03: Corregida la ficha publica `artista.php?slug=...` para buscar miembros por slug sin provocar error 500 cuando falta la columna en produccion.
+- 2026-07-03: Anadido guardado independiente de URL publica en el panel de usuario con validacion de duplicados y migracion del campo `miembros.slug`.
 
 ## Reglas y decisiones
 
