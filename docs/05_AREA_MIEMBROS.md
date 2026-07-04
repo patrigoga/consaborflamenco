@@ -67,7 +67,7 @@ El panel de miembro se organiza con:
 - Sidebar izquierdo oscuro con accesos a Perfil, Tarjeta de miembro, Banners y Seguridad.
 - Cabecera privada tipo dashboard con fotografia principal, nombre artistico, tipo de espacio, ubicacion y metricas de estado.
 - La fotografia principal se edita desde la propia imagen de cabecera mediante hover, evitando duplicar la misma imagen en el panel.
-- Bloque de perfil con datos principales del miembro.
+- Bloque de perfil con datos principales del miembro, sin cabecera secundaria redundante bajo el resumen principal.
 - Editor de perfil artistico con tipo de espacio, nombre artistico, titular artistico, ubicacion, contacto, redes y fotografia principal.
 - La URL publica del perfil se guarda con un boton propio y valida duplicados antes de persistir el slug.
 - Editor de curriculum artistico con formacion, experiencia escenica, docencia, actuaciones destacadas, premios, repertorio, disponibilidad y notas privadas.

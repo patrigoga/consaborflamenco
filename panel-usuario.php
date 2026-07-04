@@ -402,7 +402,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
 
             <div class="member-panel-content">
                 <div class="member-panel-tabs" role="tablist" aria-label="Secciones del panel de miembro">
-                    <button type="button" class="tab-button panel-tab-button active" data-tab-target="perfil">Ficha artistica</button>
+                    <button type="button" class="tab-button panel-tab-button active" data-tab-target="perfil">Perfil</button>
                     <button type="button" class="tab-button panel-tab-button" data-tab-target="tarjeta-miembro">Tarjeta de miembro</button>
                     <button type="button" class="tab-button panel-tab-button" data-tab-target="banners">Banners</button>
                     <button type="button" class="tab-button panel-tab-button" data-tab-target="seguridad">Seguridad</button>
@@ -438,14 +438,6 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                 </section>
 
                 <section id="perfil" class="content-section member-panel-section active">
-                    <div class="section-heading">
-                        <div class="section-heading-content">
-                            <p class="section-kicker">Perfil</p>
-                            <h2>Ficha artistica</h2>
-                            <p>Este bloque queda conectado a la tabla de miembros para editar avatar, nombre artistico, ubicacion, fotografia, redes y curriculum.</p>
-                        </div>
-                        <span class="status-pill <?= e($profileStatusClass) ?>"><?= e($profileStatus) ?></span>
-                    </div>
                     <div class="member-summary-grid">
                         <article class="member-summary-card">
                             <span>Nombre artistico</span>
