@@ -270,6 +270,8 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - 2026-07-03: Corregida la ficha publica `artista.php?slug=...` para buscar miembros por slug sin provocar error 500 cuando falta la columna en produccion.
 - 2026-07-03: Anadido guardado independiente de URL publica en el panel de usuario con validacion de duplicados y migracion del campo `miembros.slug`.
 - 2026-07-04: Retirada la cabecera secundaria "Ficha artistica" del area de usuario para evitar redundancia con el resumen superior.
+- 2026-07-04: Movidos el estado de perfil y la impresion del curriculum al sidebar izquierdo como acciones rapidas.
+- 2026-07-04: Anadido QR visible dentro de la tarjeta de miembro, enlazado a la tarjeta digital y preparado para futura validacion de invitaciones a eventos.
 
 ## Reglas y decisiones
 

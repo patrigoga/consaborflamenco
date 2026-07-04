@@ -34,6 +34,10 @@ $isVipMember = $memberTier === 'vip';
 $memberStatus = $isVipMember ? 'Miembro VIP' : 'Miembro simpatizante';
 $memberCode = $cardIsAvailable ? member_code_for_user($cardUser) : '';
 $cardHeadline = $cardIsAvailable ? clean_text((string) ($cardProfile['artistic_headline'] ?? '')) : '';
+$memberCardPublicUrl = $cardIsAvailable
+    ? app_url('tarjeta-miembro.php?m=' . rawurlencode($memberCode) . '&d=' . rawurlencode($selectedCardBackground))
+    : '';
+$memberCardQrUrl = $memberCardPublicUrl !== '' ? 'qr.php?data=' . rawurlencode($memberCardPublicUrl) : '';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -64,6 +68,7 @@ $cardHeadline = $cardIsAvailable ? clean_text((string) ($cardProfile['artistic_h
                     <div class="member-card-preview member-card-preview-<?= e($cardFigure) ?>">
                         <img src="<?= e($cardBackground) ?>" alt="Fondo de tarjeta de miembro" loading="eager">
                         <img class="member-card-seal" src="assets/images/member-cards/pegatina-con-sabor-flamenco.png" alt="Sello Con Sabor Flamenco" loading="eager">
+                        <img class="member-card-access-qr" src="<?= e($memberCardQrUrl) ?>" alt="QR de acceso de <?= e($displayName) ?>" loading="eager">
                         <div class="member-card-overlay">
                             <span class="member-card-space"><?= e($memberTypeLabel) ?></span>
                             <strong><?= e($displayName) ?></strong>

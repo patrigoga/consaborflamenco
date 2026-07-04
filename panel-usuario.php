@@ -393,11 +393,21 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                     <span><?= e($memberStatus) ?> · Nº <?= e($memberNumber) ?></span>
                 </div>
                 <nav class="member-sidebar-nav">
-                    <a href="#perfil">Perfil</a>
-                    <a href="#tarjeta-miembro">Tarjeta de miembro</a>
-                    <a href="#banners">Banners</a>
-                    <a href="#seguridad">Seguridad</a>
+                    <a href="#perfil" data-panel-link="perfil">Perfil</a>
+                    <a href="#tarjeta-miembro" data-panel-link="tarjeta-miembro">Tarjeta de miembro</a>
+                    <a href="#banners" data-panel-link="banners">Banners</a>
+                    <a href="#seguridad" data-panel-link="seguridad">Seguridad</a>
                 </nav>
+                <div class="member-sidebar-actions" aria-label="Acciones rapidas">
+                    <a href="#perfil" class="member-sidebar-action member-sidebar-action-status <?= e($profileStatusClass) ?>" data-panel-link="perfil">
+                        <span>Estado del perfil</span>
+                        <strong><?= e($profileStatus) ?></strong>
+                    </a>
+                    <button class="member-sidebar-action member-sidebar-action-print" type="button" onclick="window.print()">
+                        <span>Curriculum</span>
+                        <strong>Imprimir PDF</strong>
+                    </button>
+                </div>
             </aside>
 
             <div class="member-panel-content">
@@ -432,8 +442,6 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                 <small>Ver / imprimir</small>
                             </span>
                         </a>
-                        <span class="status-pill <?= e($profileStatusClass) ?>"><?= e($profileStatus) ?></span>
-                        <button class="button button-primary" type="button" onclick="window.print()">Imprimir curriculum PDF</button>
                     </div>
                 </section>
 
@@ -747,6 +755,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                         <div class="member-card-preview member-card-preview-<?= e($cardFigure) ?>" data-card-preview>
                             <img src="<?= e($cardBackground) ?>" alt="Fondo de tarjeta de miembro" loading="lazy" data-card-image>
                             <img class="member-card-seal" src="assets/images/member-cards/pegatina-con-sabor-flamenco.png" alt="Sello Con Sabor Flamenco" loading="lazy">
+                            <img class="member-card-access-qr" src="<?= e($memberCardQrUrl) ?>" alt="QR de acceso de <?= e($displayName) ?>" loading="lazy" data-member-card-qr data-qr-base="<?= e($memberCardQrBase) ?>">
                             <div class="member-card-overlay">
                                 <span class="member-card-space"><?= e($memberTypeLabel) ?></span>
                                 <strong><?= e($displayName) ?></strong>
@@ -1132,7 +1141,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
         const cardPreview = document.querySelector('[data-card-preview]');
         const cardImage = document.querySelector('[data-card-image]');
         const memberCardLink = document.querySelector('[data-member-card-link]');
-        const memberCardQr = document.querySelector('[data-member-card-qr]');
+        const memberCardQrs = document.querySelectorAll('[data-member-card-qr]');
         document.querySelectorAll('[data-card-option]').forEach((input) => {
             input.addEventListener('change', () => {
                 if (!cardPreview || !cardImage || !input.checked) {
@@ -1143,12 +1152,16 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                 cardPreview.classList.toggle('member-card-preview-woman', input.dataset.cardFigure === 'woman');
                 cardPreview.classList.toggle('member-card-preview-man', input.dataset.cardFigure === 'man');
 
-                if (memberCardLink instanceof HTMLAnchorElement && memberCardQr instanceof HTMLImageElement) {
+                if (memberCardLink instanceof HTMLAnchorElement && memberCardQrs.length > 0) {
                     const publicUrlBase = memberCardLink.dataset.cardUrlBase || '';
-                    const qrBase = memberCardQr.dataset.qrBase || 'qr.php?data=';
                     const publicUrl = `${publicUrlBase}${encodeURIComponent(input.value)}`;
                     memberCardLink.href = publicUrl;
-                    memberCardQr.src = `${qrBase}${encodeURIComponent(publicUrl)}`;
+                    memberCardQrs.forEach((qr) => {
+                        if (qr instanceof HTMLImageElement) {
+                            const qrBase = qr.dataset.qrBase || 'qr.php?data=';
+                            qr.src = `${qrBase}${encodeURIComponent(publicUrl)}`;
+                        }
+                    });
                 }
             });
         });
@@ -1162,16 +1175,26 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
             });
         });
 
+        function activateMemberPanel(target) {
+            if (!target) {
+                return;
+            }
+            document.querySelectorAll('.panel-tab-button').forEach((tab) => tab.classList.toggle('active', tab.dataset.tabTarget === target));
+            document.querySelectorAll('.member-panel-section').forEach((section) => {
+                section.style.display = section.id === target ? 'block' : 'none';
+            });
+        }
+
         document.querySelectorAll('.panel-tab-button').forEach((button) => {
             button.addEventListener('click', () => {
                 const target = button.dataset.tabTarget;
-                if (!target) {
-                    return;
-                }
-                document.querySelectorAll('.panel-tab-button').forEach((tab) => tab.classList.toggle('active', tab === button));
-                document.querySelectorAll('.member-panel-section').forEach((section) => {
-                    section.style.display = section.id === target ? 'block' : 'none';
-                });
+                activateMemberPanel(target);
+            });
+        });
+
+        document.querySelectorAll('[data-panel-link]').forEach((link) => {
+            link.addEventListener('click', () => {
+                activateMemberPanel(link.dataset.panelLink);
             });
         });
 

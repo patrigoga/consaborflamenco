@@ -3262,7 +3262,7 @@ h3 {
     box-shadow: 0 28px 72px rgba(17, 17, 20, 0.24);
 }
 
-.member-card-preview > img:not(.member-card-seal) {
+.member-card-preview > img:not(.member-card-seal):not(.member-card-access-qr) {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -3314,6 +3314,28 @@ h3 {
 
 .member-card-preview-man .member-card-seal {
     right: clamp(18px, 3vw, 32px);
+}
+
+.member-card-access-qr {
+    position: absolute;
+    bottom: clamp(16px, 2vw, 24px);
+    z-index: 3;
+    width: clamp(58px, 7vw, 78px);
+    height: clamp(58px, 7vw, 78px);
+    padding: 6px;
+    object-fit: contain;
+    background: #ffffff;
+    border: 1px solid rgba(248, 229, 182, 0.58);
+    border-radius: 12px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.46);
+}
+
+.member-card-preview-woman .member-card-access-qr {
+    right: clamp(18px, 3vw, 32px);
+}
+
+.member-card-preview-man .member-card-access-qr {
+    left: clamp(18px, 3vw, 32px);
 }
 
 .member-card-space {
@@ -3560,6 +3582,61 @@ h3 {
 .member-sidebar-nav a:hover::before,
 .member-sidebar-nav a:focus-visible::before {
     height: 18px;
+}
+
+.member-sidebar-actions {
+    display: grid;
+    gap: 8px;
+    padding: 4px;
+}
+
+.member-sidebar-action {
+    display: grid;
+    gap: 4px;
+    width: 100%;
+    padding: 14px 16px;
+    color: var(--color-white);
+    font: inherit;
+    text-align: left;
+    text-decoration: none;
+    background: rgba(255, 255, 255, 0.075);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    box-shadow: 0 14px 34px rgba(6, 10, 14, 0.18);
+    cursor: pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.member-sidebar-action:hover,
+.member-sidebar-action:focus-visible {
+    transform: translateY(-1px);
+    border-color: rgba(255, 250, 242, 0.3);
+}
+
+.member-sidebar-action span {
+    color: rgba(255, 250, 242, 0.66);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.member-sidebar-action strong {
+    color: #fffaf2;
+    font-size: 0.98rem;
+    line-height: 1.18;
+}
+
+.member-sidebar-action-status.status-pill-active {
+    background: linear-gradient(135deg, rgba(20, 99, 63, 0.9), rgba(25, 126, 77, 0.74));
+}
+
+.member-sidebar-action-status.status-pill-pending {
+    background: linear-gradient(135deg, rgba(122, 87, 32, 0.9), rgba(201, 164, 90, 0.66));
+}
+
+.member-sidebar-action-print {
+    background: linear-gradient(135deg, rgba(201, 79, 92, 0.96), rgba(143, 31, 45, 0.78));
 }
 
 .member-panel-content {

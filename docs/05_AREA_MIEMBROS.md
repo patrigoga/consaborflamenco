@@ -64,7 +64,7 @@ La recuperacion de contrasena se gestiona mediante enlace temporal enviado por e
 El panel de miembro se organiza con:
 
 - Cabecera con avatar de usuario y menu desplegable para editar perfil, cambiar contrasena y cerrar sesion.
-- Sidebar izquierdo oscuro con accesos a Perfil, Tarjeta de miembro, Banners y Seguridad.
+- Sidebar izquierdo oscuro con accesos a Perfil, Tarjeta de miembro, Banners y Seguridad, estado de perfil y accion rapida para imprimir el curriculum.
 - Cabecera privada tipo dashboard con fotografia principal, nombre artistico, tipo de espacio, ubicacion y metricas de estado.
 - La fotografia principal se edita desde la propia imagen de cabecera mediante hover, evitando duplicar la misma imagen en el panel.
 - Bloque de perfil con datos principales del miembro, sin cabecera secundaria redundante bajo el resumen principal.
@@ -80,6 +80,7 @@ El panel de miembro se organiza con:
 - La cabecera del PDF usa el titular artistico como H1, puede tener imagen de fondo personalizada y no muestra el tipo de espacio.
 - El fondo de cabecera del PDF se cambia desde una previsualizacion clicable.
 - Bloque de tarjeta identificativa con imagen a pantalla completa, nombre y nivel de membresia visible.
+- La tarjeta incluye un QR visible con enlace a la tarjeta digital del miembro, preparado para evolucionar como pase de acceso a eventos con invitacion confirmada.
 - Bloque de banners para preparar la compra de espacios publicitarios mediante Stripe.
 
 ## Tarjeta de miembro
