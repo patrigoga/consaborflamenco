@@ -272,6 +272,9 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - 2026-07-04: Retirada la cabecera secundaria "Ficha artistica" del area de usuario para evitar redundancia con el resumen superior.
 - 2026-07-04: Movidos el estado de perfil y la impresion del curriculum al sidebar izquierdo como acciones rapidas.
 - 2026-07-04: Anadido QR visible dentro de la tarjeta de miembro, enlazado a la tarjeta digital y preparado para futura validacion de invitaciones a eventos.
+- 2026-07-04: Sustituido el estado de perfil por una barra porcentual en el sidebar y convertido "Imprimir curriculum PDF" en accion mas discreta.
+- 2026-07-04: Anadida la seccion "Pagina web" al panel de miembro para configurar cabecera, galeria de hasta 9 imagenes y contacto.
+- 2026-07-04: Convertida `artista.php` en una pagina publica one-page con menu interno que solo muestra secciones con contenido.
 
 ## Reglas y decisiones
 

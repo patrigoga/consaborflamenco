@@ -236,6 +236,21 @@ function cv_print_sections(array $profile, array $sectionConfig): array
     return $sections;
 }
 
+function web_gallery_uploaded_file(array $files, int $index): ?array
+{
+    if (!isset($files['error'][$index])) {
+        return null;
+    }
+
+    return [
+        'name' => $files['name'][$index] ?? '',
+        'type' => $files['type'][$index] ?? '',
+        'tmp_name' => $files['tmp_name'][$index] ?? '',
+        'error' => $files['error'][$index] ?? UPLOAD_ERR_NO_FILE,
+        'size' => $files['size'][$index] ?? 0,
+    ];
+}
+
 function member_slug_in_use(string $slug, int $excludeUserId = 0): bool
 {
     $slug = slugify(clean_text($slug));
@@ -351,6 +366,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') ==
     }
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') === 'update_web_page') {
+    if (!verify_csrf($_POST['csrf_token'] ?? null)) {
+        $profileErrors[] = 'La sesion ha caducado. Vuelve a intentarlo.';
+    }
+
+    if (!$profileErrors) {
+        $webPage = default_member_web_page(is_array($memberProfile['web_page'] ?? null) ? $memberProfile['web_page'] : []);
+        $webPage['header_title'] = clean_text((string) ($_POST['web_header_title'] ?? ''));
+        $webPage['header_subtitle'] = clean_text((string) ($_POST['web_header_subtitle'] ?? ''));
+
+        $webHeaderImagePath = save_member_cv_image_upload($_FILES['web_header_image'] ?? null, $profileErrors);
+        if ($webHeaderImagePath) {
+            $webPage['header_image_path'] = $webHeaderImagePath;
+        }
+
+        $removeGallery = array_map('intval', is_array($_POST['remove_web_gallery'] ?? null) ? $_POST['remove_web_gallery'] : []);
+        $gallery = array_values(array_filter(
+            $webPage['gallery'],
+            static fn ($path, $index): bool => !in_array((int) $index, $removeGallery, true),
+            ARRAY_FILTER_USE_BOTH
+        ));
+
+        $galleryUploads = is_array($_FILES['web_gallery_images'] ?? null) ? $_FILES['web_gallery_images'] : null;
+        if ($galleryUploads) {
+            $uploadCount = is_array($galleryUploads['error'] ?? null) ? count($galleryUploads['error']) : 0;
+            for ($index = 0; $index < $uploadCount; $index++) {
+                if (count($gallery) >= 9) {
+                    $profileErrors[] = 'La galeria de la pagina web permite un maximo de 9 imagenes.';
+                    break;
+                }
+
+                $upload = web_gallery_uploaded_file($galleryUploads, $index);
+                if (!$upload || (int) ($upload['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+                    continue;
+                }
+
+                $uploadedPath = save_member_cv_image_upload($upload, $profileErrors);
+                if ($uploadedPath) {
+                    $gallery[] = $uploadedPath;
+                }
+            }
+        }
+
+        $webPage['gallery'] = array_slice($gallery, 0, 9);
+        $webPage['contact_fields'] = array_values(array_intersect(
+            ['email', 'phone', 'website', 'instagram'],
+            array_map('strval', is_array($_POST['web_contact_fields'] ?? null) ? $_POST['web_contact_fields'] : [])
+        ));
+
+        if (!$profileErrors) {
+            $memberProfile['web_page'] = default_member_web_page($webPage);
+            $user['artistic_profile'] = $memberProfile;
+            update_user($user);
+            $profileMessages[] = 'Pagina web actualizada.';
+        }
+    }
+}
+
 $memberTypeLabel = member_type_options()[$memberProfile['member_type']] ?? 'Artista';
 $profileStatus = profile_is_complete($memberProfile) ? 'Perfil completo' : 'Perfil pendiente';
 $profileStatusClass = profile_is_complete($memberProfile) ? 'status-pill-active' : 'status-pill-pending';
@@ -358,6 +431,10 @@ $displayName = $memberProfile['public_name'] !== '' ? $memberProfile['public_nam
 $publicSlug = clean_text((string) ($memberProfile['slug'] ?? slugify($displayName)));
 $publicSlug = $publicSlug !== '' ? $publicSlug : slugify($displayName);
 $publicProfileUrl = app_url('artista.php?slug=' . rawurlencode($publicSlug));
+$webPage = default_member_web_page(is_array($memberProfile['web_page'] ?? null) ? $memberProfile['web_page'] : []);
+$webGallery = array_slice($webPage['gallery'], 0, 9);
+$webContactFields = is_array($webPage['contact_fields'] ?? null) ? $webPage['contact_fields'] : [];
+$webHeaderImage = clean_text((string) ($webPage['header_image_path'] ?: ($memberProfile['cv_header_image_path'] ?? '')));
 $cardHeadline = clean_text((string) ($memberProfile['artistic_headline'] ?? ''));
 $profileRequiredFields = [
     $memberProfile['public_name'] ?? '',
@@ -392,27 +469,27 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                     <strong><?= e($displayName) ?></strong>
                     <span><?= e($memberStatus) ?> · Nº <?= e($memberNumber) ?></span>
                 </div>
+                <div class="member-sidebar-progress" aria-label="Estado del perfil">
+                    <div>
+                        <span>Perfil completo</span>
+                        <strong><?= e((string) $profileCompletion) ?>%</strong>
+                    </div>
+                    <meter min="0" max="100" value="<?= e((string) $profileCompletion) ?>"><?= e((string) $profileCompletion) ?>%</meter>
+                </div>
+                <button class="member-sidebar-print" type="button" onclick="window.print()">Imprimir curriculum PDF</button>
                 <nav class="member-sidebar-nav">
-                    <a href="#perfil" data-panel-link="perfil">Perfil</a>
+                    <a class="active" href="#perfil" data-panel-link="perfil">Perfil</a>
+                    <a href="#pagina-web" data-panel-link="pagina-web">Pagina web</a>
                     <a href="#tarjeta-miembro" data-panel-link="tarjeta-miembro">Tarjeta de miembro</a>
                     <a href="#banners" data-panel-link="banners">Banners</a>
                     <a href="#seguridad" data-panel-link="seguridad">Seguridad</a>
                 </nav>
-                <div class="member-sidebar-actions" aria-label="Acciones rapidas">
-                    <a href="#perfil" class="member-sidebar-action member-sidebar-action-status <?= e($profileStatusClass) ?>" data-panel-link="perfil">
-                        <span>Estado del perfil</span>
-                        <strong><?= e($profileStatus) ?></strong>
-                    </a>
-                    <button class="member-sidebar-action member-sidebar-action-print" type="button" onclick="window.print()">
-                        <span>Curriculum</span>
-                        <strong>Imprimir PDF</strong>
-                    </button>
-                </div>
             </aside>
 
             <div class="member-panel-content">
                 <div class="member-panel-tabs" role="tablist" aria-label="Secciones del panel de miembro">
                     <button type="button" class="tab-button panel-tab-button active" data-tab-target="perfil">Perfil</button>
+                    <button type="button" class="tab-button panel-tab-button" data-tab-target="pagina-web">Pagina web</button>
                     <button type="button" class="tab-button panel-tab-button" data-tab-target="tarjeta-miembro">Tarjeta de miembro</button>
                     <button type="button" class="tab-button panel-tab-button" data-tab-target="banners">Banners</button>
                     <button type="button" class="tab-button panel-tab-button" data-tab-target="seguridad">Seguridad</button>
@@ -445,6 +522,21 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                     </div>
                 </section>
 
+                <?php if ($profileErrors || $profileMessages): ?>
+                    <div class="member-panel-alerts">
+                        <?php if ($profileErrors): ?>
+                            <div class="form-alert form-alert-error" role="alert">
+                                <?php foreach ($profileErrors as $error): ?><p><?= e($error) ?></p><?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                        <?php if ($profileMessages): ?>
+                            <div class="form-alert form-alert-success" role="status">
+                                <?php foreach ($profileMessages as $message): ?><p><?= e($message) ?></p><?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+
                 <section id="perfil" class="content-section member-panel-section active">
                     <div class="member-summary-grid">
                         <article class="member-summary-card">
@@ -461,16 +553,6 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                         </article>
                     </div>
                     <div class="member-profile-editor">
-                        <?php if ($profileErrors): ?>
-                            <div class="form-alert form-alert-error" role="alert">
-                                <?php foreach ($profileErrors as $error): ?><p><?= e($error) ?></p><?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
-                        <?php if ($profileMessages): ?>
-                            <div class="form-alert form-alert-success" role="status">
-                                <?php foreach ($profileMessages as $message): ?><p><?= e($message) ?></p><?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
                         <form class="member-profile-form cv-editor" action="panel-usuario.php#perfil" method="post" enctype="multipart/form-data">
                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="profile_action" value="update_profile">
@@ -739,6 +821,76 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                             </footer>
                         </section>
                     </div>
+                </section>
+
+                <section id="pagina-web" class="content-section member-panel-section">
+                    <div class="section-heading">
+                        <div class="section-heading-content">
+                            <p class="section-kicker">Pagina web</p>
+                            <h2>Web de una sola pagina</h2>
+                            <p>Configura los bloques que apareceran en tu pagina publica. El menu solo mostrara Galeria o Contacto cuando tengan contenido.</p>
+                        </div>
+                        <a class="section-enter-link" href="<?= e($publicProfileUrl) ?>" target="_blank" rel="noopener">Ver pagina publica</a>
+                    </div>
+
+                    <form class="member-profile-form member-web-form" action="panel-usuario.php#pagina-web" method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                        <input type="hidden" name="profile_action" value="update_web_page">
+
+                        <div class="member-website-grid">
+                            <article class="member-config-card">
+                                <h3>Cabecera</h3>
+                                <p>La cabecera usa el mismo lenguaje visual del curriculum: nombre artistico, titular, ubicacion y una imagen de fondo.</p>
+                                <label for="web_header_title">Titulo visible
+                                    <input id="web_header_title" name="web_header_title" type="text" value="<?= e((string) ($webPage['header_title'] ?? '')) ?>" placeholder="<?= e($displayName) ?>">
+                                </label>
+                                <label for="web_header_subtitle">Texto breve de cabecera
+                                    <textarea id="web_header_subtitle" name="web_header_subtitle" rows="3" maxlength="280" placeholder="Una frase breve para presentar tu espacio."><?= e((string) ($webPage['header_subtitle'] ?? '')) ?></textarea>
+                                </label>
+                                <label class="cv-header-background-field" for="web_header_image">Fondo de cabecera web
+                                    <span class="cv-header-background-preview" <?= $webHeaderImage !== '' ? 'style="' . e("background-image: linear-gradient(135deg, rgba(17, 17, 20, 0.62), rgba(32, 56, 71, 0.56)), url('" . $webHeaderImage . "');") . '"' : '' ?>>
+                                        <span><?= $webHeaderImage !== '' ? 'Fondo actual' : 'Subir fondo' ?></span>
+                                    </span>
+                                    <input id="web_header_image" name="web_header_image" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+                                </label>
+                            </article>
+
+                            <article class="member-config-card">
+                                <h3>Galeria</h3>
+                                <p>Sube hasta 9 imagenes. Si no hay imagenes, la seccion Galeria no aparecera en la web publica.</p>
+                                <div class="website-gallery-grid">
+                                    <?php if ($webGallery): ?>
+                                        <?php foreach ($webGallery as $galleryIndex => $galleryImage): ?>
+                                            <label class="website-gallery-item">
+                                                <img src="<?= e((string) $galleryImage) ?>" alt="Imagen de galeria <?= e((string) ($galleryIndex + 1)) ?>" loading="lazy">
+                                                <span><input type="checkbox" name="remove_web_gallery[]" value="<?= e((string) $galleryIndex) ?>"> Quitar</span>
+                                            </label>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <p class="field-help website-empty-state">Todavia no hay imagenes en la galeria.</p>
+                                    <?php endif; ?>
+                                </div>
+                                <label for="web_gallery_images">Anadir imagenes
+                                    <input id="web_gallery_images" name="web_gallery_images[]" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+                                </label>
+                            </article>
+
+                            <article class="member-config-card">
+                                <h3>Contacto</h3>
+                                <p>Elige que datos se mostraran. Si no seleccionas ningun dato con contenido, Contacto no aparecera en el menu publico.</p>
+                                <div class="website-contact-options">
+                                    <label><input type="checkbox" name="web_contact_fields[]" value="email" <?= in_array('email', $webContactFields, true) ? 'checked' : '' ?>> Email</label>
+                                    <label><input type="checkbox" name="web_contact_fields[]" value="phone" <?= in_array('phone', $webContactFields, true) ? 'checked' : '' ?>> Telefono</label>
+                                    <label><input type="checkbox" name="web_contact_fields[]" value="website" <?= in_array('website', $webContactFields, true) ? 'checked' : '' ?>> Web</label>
+                                    <label><input type="checkbox" name="web_contact_fields[]" value="instagram" <?= in_array('instagram', $webContactFields, true) ? 'checked' : '' ?>> Instagram</label>
+                                </div>
+                            </article>
+                        </div>
+
+                        <div class="cv-editor-actions">
+                            <button class="button button-primary" type="submit">Guardar pagina web</button>
+                        </div>
+                    </form>
                 </section>
 
                 <section id="tarjeta-miembro" class="content-section member-panel-section">
@@ -1180,6 +1332,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                 return;
             }
             document.querySelectorAll('.panel-tab-button').forEach((tab) => tab.classList.toggle('active', tab.dataset.tabTarget === target));
+            document.querySelectorAll('[data-panel-link]').forEach((link) => link.classList.toggle('active', link.dataset.panelLink === target));
             document.querySelectorAll('.member-panel-section').forEach((section) => {
                 section.style.display = section.id === target ? 'block' : 'none';
             });
@@ -1197,6 +1350,13 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                 activateMemberPanel(link.dataset.panelLink);
             });
         });
+
+        if (window.location.hash) {
+            const initialTarget = window.location.hash.replace('#', '');
+            if (document.getElementById(initialTarget)) {
+                activateMemberPanel(initialTarget);
+            }
+        }
 
     </script>
 </body>

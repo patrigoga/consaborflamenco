@@ -64,13 +64,15 @@ La recuperacion de contrasena se gestiona mediante enlace temporal enviado por e
 El panel de miembro se organiza con:
 
 - Cabecera con avatar de usuario y menu desplegable para editar perfil, cambiar contrasena y cerrar sesion.
-- Sidebar izquierdo oscuro con accesos a Perfil, Tarjeta de miembro, Banners y Seguridad, estado de perfil y accion rapida para imprimir el curriculum.
+- Sidebar izquierdo oscuro con barra de porcentaje de perfil completo, accion discreta para imprimir curriculum y accesos a Perfil, Pagina web, Tarjeta de miembro, Banners y Seguridad.
 - Cabecera privada tipo dashboard con fotografia principal, nombre artistico, tipo de espacio, ubicacion y metricas de estado.
 - La fotografia principal se edita desde la propia imagen de cabecera mediante hover, evitando duplicar la misma imagen en el panel.
 - Bloque de perfil con datos principales del miembro, sin cabecera secundaria redundante bajo el resumen principal.
 - Editor de perfil artistico con tipo de espacio, nombre artistico, titular artistico, ubicacion, contacto, redes y fotografia principal.
 - La URL publica del perfil se guarda con un boton propio y valida duplicados antes de persistir el slug.
 - Editor de curriculum artistico con formacion, experiencia escenica, docencia, actuaciones destacadas, premios, repertorio, disponibilidad y notas privadas.
+- Configuracion de pagina web de una sola pagina con cabecera, galeria de hasta 9 imagenes y contacto.
+- La pagina publica mostrara en su menu interno solo las secciones con contenido, manteniendo la cabecera siempre visible.
 - Control de visibilidad por bloques para decidir que datos se publican y que datos quedan privados.
 - Bloques repetibles con boton para anadir nuevas entradas sin limite fijo inicial.
 - Fechas en formacion, experiencia, docencia, actuaciones y premios para permitir orden cronologico ascendente o descendente.

@@ -166,7 +166,7 @@ function default_member_profile(array $user = []): array
 {
     $profile = is_array($user['artistic_profile'] ?? null) ? $user['artistic_profile'] : [];
 
-    return array_merge([
+    $merged = array_merge([
         'member_type' => 'artista',
         'public_name' => $user['name'] ?? '',
         'slug' => slugify((string) ($user['name'] ?? 'miembro')),
@@ -196,9 +196,36 @@ function default_member_profile(array $user = []): array
         'awards' => [],
         'repertoire' => [],
         'social_links' => [],
+        'web_page' => default_member_web_page(),
         'private_notes' => '',
         'completed_at' => null,
     ], $profile);
+
+    $merged['web_page'] = default_member_web_page(is_array($merged['web_page'] ?? null) ? $merged['web_page'] : []);
+
+    return $merged;
+}
+
+function default_member_web_page(array $settings = []): array
+{
+    $merged = array_merge([
+        'header_title' => '',
+        'header_subtitle' => '',
+        'header_image_path' => '',
+        'gallery' => [],
+        'contact_fields' => ['email'],
+    ], $settings);
+
+    $merged['gallery'] = array_values(array_filter(
+        is_array($merged['gallery'] ?? null) ? $merged['gallery'] : [],
+        static fn ($path): bool => clean_text((string) $path) !== ''
+    ));
+    $merged['contact_fields'] = array_values(array_intersect(
+        ['email', 'phone', 'website', 'instagram'],
+        array_map('strval', is_array($merged['contact_fields'] ?? null) ? $merged['contact_fields'] : [])
+    ));
+
+    return $merged;
 }
 
 function profile_is_complete(array $profile): bool

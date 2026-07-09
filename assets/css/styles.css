@@ -2769,6 +2769,71 @@ h3 {
     margin-top: 18px;
 }
 
+.member-website-grid {
+    display: grid;
+    gap: 14px;
+}
+
+.member-web-form {
+    display: grid;
+    gap: 18px;
+}
+
+.website-gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.website-gallery-item {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 8px;
+    color: var(--color-ink);
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(17, 17, 20, 0.08);
+    border-radius: 12px;
+}
+
+.website-gallery-item img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 9px;
+}
+
+.website-gallery-item span,
+.website-contact-options label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.86rem;
+    font-weight: 800;
+}
+
+.website-empty-state {
+    grid-column: 1 / -1;
+    padding: 18px;
+    background: rgba(17, 17, 20, 0.04);
+    border: 1px dashed rgba(17, 17, 20, 0.16);
+    border-radius: 12px;
+}
+
+.website-contact-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.website-contact-options label {
+    min-height: 52px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(17, 17, 20, 0.08);
+    border-radius: 12px;
+}
+
 .member-profile-preview,
 .member-profile-form {
     padding: 20px;
@@ -3431,6 +3496,141 @@ h3 {
     font-style: normal;
 }
 
+.artist-web-page {
+    color: var(--color-ink);
+    background: linear-gradient(180deg, #111114 0%, #203847 36%, #f5efe6 36%, #fffaf2 100%);
+}
+
+.artist-web-hero {
+    min-height: 62vh;
+    display: grid;
+    align-items: end;
+    padding: clamp(80px, 10vw, 140px) 0 clamp(38px, 6vw, 70px);
+    color: var(--color-white);
+    background:
+        linear-gradient(135deg, rgba(17, 17, 20, 0.92), rgba(32, 56, 71, 0.78)),
+        radial-gradient(circle at 15% 20%, rgba(201, 79, 92, 0.28), transparent 34%);
+    background-position: center;
+    background-size: cover;
+}
+
+.artist-web-hero-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(160px, 260px);
+    gap: clamp(24px, 5vw, 72px);
+    align-items: end;
+}
+
+.artist-web-hero-copy {
+    max-width: 920px;
+}
+
+.artist-web-hero h1 {
+    margin: 8px 0 14px;
+    color: var(--color-white);
+    font-size: clamp(3rem, 8vw, 7.4rem);
+    line-height: 0.9;
+}
+
+.artist-web-hero p:not(.section-kicker) {
+    max-width: 760px;
+    margin: 0;
+    color: rgba(255, 250, 242, 0.78);
+    font-size: clamp(1rem, 1.8vw, 1.35rem);
+    line-height: 1.55;
+}
+
+.artist-web-hero span {
+    display: inline-block;
+    margin-top: 18px;
+    color: #f8e5b6;
+    font-weight: 850;
+}
+
+.artist-web-photo {
+    width: min(100%, 260px);
+    aspect-ratio: 1;
+    object-fit: cover;
+    border: 1px solid rgba(248, 229, 182, 0.32);
+    border-radius: 18px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
+}
+
+.artist-web-nav {
+    position: sticky;
+    top: 72px;
+    z-index: 8;
+    padding: 12px 0;
+    background: rgba(17, 17, 20, 0.78);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(16px);
+}
+
+.artist-web-nav .container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.artist-web-nav a {
+    padding: 9px 14px;
+    color: rgba(255, 250, 242, 0.82);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    font-size: 0.86rem;
+    font-weight: 850;
+}
+
+.artist-web-section {
+    padding: clamp(54px, 7vw, 92px) 0;
+}
+
+.artist-web-gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.artist-web-gallery-grid img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 12px;
+    box-shadow: 0 18px 42px rgba(17, 17, 20, 0.13);
+}
+
+.artist-web-contact-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+}
+
+.artist-web-contact-grid a {
+    display: grid;
+    gap: 8px;
+    min-height: 116px;
+    padding: 20px;
+    color: var(--color-ink);
+    background: rgba(255, 250, 242, 0.94);
+    border: 1px solid rgba(201, 164, 90, 0.22);
+    border-radius: 14px;
+    box-shadow: 0 14px 36px rgba(17, 17, 20, 0.08);
+}
+
+.artist-web-contact-grid span {
+    color: var(--color-red);
+    font-size: 0.74rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.artist-web-contact-grid strong {
+    overflow-wrap: anywhere;
+}
+
 .member-config-card,
 .banner-form {
     display: grid;
@@ -3574,46 +3774,36 @@ h3 {
 }
 
 .member-sidebar-nav a:hover,
-.member-sidebar-nav a:focus-visible {
+.member-sidebar-nav a:focus-visible,
+.member-sidebar-nav a.active {
     color: var(--color-white);
     background: rgba(255, 255, 255, 0.075);
 }
 
 .member-sidebar-nav a:hover::before,
-.member-sidebar-nav a:focus-visible::before {
+.member-sidebar-nav a:focus-visible::before,
+.member-sidebar-nav a.active::before {
     height: 18px;
 }
 
-.member-sidebar-actions {
+.member-sidebar-progress {
     display: grid;
-    gap: 8px;
-    padding: 4px;
-}
-
-.member-sidebar-action {
-    display: grid;
-    gap: 4px;
-    width: 100%;
+    gap: 10px;
     padding: 14px 16px;
     color: var(--color-white);
-    font: inherit;
-    text-align: left;
-    text-decoration: none;
     background: rgba(255, 255, 255, 0.075);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 12px;
-    box-shadow: 0 14px 34px rgba(6, 10, 14, 0.18);
-    cursor: pointer;
-    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
 
-.member-sidebar-action:hover,
-.member-sidebar-action:focus-visible {
-    transform: translateY(-1px);
-    border-color: rgba(255, 250, 242, 0.3);
+.member-sidebar-progress div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
 }
 
-.member-sidebar-action span {
+.member-sidebar-progress span {
     color: rgba(255, 250, 242, 0.66);
     font-size: 0.72rem;
     font-weight: 900;
@@ -3621,26 +3811,62 @@ h3 {
     text-transform: uppercase;
 }
 
-.member-sidebar-action strong {
+.member-sidebar-progress strong {
     color: #fffaf2;
-    font-size: 0.98rem;
-    line-height: 1.18;
+    font-size: 0.95rem;
+    line-height: 1;
 }
 
-.member-sidebar-action-status.status-pill-active {
-    background: linear-gradient(135deg, rgba(20, 99, 63, 0.9), rgba(25, 126, 77, 0.74));
+.member-sidebar-progress meter {
+    width: 100%;
+    height: 10px;
+    appearance: none;
 }
 
-.member-sidebar-action-status.status-pill-pending {
-    background: linear-gradient(135deg, rgba(122, 87, 32, 0.9), rgba(201, 164, 90, 0.66));
+.member-sidebar-progress meter::-webkit-meter-bar {
+    background: rgba(255, 255, 255, 0.12);
+    border: 0;
+    border-radius: 999px;
 }
 
-.member-sidebar-action-print {
-    background: linear-gradient(135deg, rgba(201, 79, 92, 0.96), rgba(143, 31, 45, 0.78));
+.member-sidebar-progress meter::-webkit-meter-optimum-value {
+    background: linear-gradient(90deg, #c94f5c, #e7bf68);
+    border-radius: 999px;
+}
+
+.member-sidebar-progress meter::-moz-meter-bar {
+    background: linear-gradient(90deg, #c94f5c, #e7bf68);
+    border-radius: 999px;
+}
+
+.member-sidebar-print {
+    width: 100%;
+    padding: 10px 14px;
+    color: var(--color-white);
+    font: inherit;
+    font-size: 0.84rem;
+    font-weight: 850;
+    background: rgba(201, 79, 92, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.member-sidebar-print:hover,
+.member-sidebar-print:focus-visible {
+    transform: translateY(-1px);
+    background: rgba(201, 79, 92, 0.34);
+    border-color: rgba(255, 250, 242, 0.3);
 }
 
 .member-panel-content {
     gap: 22px;
+}
+
+.member-panel-alerts {
+    display: grid;
+    gap: 10px;
 }
 
 .member-panel-tabs {
@@ -3731,19 +3957,19 @@ h3 {
 }
 
 .member-card-qr-link.member-dashboard-qr-link {
-    grid-template-columns: 82px minmax(0, 1fr);
-    max-width: 270px;
-    padding: 8px 12px 8px 8px;
+    grid-template-columns: 128px minmax(0, 1fr);
+    max-width: 360px;
+    padding: 10px 16px 10px 10px;
     border-radius: 10px;
     background: rgba(255, 255, 255, 0.07);
     border-color: rgba(255, 255, 255, 0.12);
 }
 
 .member-card-qr-link.member-dashboard-qr-link img {
-    width: 82px;
-    height: 82px;
-    padding: 7px;
-    border-radius: 8px;
+    width: 128px;
+    height: 128px;
+    padding: 10px;
+    border-radius: 12px;
 }
 
 .member-card-qr-link strong {
@@ -4823,6 +5049,10 @@ h3 {
     .member-dashboard-stats,
     .form-grid-two,
     .form-grid-three,
+    .website-gallery-grid,
+    .website-contact-options,
+    .artist-web-hero-inner,
+    .artist-web-gallery-grid,
     .public-url-control,
     .cv-repeat-row,
     .banner-date-grid,
