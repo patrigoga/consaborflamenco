@@ -281,6 +281,7 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 
 - Corregido `panel-usuario.php` para soportar guardado de imagenes con accion dedicada `update_profile_images`.
 - Anadido guardado automatico al seleccionar fotografia principal o fondo de cabecera de curriculum.
+- Reforzada la persistencia de imagenes del perfil sincronizando `foto_principal_path` y `perfil_json` directamente en `miembros` tras cada guardado.
 - Anadida edicion del nombre de usuario (cuenta) desde el panel, manteniendo email de acceso en solo lectura.
 - Actualizado `app/layout.php` para mostrar foto de perfil en el avatar de cabecera cuando existe.
 

@@ -295,6 +295,43 @@ function user_name_in_use(string $name, string $excludeUserId): bool
     return false;
 }
 
+function persist_member_profile_snapshot(array $user, array $profile): void
+{
+    $pdo = db();
+    $userId = (int) ($user['db_id'] ?? 0);
+    if (!$pdo || $userId <= 0) {
+        return;
+    }
+
+    $assignments = [];
+    $params = ['usuario_id' => $userId];
+    if (db_column_exists($pdo, 'miembros', 'foto_principal_path')) {
+        $assignments[] = 'foto_principal_path = :foto_principal_path';
+        $params['foto_principal_path'] = clean_text((string) ($profile['main_photo_path'] ?? ''));
+    }
+    if (db_column_exists($pdo, 'miembros', 'perfil_json')) {
+        $encodedProfile = json_encode($profile, JSON_UNESCAPED_UNICODE);
+        if ($encodedProfile !== false) {
+            $assignments[] = 'perfil_json = :perfil_json';
+            $params['perfil_json'] = $encodedProfile;
+        }
+    }
+    if (db_column_exists($pdo, 'miembros', 'perfil_completo_at')) {
+        $assignments[] = 'perfil_completo_at = :perfil_completo_at';
+        $params['perfil_completo_at'] = db_nullable_datetime($profile['completed_at'] ?? null);
+    }
+    if (db_column_exists($pdo, 'miembros', 'updated_at')) {
+        $assignments[] = 'updated_at = UTC_TIMESTAMP()';
+    }
+
+    if (!$assignments) {
+        return;
+    }
+
+    $statement = $pdo->prepare('UPDATE miembros SET ' . implode(', ', $assignments) . ' WHERE usuario_id = :usuario_id');
+    $statement->execute($params);
+}
+
 $profileAction = (string) ($_POST['profile_action'] ?? '');
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($profileAction, ['update_profile', 'update_profile_images'], true)) {
     $isSlugSave = $profileAction === 'update_profile' && (string) ($_POST['slug_action'] ?? '') === 'save_public_slug';
@@ -394,6 +431,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($profileAction, ['update_p
     if (!$profileErrors && !$isSlugSave) {
         $user['artistic_profile'] = $memberProfile;
         update_user($user);
+        persist_member_profile_snapshot($user, $memberProfile);
         $profileMessages[] = $profileAction === 'update_profile_images'
             ? 'Imagenes actualizadas y guardadas correctamente.'
             : (profile_is_complete($memberProfile)
@@ -455,6 +493,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') ==
             $memberProfile['web_page'] = default_member_web_page($webPage);
             $user['artistic_profile'] = $memberProfile;
             update_user($user);
+            persist_member_profile_snapshot($user, $memberProfile);
             $profileMessages[] = 'Pagina web actualizada.';
         }
     }
