@@ -206,4 +206,9 @@ Los miembros podran contratar servicios digitales ofrecidos por la plataforma. E
 - 2026-06-30: Retirados los campos Especialidades y Descripcion breve publica del panel, la tarjeta y el PDF; ya no cuentan para completar el perfil.
 - 2026-06-30: Anadido nombre y apellidos al registro, movida la bienvenida a la verificacion correcta, eliminada la imagen duplicada del perfil y compactados los controles de PDF por seccion.
 - 2026-06-30: Movido el QR de tarjeta a la cabecera del panel, corregido el editor enriquecido con fuente/peso por defecto y preparada la impresion exclusiva de la tarjeta de miembro.
+<<<<<<< HEAD
 - 2026-07-03: Refinado el aspecto visual del area de usuario con sidebar mas sobrio, cabecera mas editorial, tarjetas limpias, formularios mas elegantes y QR menos invasivo.
+=======
+- 2026-07-10: Corregida la persistencia de fotografia principal y fondo de cabecera del curriculum con guardado automatico al seleccionar imagen.
+- 2026-07-10: Anadida edicion del nombre de usuario (cuenta) desde el panel y uso de foto principal en el avatar de cabecera.
+>>>>>>> 30f6a3e (mejorar persistencia imagenes)

@@ -51,6 +51,7 @@ function page_header(string $active = ''): void
     $panelHref = ($user['role'] ?? '') === 'admin' ? 'panel-admin.php' : 'panel-usuario.php';
     $userName = $user['name'] ?? 'Miembro';
     $initials = strtoupper(substr($userName, 0, 1));
+    $userProfilePhoto = clean_text((string) ($user['artistic_profile']['main_photo_path'] ?? ''));
     ?>
     <header class="site-header">
         <a class="brand" href="index.php#inicio" aria-label="Con Sabor Flamenco - Inicio">
@@ -130,7 +131,7 @@ function page_header(string $active = ''): void
             <?php if ($user): ?>
                 <div class="profile-menu">
                     <a class="profile-trigger" href="<?= e($panelHref) ?>" aria-label="Abrir panel de <?= e($userName) ?>">
-                        <span class="profile-avatar"><?= e($initials) ?></span>
+                        <span class="profile-avatar"><?php if ($userProfilePhoto !== ''): ?><img src="<?= e($userProfilePhoto) ?>" alt="Foto de <?= e($userName) ?>" loading="lazy"><?php else: ?><?= e($initials) ?><?php endif; ?></span>
                         <span class="profile-name"><?= e($userName) ?></span>
                     </a>
                     <div class="profile-dropdown" aria-label="Menú de usuario">

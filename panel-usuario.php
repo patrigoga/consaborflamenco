@@ -275,6 +275,7 @@ function member_slug_in_use(string $slug, int $excludeUserId = 0): bool
     return ((int) $statement->fetchColumn()) > 0;
 }
 
+<<<<<<< HEAD
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') === 'update_profile') {
     $isSlugSave = (string) ($_POST['slug_action'] ?? '') === 'save_public_slug';
 
@@ -367,10 +368,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') ==
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') === 'update_web_page') {
+=======
+function user_name_in_use(string $name, string $excludeUserId): bool
+{
+    $candidate = clean_text($name);
+    if ($candidate === '') {
+        return false;
+    }
+
+    $users = all_users();
+    foreach ($users as $existingUser) {
+        if (($existingUser['id'] ?? '') === $excludeUserId) {
+            continue;
+        }
+        if (clean_text((string) ($existingUser['name'] ?? '')) === $candidate) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+$profileAction = (string) ($_POST['profile_action'] ?? '');
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($profileAction, ['update_profile', 'update_profile_images'], true)) {
+>>>>>>> 30f6a3e (mejorar persistencia imagenes)
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
         $profileErrors[] = 'La sesion ha caducado. Vuelve a intentarlo.';
     }
 
+    $photoPath = null;
+    $cvHeaderImagePath = null;
     if (!$profileErrors) {
         $webPage = default_member_web_page(is_array($memberProfile['web_page'] ?? null) ? $memberProfile['web_page'] : []);
         $webPage['header_title'] = clean_text((string) ($_POST['web_header_title'] ?? ''));
@@ -388,6 +415,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') ==
             ARRAY_FILTER_USE_BOTH
         ));
 
+<<<<<<< HEAD
         $galleryUploads = is_array($_FILES['web_gallery_images'] ?? null) ? $_FILES['web_gallery_images'] : null;
         if ($galleryUploads) {
             $uploadCount = is_array($galleryUploads['error'] ?? null) ? count($galleryUploads['error']) : 0;
@@ -407,6 +435,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') ==
                     $gallery[] = $uploadedPath;
                 }
             }
+=======
+    if (!$profileErrors && $profileAction === 'update_profile_images' && !$photoPath && !$cvHeaderImagePath) {
+        $profileErrors[] = 'Selecciona una fotografia principal o un fondo de cabecera para guardar.';
+    }
+
+    if (!$profileErrors && $profileAction === 'update_profile') {
+        $memberProfile = member_profile_from_input($_POST, $memberProfile);
+        $slugLocked = clean_text((string) ($memberProfile['slug_locked_at'] ?? '')) !== '';
+        $currentSlug = clean_text((string) ($memberProfile['slug'] ?? ''));
+        if ($currentSlug === '') {
+            $profileErrors[] = 'La URL publica no es valida. Usa solo letras, numeros y guiones.';
+        } elseif (!$slugLocked && member_slug_in_use($currentSlug, (int) ($user['db_id'] ?? 0))) {
+            $profileErrors[] = 'La URL publica ya esta en uso. Elige otro slug.';
+>>>>>>> 30f6a3e (mejorar persistencia imagenes)
         }
 
         $webPage['gallery'] = array_slice($gallery, 0, 9);
@@ -421,8 +463,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') ==
             update_user($user);
             $profileMessages[] = 'Pagina web actualizada.';
         }
+
+        $accountName = clean_text((string) ($_POST['user_name'] ?? $user['name'] ?? ''));
+        if (strlen($accountName) < 2 || strlen($accountName) > 160) {
+            $profileErrors[] = 'El nombre de usuario debe tener entre 2 y 160 caracteres.';
+        } elseif (user_name_in_use($accountName, (string) ($user['id'] ?? ''))) {
+            $profileErrors[] = 'Ya existe otro usuario con ese nombre. Usa una variacion.';
+        } else {
+            $user['name'] = $accountName;
+        }
     }
+<<<<<<< HEAD
+=======
+
+    if (!$profileErrors) {
+        $user['artistic_profile'] = $memberProfile;
+        update_user($user);
+        $profileMessages[] = $profileAction === 'update_profile_images'
+            ? 'Imagenes actualizadas y guardadas correctamente.'
+            : (profile_is_complete($memberProfile)
+                ? 'Perfil artistico actualizado.'
+                : 'Perfil guardado. Sigue pendiente completar nombre artistico, ciudad, provincia, fotografia principal y al menos una formacion, experiencia profesional o actuacion.');
+    }
+>>>>>>> 30f6a3e (mejorar persistencia imagenes)
 }
+
+$userName = $user['name'] ?? 'Miembro';
 
 $memberTypeLabel = member_type_options()[$memberProfile['member_type']] ?? 'Artista';
 $profileStatus = profile_is_complete($memberProfile) ? 'Perfil completo' : 'Perfil pendiente';
@@ -553,7 +619,21 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                         </article>
                     </div>
                     <div class="member-profile-editor">
+<<<<<<< HEAD
                         <form class="member-profile-form cv-editor" action="panel-usuario.php#perfil" method="post" enctype="multipart/form-data">
+=======
+                        <?php if ($profileErrors): ?>
+                            <div class="form-alert form-alert-error" role="alert">
+                                <?php foreach ($profileErrors as $error): ?><p><?= e($error) ?></p><?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                        <?php if ($profileMessages): ?>
+                            <div class="form-alert form-alert-success" role="status">
+                                <?php foreach ($profileMessages as $message): ?><p><?= e($message) ?></p><?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                        <form class="member-profile-form cv-editor" id="member-profile-form" action="panel-usuario.php#perfil" method="post" enctype="multipart/form-data">
+>>>>>>> 30f6a3e (mejorar persistencia imagenes)
                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="profile_action" value="update_profile">
                             <div class="cv-editor-actions">
@@ -563,6 +643,14 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
 
                             <fieldset class="cv-fieldset profile-tab-panel active" data-profile-tab="artistica">
                                 <legend>Identidad artistica</legend>
+                                <div class="form-grid-two">
+                                    <label for="user_name">Nombre de usuario (cuenta)
+                                        <input id="user_name" name="user_name" type="text" value="<?= e((string) ($user['name'] ?? '')) ?>" maxlength="160" required>
+                                    </label>
+                                    <label for="user_email">Email de acceso
+                                        <input id="user_email" type="email" value="<?= e((string) ($user['email'] ?? '')) ?>" readonly>
+                                    </label>
+                                </div>
                                 <label for="artistic_headline">Especialidad o titular artistico
                                     <input id="artistic_headline" name="artistic_headline" type="text" value="<?= e($memberProfile['artistic_headline']) ?>" placeholder="Ej. Bailaor flamenco, cantaora, guitarrista, profesora de baile">
                                 </label>
@@ -624,6 +712,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                     <label for="main_photo">Fotografia principal</label>
                                     <input id="main_photo" name="main_photo" type="file" accept="image/jpeg,image/png,image/webp" data-main-photo-input hidden>
                                     <p class="field-help">Haz clic sobre la imagen de la cabecera para cambiarla.</p>
+                                    <p class="field-help">Al seleccionar una imagen, se guarda automaticamente.</p>
                                 </div>
                                 <p class="field-help">Cada espacio debe tener al menos una fotografia principal. JPG, PNG o WebP, maximo 5 MB.</p>
                                 <label class="cv-header-background-field" for="cv_header_image">Fondo de cabecera del curriculum PDF
@@ -633,6 +722,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                     </span>
                                     <input id="cv_header_image" name="cv_header_image" type="file" accept="image/jpeg,image/png,image/webp" hidden>
                                 </label>
+                                <p class="field-help">El fondo de cabecera tambien se guarda automaticamente al seleccionarlo.</p>
                                 <label class="visibility-toggle compact-toggle">
                                     <input type="hidden" name="print_professional_data" value="0">
                                     <input type="checkbox" name="print_professional_data" value="1" <?= !empty($memberProfile['print_professional_data']) ? 'checked' : '' ?>>
@@ -975,6 +1065,18 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
     <?php province_modal('Así podremos mostrarte oportunidades y servicios relevantes para tu provincia.'); ?>
     <script>
         const originalDocumentTitle = document.title;
+        const memberProfileForm = document.getElementById('member-profile-form');
+        const profileActionInput = memberProfileForm?.querySelector('input[name="profile_action"]');
+
+        const submitImageUpdate = () => {
+            if (!(memberProfileForm instanceof HTMLFormElement)) {
+                return;
+            }
+            if (profileActionInput instanceof HTMLInputElement) {
+                profileActionInput.value = 'update_profile_images';
+            }
+            memberProfileForm.requestSubmit();
+        };
         window.addEventListener('beforeprint', () => {
             document.title = ' ';
         });
@@ -1061,6 +1163,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                 placeholders.forEach((placeholder) => {
                     placeholder.hidden = true;
                 });
+                submitImageUpdate();
             }
 
             if (input.matches('#cv_header_image') && input.files?.[0]) {
@@ -1076,8 +1179,17 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                         action.textContent = 'Cambiar fondo';
                     }
                 }
+                submitImageUpdate();
             }
         });
+
+        if (memberProfileForm instanceof HTMLFormElement) {
+            memberProfileForm.addEventListener('submit', () => {
+                if (profileActionInput instanceof HTMLInputElement && profileActionInput.value !== 'update_profile_images') {
+                    profileActionInput.value = 'update_profile';
+                }
+            });
+        }
 
         document.querySelectorAll('.profile-tab-button').forEach((button) => {
             button.addEventListener('click', () => {

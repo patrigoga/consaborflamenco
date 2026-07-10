@@ -277,6 +277,13 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - 2026-07-04: Convertida `artista.php` en una pagina publica one-page con menu interno que solo muestra secciones con contenido.
 - 2026-07-09: Anadida ruta limpia `/artista/{slug}` mediante `.htaccess`, actualizados los enlaces publicos y retirada la cabecera/footer global de las paginas personales.
 
+### 2026-07-10 - Fase 5 - Persistencia de imagenes y datos de usuario en panel
+
+- Corregido `panel-usuario.php` para soportar guardado de imagenes con accion dedicada `update_profile_images`.
+- Anadido guardado automatico al seleccionar fotografia principal o fondo de cabecera de curriculum.
+- Anadida edicion del nombre de usuario (cuenta) desde el panel, manteniendo email de acceso en solo lectura.
+- Actualizado `app/layout.php` para mostrar foto de perfil en el avatar de cabecera cuando existe.
+
 ## Reglas y decisiones
 
 - Registrar cambios por fecha.
