@@ -284,6 +284,8 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Reforzada la persistencia de imagenes del perfil sincronizando `foto_principal_path` y `perfil_json` directamente en `miembros` tras cada guardado.
 - Anadida edicion del nombre de usuario (cuenta) desde el panel, manteniendo email de acceso en solo lectura.
 - Actualizado `app/layout.php` para mostrar foto de perfil en el avatar de cabecera cuando existe.
+- Corregidas las rutas absolutas de assets para que `/artista/{slug}` cargue CSS, JS e imagenes subidas correctamente.
+- Redisenada la vista publica `artista.php` con estructura de microsite, hero editorial, galeria/contacto mas cuidados y footer propio.
 
 ## Reglas y decisiones
 

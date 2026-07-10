@@ -14,16 +14,16 @@ function page_head(string $title, string $description, bool $includeRankings = t
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title><?= e($title) ?></title>
         <meta name="description" content="<?= e($description) ?>">
-        <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
+        <link rel="icon" type="image/svg+xml" href="<?= e(app_url('assets/images/favicon.svg')) ?>">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="assets/css/styles.css?v=<?= e($stylesVersion) ?>">
-        <script src="assets/js/advertising.js" defer></script>
-        <script src="assets/js/navigation.js" defer></script>
-        <script src="assets/js/password-visibility.js" defer></script>
-        <?php if ($isAdmin): ?><script src="assets/js/admin-sidebar.js?v=<?= e($adminSidebarVersion) ?>" defer></script><?php endif; ?>
-        <?php if ($includeRankings): ?><script src="assets/js/section-rankings.js" defer></script><?php endif; ?>
+        <link rel="stylesheet" href="<?= e(app_url('assets/css/styles.css')) ?>?v=<?= e($stylesVersion) ?>">
+        <script src="<?= e(app_url('assets/js/advertising.js')) ?>" defer></script>
+        <script src="<?= e(app_url('assets/js/navigation.js')) ?>" defer></script>
+        <script src="<?= e(app_url('assets/js/password-visibility.js')) ?>" defer></script>
+        <?php if ($isAdmin): ?><script src="<?= e(app_url('assets/js/admin-sidebar.js')) ?>?v=<?= e($adminSidebarVersion) ?>" defer></script><?php endif; ?>
+        <?php if ($includeRankings): ?><script src="<?= e(app_url('assets/js/section-rankings.js')) ?>" defer></script><?php endif; ?>
     </head>
     <?php
 }

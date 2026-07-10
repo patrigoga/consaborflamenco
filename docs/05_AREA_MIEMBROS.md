@@ -209,3 +209,4 @@ Los miembros podran contratar servicios digitales ofrecidos por la plataforma. E
 - 2026-07-03: Refinado el aspecto visual del area de usuario con sidebar mas sobrio, cabecera mas editorial, tarjetas limpias, formularios mas elegantes y QR menos invasivo.
 - 2026-07-10: Corregida la persistencia de fotografia principal y fondo de cabecera del curriculum con guardado automatico al seleccionar imagen y sincronizacion directa en la tabla de miembros.
 - 2026-07-10: Anadida edicion del nombre de usuario (cuenta) desde el panel y uso de foto principal en el avatar de cabecera.
+- 2026-07-10: Refinada la pagina publica `/artista/{slug}` como microsite del miembro, con assets compatibles con URL limpia, hero cuidado, galeria/contacto y footer propio.
