@@ -6,12 +6,49 @@ require_once __DIR__ . '/app/layout.php';
 
 function artist_public_media_url(string $path): string
 {
-    $path = trim($path);
-    if ($path === '' || preg_match('#^(?:https?:)?//#i', $path) || str_starts_with($path, 'data:')) {
+    $path = trim(str_replace('\\', '/', $path));
+    if ($path === '' || str_starts_with($path, 'data:')) {
         return $path;
     }
 
-    return app_url($path);
+    $baseUrl = artist_public_base_url();
+    if (preg_match('#^(?:https?:)?//#i', $path)) {
+        $parts = parse_url($path);
+        $urlPath = str_replace('\\', '/', (string) ($parts['path'] ?? ''));
+        $assetPosition = strpos($urlPath, '/assets/');
+        if ($assetPosition === false) {
+            return $path;
+        }
+
+        $path = substr($urlPath, $assetPosition + 1);
+    }
+
+    $assetPosition = strpos($path, 'assets/');
+    if ($assetPosition !== false) {
+        $path = substr($path, $assetPosition);
+    }
+
+    return $baseUrl . '/' . ltrim($path, '/');
+}
+
+function artist_public_base_url(): string
+{
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $requestPath = (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+    $scriptPath = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
+
+    if (preg_match('#^(.*?)/artista(?:/[^/]+)?/?$#', $requestPath, $matches)) {
+        $basePath = rtrim($matches[1], '/');
+    } elseif (strpos($scriptPath, '/artista.php') !== false) {
+        $basePath = rtrim(dirname($scriptPath), '/');
+    } else {
+        $basePath = rtrim(str_replace('\\', '/', dirname($scriptPath)), '/');
+    }
+
+    $basePath = $basePath === '/' ? '' : $basePath;
+
+    return $scheme . '://' . $host . $basePath;
 }
 
 function artist_public_link_url(string $url): string
@@ -59,8 +96,10 @@ $gallery = array_values(array_filter(array_map(
     array_slice(is_array($webPage['gallery'] ?? null) ? $webPage['gallery'] : [], 0, 9)
 ), static fn (string $path): bool => $path !== ''));
 $contactFields = is_array($webPage['contact_fields'] ?? null) ? $webPage['contact_fields'] : [];
-$artistsUrl = app_url('artistas.php');
-$registerUrl = app_url('registro.php');
+$siteBaseUrl = artist_public_base_url();
+$artistsUrl = $siteBaseUrl . '/artistas.php';
+$registerUrl = $siteBaseUrl . '/registro.php';
+$defaultHeroImage = artist_public_media_url('assets/images/flamenco-header-art.png');
 
 $contactItems = [];
 if (in_array('email', $contactFields, true) && !empty($member['email'])) {
@@ -83,9 +122,12 @@ if ($gallery) {
 if ($contactItems) {
     $publicSections['contacto'] = 'Contacto';
 }
-$heroStyle = $heroImage !== ''
-    ? "background-image: linear-gradient(135deg, rgba(17, 17, 20, 0.88), rgba(32, 56, 71, 0.72)), url('" . $heroImage . "');"
-    : '';
+$heroBackgrounds = array_values(array_unique(array_filter([$heroImage, $defaultHeroImage])));
+$heroStyle = "background-image: linear-gradient(135deg, rgba(17, 17, 20, 0.88), rgba(32, 56, 71, 0.72))";
+foreach ($heroBackgrounds as $backgroundImage) {
+    $heroStyle .= ", url('" . str_replace("'", '%27', $backgroundImage) . "')";
+}
+$heroStyle .= ';';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -95,7 +137,8 @@ $heroStyle = $heroImage !== ''
         <div class="container artist-web-topbar-inner">
             <a class="artist-web-logo" href="#inicio" aria-label="Ir a la cabecera de <?= e($displayName) ?>">
                 <?php if ($mainPhoto !== ''): ?>
-                    <img src="<?= e($mainPhoto) ?>" alt="Fotografia de <?= e($displayName) ?>" loading="eager">
+                    <img src="<?= e($mainPhoto) ?>" alt="Fotografia de <?= e($displayName) ?>" loading="eager" onerror="this.hidden=true;this.nextElementSibling.hidden=false;">
+                    <span hidden><?= e(strtoupper(substr($displayName, 0, 1))) ?></span>
                 <?php else: ?>
                     <span><?= e(strtoupper(substr($displayName, 0, 1))) ?></span>
                 <?php endif; ?>
@@ -109,7 +152,7 @@ $heroStyle = $heroImage !== ''
         </div>
     </header>
     <main class="artist-web-page">
-        <section id="inicio" class="artist-web-hero" <?= $heroStyle !== '' ? 'style="' . e($heroStyle) . '"' : '' ?>>
+        <section id="inicio" class="artist-web-hero" style="<?= e($heroStyle) ?>">
             <div class="container artist-web-hero-inner">
                 <div class="artist-web-hero-copy">
                     <h1><?= e($heroTitle) ?></h1>

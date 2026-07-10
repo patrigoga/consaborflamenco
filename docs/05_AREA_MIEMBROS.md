@@ -211,3 +211,4 @@ Los miembros podran contratar servicios digitales ofrecidos por la plataforma. E
 - 2026-07-10: Anadida edicion del nombre de usuario (cuenta) desde el panel y uso de foto principal en el avatar de cabecera.
 - 2026-07-10: Refinada la pagina publica `/artista/{slug}` como microsite del miembro, con assets compatibles con URL limpia, hero cuidado, galeria/contacto y footer propio.
 - 2026-07-11: Reordenada la pagina publica del miembro con menu superior sticky, fotografia de perfil como marca, hero limpio sin datos redundantes ni botones y navegacion adaptable a movil.
+- 2026-07-11: Reforzada la resolucion de imagenes en `/artista/{slug}` para evitar rutas rotas bajo `/artista/assets`, limpiar prefijos antiguos y mantener fondo de reserva.

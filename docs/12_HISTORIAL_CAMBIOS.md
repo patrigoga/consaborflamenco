@@ -292,6 +292,7 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Reordenada `artista.php` para usar un menu superior sticky con la fotografia del perfil como logotipo del artista.
 - Simplificado el hero publico retirando marca CSF visible, tipo/titular artistico, ubicacion, botones rojos y tarjeta lateral.
 - Ajustada la navegacion de la pagina publica para escritorio y movil, manteniendo enlaces internos solo a secciones con contenido.
+- Reforzada la normalizacion de rutas de imagenes publicas para resolver correctamente `assets/...` desde `/artista/{slug}`, limpiar prefijos antiguos y usar fondo de reserva si falla la imagen personalizada.
 
 ## Reglas y decisiones
 
