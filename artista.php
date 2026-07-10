@@ -49,7 +49,6 @@ if (!$member) {
 $profile = default_member_profile($member);
 $webPage = default_member_web_page(is_array($profile['web_page'] ?? null) ? $profile['web_page'] : []);
 $displayName = clean_text((string) ($profile['public_name'] ?: ($member['name'] ?? 'Artista')));
-$memberTypeLabel = member_type_options()[$profile['member_type'] ?? 'artista'] ?? 'Artista';
 $headline = clean_text((string) ($profile['artistic_headline'] ?? ''));
 $heroTitle = clean_text((string) ($webPage['header_title'] ?? '')) ?: $displayName;
 $heroSubtitle = clean_text((string) ($webPage['header_subtitle'] ?? '')) ?: $headline;
@@ -60,11 +59,8 @@ $gallery = array_values(array_filter(array_map(
     array_slice(is_array($webPage['gallery'] ?? null) ? $webPage['gallery'] : [], 0, 9)
 ), static fn (string $path): bool => $path !== ''));
 $contactFields = is_array($webPage['contact_fields'] ?? null) ? $webPage['contact_fields'] : [];
-$location = trim(clean_text((string) ($profile['city'] ?? '')) . (($profile['city'] ?? '') && ($profile['province'] ?? '') ? ', ' : '') . clean_text((string) ($profile['province'] ?? '')));
-$brandHomeUrl = app_url('index.php#inicio');
 $artistsUrl = app_url('artistas.php');
 $registerUrl = app_url('registro.php');
-$brandSealUrl = app_url('assets/images/member-cards/pegatina-con-sabor-flamenco.png');
 
 $contactItems = [];
 if (in_array('email', $contactFields, true) && !empty($member['email'])) {
@@ -95,50 +91,31 @@ $heroStyle = $heroImage !== ''
 <html lang="es">
 <?php page_head($displayName . ' | Con Sabor Flamenco', $heroSubtitle, false); ?>
 <body class="artist-public-body">
+    <header class="artist-web-topbar">
+        <div class="container artist-web-topbar-inner">
+            <a class="artist-web-logo" href="#inicio" aria-label="Ir a la cabecera de <?= e($displayName) ?>">
+                <?php if ($mainPhoto !== ''): ?>
+                    <img src="<?= e($mainPhoto) ?>" alt="Fotografia de <?= e($displayName) ?>" loading="eager">
+                <?php else: ?>
+                    <span><?= e(strtoupper(substr($displayName, 0, 1))) ?></span>
+                <?php endif; ?>
+                <strong><?= e($displayName) ?></strong>
+            </a>
+            <nav class="artist-web-menu" aria-label="Menu de la pagina del artista">
+                <?php foreach ($publicSections as $sectionId => $sectionLabel): ?>
+                    <a href="#<?= e($sectionId) ?>"><?= e($sectionLabel) ?></a>
+                <?php endforeach; ?>
+            </nav>
+        </div>
+    </header>
     <main class="artist-web-page">
         <section id="inicio" class="artist-web-hero" <?= $heroStyle !== '' ? 'style="' . e($heroStyle) . '"' : '' ?>>
             <div class="container artist-web-hero-inner">
                 <div class="artist-web-hero-copy">
-                    <a class="artist-web-brand" href="<?= e($brandHomeUrl) ?>" aria-label="Con Sabor Flamenco">
-                        <span class="brand-mark">CSF</span>
-                        <span>Con Sabor Flamenco</span>
-                    </a>
-                    <p class="section-kicker"><?= e($memberTypeLabel) ?></p>
                     <h1><?= e($heroTitle) ?></h1>
-                    <?php if ($heroSubtitle !== ''): ?><p class="artist-web-headline"><?= e($heroSubtitle) ?></p><?php endif; ?>
-                    <div class="artist-web-meta">
-                        <?php if ($location !== ''): ?><span><?= e($location) ?></span><?php endif; ?>
-                        <span>Perfil publico</span>
-                    </div>
-                    <div class="artist-web-actions">
-                        <?php if ($contactItems): ?><a href="#contacto">Contacto</a><?php endif; ?>
-                        <?php if ($gallery): ?><a href="#galeria">Ver galeria</a><?php endif; ?>
-                    </div>
                 </div>
-                <aside class="artist-web-profile-card" aria-label="Resumen de <?= e($displayName) ?>">
-                    <?php if ($mainPhoto !== ''): ?>
-                        <img class="artist-web-photo" src="<?= e($mainPhoto) ?>" alt="Fotografia principal de <?= e($displayName) ?>" loading="eager">
-                    <?php else: ?>
-                        <div class="artist-web-photo-placeholder"><?= e(strtoupper(substr($displayName, 0, 1))) ?></div>
-                    <?php endif; ?>
-                    <div>
-                        <span><?= e($memberTypeLabel) ?></span>
-                        <strong><?= e($displayName) ?></strong>
-                        <?php if ($headline !== ''): ?><small><?= e($headline) ?></small><?php endif; ?>
-                    </div>
-                </aside>
             </div>
         </section>
-
-        <?php if (count($publicSections) > 1): ?>
-            <nav class="artist-web-nav" aria-label="Menu de la pagina del artista">
-                <div class="container">
-                    <?php foreach ($publicSections as $sectionId => $sectionLabel): ?>
-                        <a href="#<?= e($sectionId) ?>"><?= e($sectionLabel) ?></a>
-                    <?php endforeach; ?>
-                </div>
-            </nav>
-        <?php endif; ?>
 
         <?php if ($gallery): ?>
             <section id="galeria" class="artist-web-section artist-web-gallery">
@@ -180,10 +157,9 @@ $heroStyle = $heroImage !== ''
     <footer class="artist-web-footer">
         <div class="container artist-web-footer-inner">
             <div class="artist-web-footer-brand">
-                <img src="<?= e($brandSealUrl) ?>" alt="Con Sabor Flamenco" loading="lazy">
                 <div>
-                    <strong>Con Sabor Flamenco</strong>
-                    <p>Perfil publico creado para dar presencia digital al flamenco.</p>
+                    <strong><?= e($displayName) ?></strong>
+                    <p>Perfil publico en consaborflamenco.com</p>
                 </div>
             </div>
             <nav aria-label="Enlaces del perfil publico">

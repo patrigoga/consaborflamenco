@@ -287,6 +287,12 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Corregidas las rutas absolutas de assets para que `/artista/{slug}` cargue CSS, JS e imagenes subidas correctamente.
 - Redisenada la vista publica `artista.php` con estructura de microsite, hero editorial, galeria/contacto mas cuidados y footer propio.
 
+### 2026-07-11 - Fase 6 - Refinamiento de pagina publica de miembro
+
+- Reordenada `artista.php` para usar un menu superior sticky con la fotografia del perfil como logotipo del artista.
+- Simplificado el hero publico retirando marca CSF visible, tipo/titular artistico, ubicacion, botones rojos y tarjeta lateral.
+- Ajustada la navegacion de la pagina publica para escritorio y movil, manteniendo enlaces internos solo a secciones con contenido.
+
 ## Reglas y decisiones
 
 - Registrar cambios por fecha.
