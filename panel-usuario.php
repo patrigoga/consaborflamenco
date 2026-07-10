@@ -275,100 +275,6 @@ function member_slug_in_use(string $slug, int $excludeUserId = 0): bool
     return ((int) $statement->fetchColumn()) > 0;
 }
 
-<<<<<<< HEAD
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') === 'update_profile') {
-    $isSlugSave = (string) ($_POST['slug_action'] ?? '') === 'save_public_slug';
-
-    if (!verify_csrf($_POST['csrf_token'] ?? null)) {
-        $profileErrors[] = 'La sesion ha caducado. Vuelve a intentarlo.';
-    }
-
-    if ($isSlugSave) {
-        if (!$profileErrors) {
-            $requestedSlug = slugify(clean_text((string) ($_POST['slug'] ?? '')));
-            if ($requestedSlug === '') {
-                $profileErrors[] = 'La URL publica no es valida. Usa solo letras, numeros y guiones.';
-            } elseif (member_slug_in_use($requestedSlug, (int) ($user['db_id'] ?? 0))) {
-                $profileErrors[] = 'La URL publica ya esta en uso. Elige otro slug.';
-            } else {
-                $memberProfile['slug'] = $requestedSlug;
-                $memberProfile['slug_locked_at'] = null;
-                $user['artistic_profile'] = $memberProfile;
-                update_user($user);
-                $profileMessages[] = 'URL publica guardada. Ya puedes abrir tu ficha con este enlace.';
-            }
-        }
-    } else {
-        if (!$profileErrors) {
-            $photoPath = save_member_photo_upload($_FILES['main_photo'] ?? null, $profileErrors, empty($memberProfile['main_photo_path']));
-            if ($photoPath) {
-                $memberProfile['main_photo_path'] = $photoPath;
-            }
-
-            $cvHeaderImagePath = save_member_cv_image_upload($_FILES['cv_header_image'] ?? null, $profileErrors);
-            if ($cvHeaderImagePath) {
-                $memberProfile['cv_header_image_path'] = $cvHeaderImagePath;
-            }
-        }
-
-        if (!$profileErrors) {
-            $memberProfile = member_profile_from_input($_POST, $memberProfile);
-            $currentSlug = clean_text((string) ($memberProfile['slug'] ?? ''));
-            if ($currentSlug === '') {
-                $profileErrors[] = 'La URL publica no es valida. Usa solo letras, numeros y guiones.';
-            } elseif (member_slug_in_use($currentSlug, (int) ($user['db_id'] ?? 0))) {
-                $profileErrors[] = 'La URL publica ya esta en uso. Elige otro slug.';
-            }
-
-            $submittedPublicFields = is_array($_POST['public_fields'] ?? null) ? $_POST['public_fields'] : [];
-            $publicFields = array_values(array_intersect(array_keys($publicFieldOptions), array_map('strval', $submittedPublicFields)));
-            $memberProfile['public_fields'] = $publicFields;
-            $submittedSortOrders = is_array($_POST['sort_orders'] ?? null) ? $_POST['sort_orders'] : [];
-            $memberProfile['sort_orders'] = array_map(
-                static fn ($value): string => normalize_cv_sort_order($value),
-                array_intersect_key($submittedSortOrders, $publicFieldOptions)
-            );
-            $submittedSectionSettings = is_array($_POST['section_settings'] ?? null) ? $_POST['section_settings'] : [];
-            $memberProfile['section_settings'] = clean_cv_section_settings(
-                $submittedSectionSettings,
-                is_array($memberProfile['section_settings'] ?? null) ? $memberProfile['section_settings'] : [],
-                $cvSectionConfig
-            );
-            $customSectionTitle = clean_text((string) ($_POST['custom_section_title'] ?? ''));
-            if (!empty($customSectionTitle) && strlen($customSectionTitle) >= 2 && strlen($customSectionTitle) <= 100) {
-                $memberProfile['custom_section_title'] = $customSectionTitle;
-            }
-            $entryMediaOptions = ['requires_title_description' => false, 'allows_image' => true];
-            foreach ($cvSectionConfig as $sectionKey => $sectionConfig) {
-                $memberProfile[$sectionKey] = clean_cv_entries(
-                    $_POST,
-                    $sectionKey,
-                    array_keys($sectionConfig['fields']),
-                    $entryMediaOptions + ['title' => $sectionConfig['title']],
-                    is_array($memberProfile[$sectionKey] ?? null) ? $memberProfile[$sectionKey] : [],
-                    $_FILES,
-                    $profileErrors
-                );
-                $memberProfile[$sectionKey] = sort_cv_entries(
-                    $memberProfile[$sectionKey],
-                    $memberProfile['sort_orders'][$sectionKey] ?? 'desc'
-                );
-            }
-            $memberProfile['completed_at'] = profile_is_complete($memberProfile) ? ($memberProfile['completed_at'] ?? gmdate('c')) : null;
-        }
-
-        if (!$profileErrors) {
-            $user['artistic_profile'] = $memberProfile;
-            update_user($user);
-            $profileMessages[] = profile_is_complete($memberProfile)
-                ? 'Perfil artistico actualizado.'
-                : 'Perfil guardado. Sigue pendiente completar nombre artistico, ciudad, provincia, fotografia principal y al menos una formacion, experiencia profesional o actuacion.';
-        }
-    }
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') === 'update_web_page') {
-=======
 function user_name_in_use(string $name, string $excludeUserId): bool
 {
     $candidate = clean_text($name);
@@ -391,13 +297,116 @@ function user_name_in_use(string $name, string $excludeUserId): bool
 
 $profileAction = (string) ($_POST['profile_action'] ?? '');
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($profileAction, ['update_profile', 'update_profile_images'], true)) {
->>>>>>> 30f6a3e (mejorar persistencia imagenes)
+    $isSlugSave = $profileAction === 'update_profile' && (string) ($_POST['slug_action'] ?? '') === 'save_public_slug';
+
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
         $profileErrors[] = 'La sesion ha caducado. Vuelve a intentarlo.';
     }
 
     $photoPath = null;
     $cvHeaderImagePath = null;
+    if (!$profileErrors) {
+        $photoPath = save_member_photo_upload($_FILES['main_photo'] ?? null, $profileErrors, empty($memberProfile['main_photo_path']));
+        if ($photoPath) {
+            $memberProfile['main_photo_path'] = $photoPath;
+        }
+
+        $cvHeaderImagePath = save_member_cv_image_upload($_FILES['cv_header_image'] ?? null, $profileErrors);
+        if ($cvHeaderImagePath) {
+            $memberProfile['cv_header_image_path'] = $cvHeaderImagePath;
+        }
+    }
+
+    if (!$profileErrors && $isSlugSave) {
+        $requestedSlug = slugify(clean_text((string) ($_POST['slug'] ?? '')));
+        if ($requestedSlug === '') {
+            $profileErrors[] = 'La URL publica no es valida. Usa solo letras, numeros y guiones.';
+        } elseif (member_slug_in_use($requestedSlug, (int) ($user['db_id'] ?? 0))) {
+            $profileErrors[] = 'La URL publica ya esta en uso. Elige otro slug.';
+        } else {
+            $memberProfile['slug'] = $requestedSlug;
+            $memberProfile['slug_locked_at'] = null;
+            $user['artistic_profile'] = $memberProfile;
+            update_user($user);
+            $profileMessages[] = 'URL publica guardada. Ya puedes abrir tu ficha con este enlace.';
+        }
+    }
+
+    if (!$profileErrors && $profileAction === 'update_profile_images' && !$photoPath && !$cvHeaderImagePath) {
+        $profileErrors[] = 'Selecciona una fotografia principal o un fondo de cabecera para guardar.';
+    }
+
+    if (!$profileErrors && $profileAction === 'update_profile') {
+        $memberProfile = member_profile_from_input($_POST, $memberProfile);
+        $currentSlug = clean_text((string) ($memberProfile['slug'] ?? ''));
+        if ($currentSlug === '') {
+            $profileErrors[] = 'La URL publica no es valida. Usa solo letras, numeros y guiones.';
+        } elseif (member_slug_in_use($currentSlug, (int) ($user['db_id'] ?? 0))) {
+            $profileErrors[] = 'La URL publica ya esta en uso. Elige otro slug.';
+        }
+
+        $submittedPublicFields = is_array($_POST['public_fields'] ?? null) ? $_POST['public_fields'] : [];
+        $publicFields = array_values(array_intersect(array_keys($publicFieldOptions), array_map('strval', $submittedPublicFields)));
+        $memberProfile['public_fields'] = $publicFields;
+        $submittedSortOrders = is_array($_POST['sort_orders'] ?? null) ? $_POST['sort_orders'] : [];
+        $memberProfile['sort_orders'] = array_map(
+            static fn ($value): string => normalize_cv_sort_order($value),
+            array_intersect_key($submittedSortOrders, $publicFieldOptions)
+        );
+        $submittedSectionSettings = is_array($_POST['section_settings'] ?? null) ? $_POST['section_settings'] : [];
+        $memberProfile['section_settings'] = clean_cv_section_settings(
+            $submittedSectionSettings,
+            is_array($memberProfile['section_settings'] ?? null) ? $memberProfile['section_settings'] : [],
+            $cvSectionConfig
+        );
+        $customSectionTitle = clean_text((string) ($_POST['custom_section_title'] ?? ''));
+        if (!empty($customSectionTitle) && strlen($customSectionTitle) >= 2 && strlen($customSectionTitle) <= 100) {
+            $memberProfile['custom_section_title'] = $customSectionTitle;
+        }
+        $entryMediaOptions = ['requires_title_description' => false, 'allows_image' => true];
+        foreach ($cvSectionConfig as $sectionKey => $sectionConfig) {
+            $memberProfile[$sectionKey] = clean_cv_entries(
+                $_POST,
+                $sectionKey,
+                array_keys($sectionConfig['fields']),
+                $entryMediaOptions + ['title' => $sectionConfig['title']],
+                is_array($memberProfile[$sectionKey] ?? null) ? $memberProfile[$sectionKey] : [],
+                $_FILES,
+                $profileErrors
+            );
+            $memberProfile[$sectionKey] = sort_cv_entries(
+                $memberProfile[$sectionKey],
+                $memberProfile['sort_orders'][$sectionKey] ?? 'desc'
+            );
+        }
+        $memberProfile['completed_at'] = profile_is_complete($memberProfile) ? ($memberProfile['completed_at'] ?? gmdate('c')) : null;
+
+        $accountName = clean_text((string) ($_POST['user_name'] ?? $user['name'] ?? ''));
+        if (strlen($accountName) < 2 || strlen($accountName) > 160) {
+            $profileErrors[] = 'El nombre de usuario debe tener entre 2 y 160 caracteres.';
+        } elseif (user_name_in_use($accountName, (string) ($user['id'] ?? ''))) {
+            $profileErrors[] = 'Ya existe otro usuario con ese nombre. Usa una variacion.';
+        } else {
+            $user['name'] = $accountName;
+        }
+    }
+
+    if (!$profileErrors && !$isSlugSave) {
+        $user['artistic_profile'] = $memberProfile;
+        update_user($user);
+        $profileMessages[] = $profileAction === 'update_profile_images'
+            ? 'Imagenes actualizadas y guardadas correctamente.'
+            : (profile_is_complete($memberProfile)
+                ? 'Perfil artistico actualizado.'
+                : 'Perfil guardado. Sigue pendiente completar nombre artistico, ciudad, provincia, fotografia principal y al menos una formacion, experiencia profesional o actuacion.');
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') === 'update_web_page') {
+    if (!verify_csrf($_POST['csrf_token'] ?? null)) {
+        $profileErrors[] = 'La sesion ha caducado. Vuelve a intentarlo.';
+    }
+
     if (!$profileErrors) {
         $webPage = default_member_web_page(is_array($memberProfile['web_page'] ?? null) ? $memberProfile['web_page'] : []);
         $webPage['header_title'] = clean_text((string) ($_POST['web_header_title'] ?? ''));
@@ -415,7 +424,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($profileAction, ['update_p
             ARRAY_FILTER_USE_BOTH
         ));
 
-<<<<<<< HEAD
         $galleryUploads = is_array($_FILES['web_gallery_images'] ?? null) ? $_FILES['web_gallery_images'] : null;
         if ($galleryUploads) {
             $uploadCount = is_array($galleryUploads['error'] ?? null) ? count($galleryUploads['error']) : 0;
@@ -435,20 +443,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($profileAction, ['update_p
                     $gallery[] = $uploadedPath;
                 }
             }
-=======
-    if (!$profileErrors && $profileAction === 'update_profile_images' && !$photoPath && !$cvHeaderImagePath) {
-        $profileErrors[] = 'Selecciona una fotografia principal o un fondo de cabecera para guardar.';
-    }
-
-    if (!$profileErrors && $profileAction === 'update_profile') {
-        $memberProfile = member_profile_from_input($_POST, $memberProfile);
-        $slugLocked = clean_text((string) ($memberProfile['slug_locked_at'] ?? '')) !== '';
-        $currentSlug = clean_text((string) ($memberProfile['slug'] ?? ''));
-        if ($currentSlug === '') {
-            $profileErrors[] = 'La URL publica no es valida. Usa solo letras, numeros y guiones.';
-        } elseif (!$slugLocked && member_slug_in_use($currentSlug, (int) ($user['db_id'] ?? 0))) {
-            $profileErrors[] = 'La URL publica ya esta en uso. Elige otro slug.';
->>>>>>> 30f6a3e (mejorar persistencia imagenes)
         }
 
         $webPage['gallery'] = array_slice($gallery, 0, 9);
@@ -463,29 +457,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($profileAction, ['update_p
             update_user($user);
             $profileMessages[] = 'Pagina web actualizada.';
         }
-
-        $accountName = clean_text((string) ($_POST['user_name'] ?? $user['name'] ?? ''));
-        if (strlen($accountName) < 2 || strlen($accountName) > 160) {
-            $profileErrors[] = 'El nombre de usuario debe tener entre 2 y 160 caracteres.';
-        } elseif (user_name_in_use($accountName, (string) ($user['id'] ?? ''))) {
-            $profileErrors[] = 'Ya existe otro usuario con ese nombre. Usa una variacion.';
-        } else {
-            $user['name'] = $accountName;
-        }
     }
-<<<<<<< HEAD
-=======
-
-    if (!$profileErrors) {
-        $user['artistic_profile'] = $memberProfile;
-        update_user($user);
-        $profileMessages[] = $profileAction === 'update_profile_images'
-            ? 'Imagenes actualizadas y guardadas correctamente.'
-            : (profile_is_complete($memberProfile)
-                ? 'Perfil artistico actualizado.'
-                : 'Perfil guardado. Sigue pendiente completar nombre artistico, ciudad, provincia, fotografia principal y al menos una formacion, experiencia profesional o actuacion.');
-    }
->>>>>>> 30f6a3e (mejorar persistencia imagenes)
 }
 
 $userName = $user['name'] ?? 'Miembro';
@@ -619,21 +591,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                         </article>
                     </div>
                     <div class="member-profile-editor">
-<<<<<<< HEAD
-                        <form class="member-profile-form cv-editor" action="panel-usuario.php#perfil" method="post" enctype="multipart/form-data">
-=======
-                        <?php if ($profileErrors): ?>
-                            <div class="form-alert form-alert-error" role="alert">
-                                <?php foreach ($profileErrors as $error): ?><p><?= e($error) ?></p><?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
-                        <?php if ($profileMessages): ?>
-                            <div class="form-alert form-alert-success" role="status">
-                                <?php foreach ($profileMessages as $message): ?><p><?= e($message) ?></p><?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
                         <form class="member-profile-form cv-editor" id="member-profile-form" action="panel-usuario.php#perfil" method="post" enctype="multipart/form-data">
->>>>>>> 30f6a3e (mejorar persistencia imagenes)
                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="profile_action" value="update_profile">
                             <div class="cv-editor-actions">
