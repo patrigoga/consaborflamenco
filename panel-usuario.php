@@ -606,9 +606,10 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                         <input id="user_name" name="user_name" type="text" value="<?= e((string) ($user['name'] ?? '')) ?>" maxlength="160" required>
                                     </label>
                                     <label for="user_email">Email de acceso
-                                        <input id="user_email" type="email" value="<?= e((string) ($user['email'] ?? '')) ?>" readonly>
+                                        <input id="user_email" type="email" value="<?= e((string) ($user['email'] ?? '')) ?>" readonly disabled aria-readonly="true">
                                     </label>
                                 </div>
+                                <p class="field-help">El email de acceso no se puede cambiar desde este panel.</p>
                                 <label for="artistic_headline">Especialidad o titular artistico
                                     <input id="artistic_headline" name="artistic_headline" type="text" value="<?= e($memberProfile['artistic_headline']) ?>" placeholder="Ej. Bailaor flamenco, cantaora, guitarrista, profesora de baile">
                                 </label>
