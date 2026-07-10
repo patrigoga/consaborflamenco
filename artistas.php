@@ -100,7 +100,7 @@ if ($pdo) {
                     <?php if ($artists): ?>
                         <div class="editorial-grid">
                             <?php foreach ($artists as $artist): ?>
-                                <a class="editorial-story" href="artista.php?slug=<?= e($artist['slug']) ?>">
+                                <a class="editorial-story" href="artista/<?= e(rawurlencode($artist['slug'])) ?>">
                                     <?php if ($artist['photo'] !== ''): ?>
                                         <img src="<?= e($artist['photo']) ?>" alt="Foto de <?= e($artist['name']) ?>" loading="lazy" width="640" height="480">
                                     <?php else: ?>

@@ -430,7 +430,7 @@ $profileStatusClass = profile_is_complete($memberProfile) ? 'status-pill-active'
 $displayName = $memberProfile['public_name'] !== '' ? $memberProfile['public_name'] : $userName;
 $publicSlug = clean_text((string) ($memberProfile['slug'] ?? slugify($displayName)));
 $publicSlug = $publicSlug !== '' ? $publicSlug : slugify($displayName);
-$publicProfileUrl = app_url('artista.php?slug=' . rawurlencode($publicSlug));
+$publicProfileUrl = app_url('artista/' . rawurlencode($publicSlug));
 $webPage = default_member_web_page(is_array($memberProfile['web_page'] ?? null) ? $memberProfile['web_page'] : []);
 $webGallery = array_slice($webPage['gallery'], 0, 9);
 $webContactFields = is_array($webPage['contact_fields'] ?? null) ? $webPage['contact_fields'] : [];

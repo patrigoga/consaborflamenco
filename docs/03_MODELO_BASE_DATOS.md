@@ -68,7 +68,7 @@ Mantener una base documental para disenar y evolucionar el modelo de base de dat
 - Un miembro tendra un tipo de miembro.
 - Un miembro pertenecera a un usuario de acceso.
 - Un miembro tendra una numeracion unica y un codigo `CSF-...` unico.
-- Un miembro tendra un `slug` publico unico para construir URLs del tipo `artista.php?slug=nombre-artistico`.
+- Un miembro tendra un `slug` publico unico para construir URLs limpias del tipo `/artista/nombre-artistico`.
 - El registro inicial creara miembros simpatizantes por defecto.
 - El codigo de miembro solo sera utilizable para descuentos si el miembro ha pasado a Miembro VIP mediante pago.
 - Un miembro tendra una tarjeta identificativa configurable con imagen, nombre visible, nivel de membresia, numero y codigo.

@@ -74,7 +74,7 @@ Academias utilizara un submenu con acceso al directorio de academias, Cursos pre
 
 Servicios y Contacto no crean categorias publicitarias. En esas vistas se podran mantener campanas generales o nacionales.
 
-La portada concentra los rankings de las categorias activas y cada cabecera de seccion incluye un acceso directo "Entrar en esta seccion" hacia su pagina publica. Revista, Academias, Cursos, Artistas, Eventos, Festivales, Penas, Tablaos, Moda, Fotografia, Servicios y Flamenco disponen de vistas independientes en `.php` que reutilizan header, navegacion responsive, selector de provincia, rankings, publicidad y footer. La seccion y el enlace de Concursos permanecen comentados para poder recuperarlos sin reconstruir su estructura.
+La portada concentra los rankings de las categorias activas y cada cabecera de seccion incluye un acceso directo "Entrar en esta seccion" hacia su pagina publica. Revista, Academias, Cursos, Artistas, Eventos, Festivales, Penas, Tablaos, Moda, Fotografia, Servicios y Flamenco disponen de vistas independientes en `.php` que reutilizan header, navegacion responsive, selector de provincia, rankings, publicidad y footer. Las paginas personales de miembros usan URLs limpias `/artista/{slug}` y no muestran el header ni el footer global para funcionar como microsites independientes. La seccion y el enlace de Concursos permanecen comentados para poder recuperarlos sin reconstruir su estructura.
 
 ### Ranking de comunidad
 

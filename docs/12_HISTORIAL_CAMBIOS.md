@@ -265,9 +265,9 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Aplicada sincronizacion selectiva al microsite solo cuando cambian slug o nombre publico, evitando llamadas innecesarias en inicios de sesion.
 - Reforzado `artist-microsite/src/pages/api/artists/claim.ts` para usar `externalUserId` como identidad estable, controlar colisiones de slug y evitar reclamaciones cruzadas.
 - Corregido el import de Prisma en `artist-microsite/src/pages/api/artists/[slug].ts`.
-- Sustituida la pagina `artistas.php` por un directorio dinamico de miembros activos con enlaces reales a `artista.php?slug=...`.
+- Sustituida la pagina `artistas.php` por un directorio dinamico de miembros activos con enlaces reales a paginas personales de artista.
 - Actualizados los enlaces del ranking de artistas en `assets/js/section-rankings.js` para llevar al directorio publico real.
-- 2026-07-03: Corregida la ficha publica `artista.php?slug=...` para buscar miembros por slug sin provocar error 500 cuando falta la columna en produccion.
+- 2026-07-03: Corregida la ficha publica por slug para buscar miembros sin provocar error 500 cuando falta la columna en produccion.
 - 2026-07-03: Anadido guardado independiente de URL publica en el panel de usuario con validacion de duplicados y migracion del campo `miembros.slug`.
 - 2026-07-04: Retirada la cabecera secundaria "Ficha artistica" del area de usuario para evitar redundancia con el resumen superior.
 - 2026-07-04: Movidos el estado de perfil y la impresion del curriculum al sidebar izquierdo como acciones rapidas.
@@ -275,6 +275,7 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - 2026-07-04: Sustituido el estado de perfil por una barra porcentual en el sidebar y convertido "Imprimir curriculum PDF" en accion mas discreta.
 - 2026-07-04: Anadida la seccion "Pagina web" al panel de miembro para configurar cabecera, galeria de hasta 9 imagenes y contacto.
 - 2026-07-04: Convertida `artista.php` en una pagina publica one-page con menu interno que solo muestra secciones con contenido.
+- 2026-07-09: Anadida ruta limpia `/artista/{slug}` mediante `.htaccess`, actualizados los enlaces publicos y retirada la cabecera/footer global de las paginas personales.
 
 ## Reglas y decisiones
 

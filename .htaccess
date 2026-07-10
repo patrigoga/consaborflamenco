@@ -1,0 +1,7 @@
+Options -MultiViews
+RewriteEngine On
+
+RewriteCond %{THE_REQUEST} \s+(.*/)?artista\.php\?slug=([^\s&]+) [NC]
+RewriteRule ^artista\.php$ %1artista/%2? [R=301,L,NE]
+
+RewriteRule ^artista/([a-z0-9_-]+)/?$ artista.php?slug=$1 [L,QSA,NC]

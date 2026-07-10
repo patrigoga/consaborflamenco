@@ -66,8 +66,7 @@ $heroStyle = $heroImage !== ''
 <!DOCTYPE html>
 <html lang="es">
 <?php page_head($displayName . ' | Con Sabor Flamenco', $heroSubtitle, false); ?>
-<body>
-    <?php page_header('ARTISTAS'); ?>
+<body class="artist-public-body">
     <main class="artist-web-page">
         <section id="inicio" class="artist-web-hero" <?= $heroStyle !== '' ? 'style="' . e($heroStyle) . '"' : '' ?>>
             <div class="container artist-web-hero-inner">
@@ -128,7 +127,5 @@ $heroStyle = $heroImage !== ''
             </section>
         <?php endif; ?>
     </main>
-    <?php page_footer(); ?>
-    <?php province_modal(); ?>
 </body>
 </html>
