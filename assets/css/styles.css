@@ -2353,6 +2353,90 @@ h3 {
     display: block;
 }
 
+.artist-landing {
+    width: min(calc(100% - 24px), 1160px);
+    margin: clamp(14px, 2vw, 24px) auto var(--section-gap);
+    display: grid;
+    gap: 18px;
+}
+
+.artist-hero,
+.artist-bio,
+.artist-contact {
+    border: 1px solid rgba(201, 164, 90, 0.24);
+    border-radius: 20px;
+    box-shadow: var(--shadow-soft);
+    overflow: hidden;
+}
+
+.artist-hero {
+    color: var(--color-white);
+    background:
+        radial-gradient(circle at 14% 0%, rgba(201, 79, 92, 0.34), transparent 32%),
+        radial-gradient(circle at 88% 6%, rgba(95, 143, 184, 0.28), transparent 30%),
+        linear-gradient(140deg, #111114, #1f2f3c);
+}
+
+.artist-hero .container,
+.artist-bio .container,
+.artist-contact .container {
+    width: 100%;
+    max-width: 100%;
+    padding: clamp(20px, 3.4vw, 34px);
+}
+
+.artist-hero h1 {
+    margin: 0;
+    color: var(--color-white);
+    font-size: clamp(2rem, 5vw, 4.2rem);
+    line-height: 1.02;
+}
+
+.artist-hero p {
+    margin: 14px 0 0;
+    max-width: 72ch;
+    color: rgba(255, 255, 255, 0.84);
+    font-size: 1.02rem;
+}
+
+.artist-hero img {
+    display: block;
+    width: min(260px, 46vw);
+    aspect-ratio: 1 / 1;
+    margin-top: 16px;
+    object-fit: cover;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.34);
+}
+
+.artist-bio,
+.artist-contact {
+    background: rgba(255, 250, 242, 0.96);
+}
+
+.artist-bio h2,
+.artist-contact h2 {
+    margin: 0 0 12px;
+    font-size: clamp(1.65rem, 3vw, 2.5rem);
+}
+
+.artist-bio p,
+.artist-contact p,
+.artist-contact a,
+.artist-bio li {
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.artist-contact a {
+    color: var(--color-red);
+    font-weight: 700;
+}
+
+.artist-contact a:hover {
+    text-decoration: underline;
+}
+
 .rich-text-toolbar {
     display: flex;
     flex-wrap: wrap;
@@ -5228,6 +5312,21 @@ h3 {
     .event-card p {
         grid-column: auto;
         margin-top: 0;
+    }
+
+    .artist-landing {
+        width: min(calc(100% - 16px), 1160px);
+        gap: 12px;
+    }
+
+    .artist-hero .container,
+    .artist-bio .container,
+    .artist-contact .container {
+        padding: 18px;
+    }
+
+    .artist-hero img {
+        width: min(190px, 54vw);
     }
 }
 
