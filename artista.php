@@ -91,6 +91,7 @@ $heroTitle = clean_text((string) ($webPage['header_title'] ?? '')) ?: $displayNa
 $heroSubtitle = clean_text((string) ($webPage['header_subtitle'] ?? '')) ?: $headline;
 $heroImage = artist_public_media_url(clean_text((string) (($webPage['header_image_path'] ?? '') ?: ($profile['cv_header_image_path'] ?? '') ?: ($profile['main_photo_path'] ?? ''))));
 $mainPhoto = artist_public_media_url(clean_text((string) ($profile['main_photo_path'] ?? '')));
+$menuImage = $heroImage !== '' ? $heroImage : $mainPhoto;
 $gallery = array_values(array_filter(array_map(
     static fn ($path): string => artist_public_media_url(clean_text((string) $path)),
     array_slice(is_array($webPage['gallery'] ?? null) ? $webPage['gallery'] : [], 0, 9)
@@ -100,6 +101,7 @@ $siteBaseUrl = artist_public_base_url();
 $artistsUrl = $siteBaseUrl . '/artistas.php';
 $registerUrl = $siteBaseUrl . '/registro.php';
 $defaultHeroImage = artist_public_media_url('assets/images/flamenco-header-art.png');
+$homeUrl = $siteBaseUrl . '/index.php#inicio';
 
 $contactItems = [];
 if (in_array('email', $contactFields, true) && !empty($member['email'])) {
@@ -136,8 +138,8 @@ $heroStyle .= ';';
     <header class="artist-web-topbar">
         <div class="container artist-web-topbar-inner">
             <a class="artist-web-logo" href="#inicio" aria-label="Ir a la cabecera de <?= e($displayName) ?>">
-                <?php if ($mainPhoto !== ''): ?>
-                    <img src="<?= e($mainPhoto) ?>" alt="Fotografia de <?= e($displayName) ?>" loading="eager" onerror="this.hidden=true;this.nextElementSibling.hidden=false;">
+                <?php if ($menuImage !== ''): ?>
+                    <img src="<?= e($menuImage) ?>" alt="Imagen de cabecera de <?= e($displayName) ?>" loading="eager" onerror="this.hidden=true;this.nextElementSibling.hidden=false;">
                     <span hidden><?= e(strtoupper(substr($displayName, 0, 1))) ?></span>
                 <?php else: ?>
                     <span><?= e(strtoupper(substr($displayName, 0, 1))) ?></span>
@@ -145,10 +147,12 @@ $heroStyle .= ';';
                 <strong><?= e($displayName) ?></strong>
             </a>
             <nav class="artist-web-menu" aria-label="Menu de la pagina del artista">
+                <a href="<?= e($homeUrl) ?>">Inicio</a>
                 <?php foreach ($publicSections as $sectionId => $sectionLabel): ?>
                     <a href="#<?= e($sectionId) ?>"><?= e($sectionLabel) ?></a>
                 <?php endforeach; ?>
             </nav>
+            <a class="artist-web-topbar-action" href="<?= e($registerUrl) ?>">Crear perfil</a>
         </div>
     </header>
     <main class="artist-web-page">
@@ -210,7 +214,7 @@ $heroStyle .= ';';
                 <?php if ($gallery): ?><a href="#galeria">Galeria</a><?php endif; ?>
                 <?php if ($contactItems): ?><a href="#contacto">Contacto</a><?php endif; ?>
                 <a href="<?= e($artistsUrl) ?>">Directorio</a>
-                <a href="<?= e($registerUrl) ?>">Crear perfil</a>
+                <a href="<?= e($homeUrl) ?>">Inicio</a>
             </nav>
         </div>
     </footer>

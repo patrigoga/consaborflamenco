@@ -293,6 +293,14 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Simplificado el hero publico retirando marca CSF visible, tipo/titular artistico, ubicacion, botones rojos y tarjeta lateral.
 - Ajustada la navegacion de la pagina publica para escritorio y movil, manteniendo enlaces internos solo a secciones con contenido.
 - Reforzada la normalizacion de rutas de imagenes publicas para resolver correctamente `assets/...` desde `/artista/{slug}`, limpiar prefijos antiguos y usar fondo de reserva si falla la imagen personalizada.
+- Movido el menu publico junto a la identidad del artista, usando la imagen de cabecera como marca en la barra superior e incorporando enlace `Inicio` a la pagina principal.
+
+### 2026-07-13 - Fase 5 - Refinamiento visual del area de miembro
+
+- Eliminados los botones duplicados `Guardar curriculum` e `Imprimir / guardar PDF` del editor principal de perfil.
+- Anadida una barra moderna de guardado como accion unica del formulario de perfil.
+- Ampliado y refinado el sidebar izquierdo del area de usuario, con mejor jerarquia visual y adaptacion responsive.
+- Modernizadas las secciones de Identidad artistica y Datos de perfil e imagen con tarjetas, campos mas limpios y comportamiento movil mejorado.
 
 ## Reglas y decisiones
 

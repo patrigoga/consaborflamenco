@@ -633,12 +633,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                         <form class="member-profile-form cv-editor" id="member-profile-form" action="panel-usuario.php#perfil" method="post" enctype="multipart/form-data">
                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="profile_action" value="update_profile">
-                            <div class="cv-editor-actions">
-                                <button class="button button-primary" type="submit">Guardar curriculum</button>
-                                <button class="button button-secondary" type="button" onclick="window.print()">Imprimir / guardar PDF</button>
-                            </div>
-
-                            <fieldset class="cv-fieldset profile-tab-panel active" data-profile-tab="artistica">
+                            <fieldset class="cv-fieldset profile-core-fieldset">
                                 <legend>Identidad artistica</legend>
                                 <div class="form-grid-two">
                                     <label for="user_name">Nombre de usuario (cuenta)
@@ -672,7 +667,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                 </div>
                             </fieldset>
 
-                            <fieldset class="cv-fieldset profile-tab-panel" data-profile-tab="datos">
+                            <fieldset class="cv-fieldset profile-data-fieldset">
                                 <legend>Datos de perfil e imagen</legend>
                                 <p class="field-help">Aqui se rellenan ciudad, provincia, lugar de origen y fotografia principal. Estas opciones definen tu perfil visible.</p>
                                 <div class="form-grid-three">
@@ -822,9 +817,12 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                 </label>
                             </fieldset>
 
-                            <div class="cv-editor-actions">
-                                <button class="button button-primary" type="submit">Guardar curriculum</button>
-                                <button class="button button-secondary" type="button" onclick="window.print()">Imprimir / guardar PDF</button>
+                            <div class="member-form-savebar">
+                                <div>
+                                    <strong>Guardar cambios del perfil</strong>
+                                    <span>Actualiza identidad, datos profesionales y secciones del curriculum.</span>
+                                </div>
+                                <button class="button button-primary member-save-button" type="submit">Guardar cambios</button>
                             </div>
                         </form>
                         <section class="cv-print-document" aria-label="Curriculum imprimible">

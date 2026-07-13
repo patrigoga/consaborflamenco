@@ -3611,10 +3611,11 @@ h3 {
 
 .artist-web-topbar-inner {
     min-height: 74px;
-    display: flex;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    justify-content: space-between;
-    gap: 22px;
+    justify-content: start;
+    gap: 14px;
 }
 
 .artist-web-logo {
@@ -3627,10 +3628,10 @@ h3 {
 .artist-web-logo img,
 .artist-web-logo span {
     flex: 0 0 auto;
-    width: 50px;
+    width: 86px;
     height: 50px;
     border: 1px solid rgba(248, 229, 182, 0.22);
-    border-radius: 50%;
+    border-radius: 8px;
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.26);
 }
 
@@ -3660,7 +3661,8 @@ h3 {
 .artist-web-menu {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: flex-start;
+    min-width: 0;
     gap: 8px;
 }
 
@@ -3678,6 +3680,17 @@ h3 {
     color: var(--color-white);
     background: rgba(255, 255, 255, 0.08);
     border-color: rgba(248, 229, 182, 0.26);
+}
+
+.artist-web-topbar-action {
+    justify-self: end;
+    padding: 9px 14px;
+    color: var(--color-white);
+    background: rgba(201, 79, 92, 0.76);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    font-size: 0.84rem;
+    font-weight: 900;
 }
 
 .artist-web-hero {
@@ -3861,6 +3874,7 @@ h3 {
     }
 
     .artist-web-topbar-inner {
+        grid-template-columns: minmax(0, 1fr) auto;
         min-height: 70px;
     }
 
@@ -3869,8 +3883,15 @@ h3 {
     }
 
     .artist-web-menu {
+        grid-column: 1 / -1;
+        grid-row: 2;
         overflow-x: auto;
         scrollbar-width: none;
+    }
+
+    .artist-web-topbar-action {
+        grid-column: 2;
+        grid-row: 1;
     }
 
     .artist-web-footer-inner {
@@ -3886,7 +3907,7 @@ h3 {
 @media (max-width: 700px) {
     .artist-web-topbar-inner {
         display: grid;
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
         gap: 10px;
         min-height: auto;
         padding-block: 10px;
@@ -3894,7 +3915,7 @@ h3 {
 
     .artist-web-logo img,
     .artist-web-logo span {
-        width: 44px;
+        width: 74px;
         height: 44px;
     }
 
@@ -3903,9 +3924,15 @@ h3 {
     }
 
     .artist-web-menu {
+        grid-column: 1;
+        grid-row: auto;
         width: 100%;
         justify-content: flex-start;
         padding-bottom: 2px;
+    }
+
+    .artist-web-topbar-action {
+        display: none;
     }
 
     .artist-web-menu a {
@@ -4466,6 +4493,291 @@ h3 {
     color: var(--color-ink);
     font-size: 0.84rem;
     font-weight: 800;
+}
+
+/* Member panel modern polish */
+.member-panel {
+    grid-template-columns: 320px minmax(0, 1fr);
+    width: min(calc(100% - 36px), 1720px);
+    align-items: start;
+}
+
+.member-sidebar {
+    position: sticky;
+    top: 94px;
+    padding: 16px;
+    border-radius: 18px;
+}
+
+.member-sidebar-card {
+    padding: 22px;
+    border-radius: 14px;
+}
+
+.member-sidebar-card .profile-avatar-large {
+    width: 72px;
+    height: 72px;
+    margin-bottom: 4px;
+    font-size: 1.4rem;
+}
+
+.member-sidebar-card strong {
+    font-size: 1.08rem;
+}
+
+.member-sidebar-nav {
+    gap: 7px;
+    padding: 6px;
+}
+
+.member-sidebar-nav a {
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    padding: 12px 14px 12px 22px;
+    border: 1px solid transparent;
+}
+
+.member-sidebar-nav a:hover,
+.member-sidebar-nav a:focus-visible,
+.member-sidebar-nav a.active {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.member-sidebar-progress {
+    padding: 18px;
+    border-radius: 16px;
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.045)),
+        linear-gradient(90deg, rgba(201, 79, 92, 0.12), rgba(201, 164, 90, 0.08));
+}
+
+.member-sidebar-print {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    color: #fffaf2;
+    background:
+        linear-gradient(135deg, rgba(201, 79, 92, 0.34), rgba(201, 164, 90, 0.12));
+    border-radius: 14px;
+}
+
+.member-panel-tabs {
+    display: none;
+}
+
+.member-profile-form {
+    gap: 24px;
+}
+
+.profile-core-fieldset,
+.profile-data-fieldset {
+    position: relative;
+    gap: 20px;
+    padding: clamp(24px, 3vw, 38px);
+    border: 1px solid rgba(201, 79, 92, 0.14);
+    border-radius: 18px;
+    background:
+        linear-gradient(135deg, rgba(255, 252, 246, 0.98), rgba(246, 239, 229, 0.94)),
+        linear-gradient(90deg, rgba(95, 143, 184, 0.06), transparent 42%);
+    box-shadow: 0 24px 54px rgba(13, 17, 20, 0.1);
+}
+
+.profile-core-fieldset legend,
+.profile-data-fieldset legend {
+    margin-bottom: 4px;
+    color: #111114;
+    font-size: clamp(1.75rem, 3vw, 2.8rem);
+    line-height: 0.98;
+}
+
+.profile-core-fieldset > label,
+.profile-core-fieldset .form-grid-two > label,
+.profile-data-fieldset .form-grid-two > label,
+.profile-data-fieldset .form-grid-three > label {
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid rgba(17, 17, 20, 0.08);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.58);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.profile-core-fieldset input,
+.profile-core-fieldset select,
+.profile-data-fieldset input,
+.profile-data-fieldset select,
+.profile-data-fieldset textarea {
+    min-height: 46px;
+    border-radius: 10px;
+    background: rgba(255, 252, 246, 0.92);
+}
+
+.profile-data-fieldset .field-help {
+    color: #69646b;
+}
+
+.public-url-control {
+    align-items: stretch;
+}
+
+.public-url-control label {
+    padding: 14px;
+    border: 1px solid rgba(17, 17, 20, 0.08);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.58);
+}
+
+.public-url-save {
+    align-self: end;
+    min-height: 54px;
+    color: #fffaf2;
+    background: linear-gradient(135deg, #c94f5c, #9d414b);
+    border: 1px solid rgba(17, 17, 20, 0.08);
+    border-radius: 14px;
+    box-shadow: 0 14px 28px rgba(201, 79, 92, 0.18);
+}
+
+.member-form-savebar {
+    position: sticky;
+    bottom: 18px;
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-top: 4px;
+    padding: 14px;
+    color: #fffaf2;
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    border-radius: 18px;
+    background:
+        linear-gradient(135deg, rgba(17, 17, 20, 0.94), rgba(25, 44, 55, 0.94)),
+        linear-gradient(90deg, rgba(201, 79, 92, 0.18), rgba(201, 164, 90, 0.08));
+    box-shadow: 0 24px 58px rgba(6, 10, 14, 0.26);
+    backdrop-filter: blur(16px);
+}
+
+.member-form-savebar div {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.member-form-savebar strong {
+    color: #fffaf2;
+    font-size: 0.98rem;
+}
+
+.member-form-savebar span {
+    color: rgba(255, 250, 242, 0.62);
+    font-size: 0.84rem;
+}
+
+.member-save-button {
+    min-height: 48px;
+    padding-inline: 22px;
+    border-radius: 12px;
+    box-shadow: 0 16px 32px rgba(201, 79, 92, 0.24);
+    white-space: nowrap;
+}
+
+@media (max-width: 1180px) {
+    .member-panel {
+        grid-template-columns: 1fr;
+        width: min(calc(100% - 24px), 960px);
+    }
+
+    .member-sidebar {
+        position: static;
+    }
+
+    .member-sidebar-card {
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+    }
+
+    .member-sidebar-card .profile-avatar-large {
+        margin-bottom: 0;
+    }
+
+    .member-sidebar-nav {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .member-sidebar-nav a {
+        justify-content: center;
+        padding: 11px 10px;
+        text-align: center;
+    }
+
+    .member-sidebar-nav a::before {
+        display: none;
+    }
+
+    .member-sidebar-print {
+        width: auto;
+    }
+}
+
+@media (max-width: 760px) {
+    .member-panel {
+        width: min(calc(100% - 16px), 100%);
+        gap: 16px;
+    }
+
+    .member-sidebar {
+        padding: 12px;
+        border-radius: 14px;
+    }
+
+    .member-sidebar-nav {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .member-sidebar-progress,
+    .member-sidebar-print {
+        border-radius: 12px;
+    }
+
+    .member-dashboard-hero,
+    .profile-core-fieldset,
+    .profile-data-fieldset,
+    .cv-fieldset {
+        padding: 18px;
+        border-radius: 14px;
+    }
+
+    .member-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .public-url-save {
+        width: 100%;
+    }
+
+    .member-form-savebar {
+        position: static;
+        display: grid;
+        padding: 14px;
+    }
+
+    .member-save-button {
+        width: 100%;
+    }
+
+    .cv-section-heading,
+    .cv-section-tools {
+        display: grid;
+        justify-content: stretch;
+    }
+
+    .cv-section-tools {
+        border-radius: 14px;
+    }
 }
 
 .site-footer {
