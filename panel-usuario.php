@@ -633,20 +633,15 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                         <form class="member-profile-form cv-editor" id="member-profile-form" action="panel-usuario.php#perfil" method="post" enctype="multipart/form-data">
                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="profile_action" value="update_profile">
-                            <div class="member-editor-toolbar">
-                                <div>
-                                    <span>Editor del perfil</span>
-                                    <strong>Los cambios del curriculum se guardan en tu cuenta</strong>
-                                </div>
-                                <button class="button button-primary member-save-button" type="submit">Guardar perfil</button>
-                            </div>
                             <fieldset class="cv-fieldset profile-core-fieldset">
-                                <legend>
-                                    <span>Perfil publico</span>
-                                    <strong>Identidad artistica</strong>
-                                    <em>Define como se presentara tu espacio en la web, la tarjeta y el curriculum.</em>
-                                </legend>
-                                <div class="form-grid-two">
+	                                <legend>
+	                                    <span>Perfil publico</span>
+	                                    <strong>Identidad artistica</strong>
+	                                    <em>Define como se presentara tu espacio en la web, la tarjeta y el curriculum.</em>
+	                                </legend>
+	                                <div class="profile-identity-layout">
+	                                    <div class="profile-identity-fields">
+	                                <div class="form-grid-two">
                                     <label for="user_name">Nombre de usuario (cuenta)
                                         <input id="user_name" name="user_name" type="text" value="<?= e((string) ($user['name'] ?? '')) ?>" maxlength="160" required>
                                     </label>
@@ -673,10 +668,30 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                     <label for="slug">URL pública (slug)
                                         <input id="slug" name="slug" type="text" value="<?= e($publicSlug) ?>" placeholder="nombre-artista" required>
                                     </label>
-                                    <button class="button button-secondary public-url-save" type="submit" name="slug_action" value="save_public_slug" formnovalidate>Guardar URL</button>
-                                    <p class="field-help public-url-preview">URL publica completa: <a href="<?= e($publicProfileUrl) ?>" target="_blank" rel="noopener"><?= e($publicProfileUrl) ?></a></p>
-                                </div>
-                            </fieldset>
+	                                    <button class="button button-secondary public-url-save" type="submit" name="slug_action" value="save_public_slug" formnovalidate>Guardar URL</button>
+	                                    <p class="field-help public-url-preview">URL publica completa: <a href="<?= e($publicProfileUrl) ?>" target="_blank" rel="noopener"><?= e($publicProfileUrl) ?></a></p>
+	                                </div>
+	                                    </div>
+	                                    <aside class="profile-public-preview" aria-label="Vista previa del perfil publico">
+	                                        <span class="profile-public-preview-kicker">Vista publica</span>
+	                                        <div class="profile-public-preview-card">
+	                                            <span class="profile-public-preview-avatar">
+	                                                <?php if (!empty($memberProfile['main_photo_path'])): ?>
+	                                                    <img src="<?= e($memberProfile['main_photo_path']) ?>" alt="Fotografia de <?= e($displayName) ?>" loading="lazy">
+	                                                <?php else: ?>
+	                                                    <?= e(strtoupper(substr($displayName, 0, 1))) ?>
+	                                                <?php endif; ?>
+	                                            </span>
+	                                            <small><?= e($memberTypeLabel) ?></small>
+	                                            <strong><?= e($displayName) ?></strong>
+	                                            <em><?= e($cardHeadline !== '' ? $cardHeadline : 'Titular artistico pendiente') ?></em>
+	                                            <p><?= e($memberProfile['city'] ?: 'Ciudad') ?><?= ($memberProfile['city'] || $memberProfile['province']) ? ', ' : '' ?><?= e($memberProfile['province'] ?: 'Provincia') ?></p>
+	                                        </div>
+	                                        <a href="<?= e($publicProfileUrl) ?>" target="_blank" rel="noopener"><?= e($publicSlug) ?></a>
+	                                        <button class="button button-primary member-save-button profile-preview-save" type="submit">Guardar perfil</button>
+	                                    </aside>
+	                                </div>
+	                            </fieldset>
 
                             <fieldset class="cv-fieldset profile-data-fieldset">
                                 <legend>

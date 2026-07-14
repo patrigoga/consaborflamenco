@@ -306,6 +306,7 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 ### 2026-07-14 - Fase 5 - Mejora estetica de identidad de miembro
 
 - Redisenadas las tarjetas de Identidad artistica y Datos de perfil e imagen con cabecera editorial oscura, mejor jerarquia tipografica, campos mas ligeros y URL publica integrada.
+- Anadida una previsualizacion lateral del perfil publico dentro de Identidad artistica e integrado el boton Guardar perfil en esa composicion.
 
 ## Reglas y decisiones
 

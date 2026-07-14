@@ -216,3 +216,4 @@ Los miembros podran contratar servicios digitales ofrecidos por la plataforma. E
 - 2026-07-13: Modernizada la vista de perfil del area de miembro con sidebar mas ancho, bloques de identidad/datos mas elegantes, botones simplificados y responsive reforzado.
 - 2026-07-13: Reforzado el guardado real de imagenes del perfil: foto principal, fondo e imagenes de articulos se suben al servidor, y las carpetas runtime quedan preparadas con proteccion e ignore.
 - 2026-07-14: Redisenadas las secciones Identidad artistica y Datos de perfil e imagen con cabecera editorial, campos mas limpios y URL publica integrada.
+- 2026-07-14: Convertida Identidad artistica en una composicion con campos y previsualizacion lateral del perfil publico, integrando el guardado dentro del propio bloque.
