@@ -144,7 +144,6 @@ $heroStyle .= ';';
                 <?php else: ?>
                     <span><?= e(strtoupper(substr($displayName, 0, 1))) ?></span>
                 <?php endif; ?>
-                <strong><?= e($displayName) ?></strong>
             </a>
             <nav class="artist-web-menu" aria-label="Menu de la pagina del artista">
                 <a href="<?= e($homeUrl) ?>">Inicio</a>
@@ -156,11 +155,16 @@ $heroStyle .= ';';
         </div>
     </header>
     <main class="artist-web-page">
+        <section class="artist-web-name-band" aria-label="Nombre artistico">
+            <div class="container">
+                <h1><?= e($displayName) ?></h1>
+            </div>
+        </section>
         <section id="inicio" class="artist-web-hero" style="<?= e($heroStyle) ?>">
             <div class="container artist-web-hero-inner">
-                <div class="artist-web-hero-copy">
-                    <h1><?= e($heroTitle) ?></h1>
-                </div>
+                <?php if ($heroSubtitle !== ''): ?>
+                    <p class="artist-web-hero-subtitle"><?= e($heroSubtitle) ?></p>
+                <?php endif; ?>
             </div>
         </section>
 

@@ -590,6 +590,29 @@ if ($profileWantsJsonResponse) {
     exit;
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $profileAction === 'upload_cv_entry_image') {
+    if (!verify_csrf($_POST['csrf_token'] ?? null)) {
+        $profileErrors[] = 'La sesion ha caducado. Vuelve a intentarlo.';
+    }
+
+    $uploadedEntryImagePath = null;
+    if (!$profileErrors) {
+        $uploadedEntryImagePath = save_member_cv_image_upload($_FILES['cv_entry_image'] ?? null, $profileErrors);
+        if (!$uploadedEntryImagePath) {
+            $profileErrors[] = 'Selecciona una imagen valida para esta entrada.';
+        }
+    }
+
+    http_response_code($profileErrors ? 422 : 200);
+    header('Content-Type: application/json; charset=UTF-8');
+    echo json_encode([
+        'ok' => !$profileErrors,
+        'errors' => $profileErrors,
+        'image_path' => member_visible_asset_path((string) $uploadedEntryImagePath),
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') === 'update_web_page') {
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
         $profileErrors[] = 'La sesion ha caducado. Vuelve a intentarlo.';
@@ -1455,7 +1478,59 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                     placeholder.hidden = true;
                 }
                 markProfilePendingSave('Guardando imagen en tu perfil...');
-                submitProfileForEntryImage();
+                if (!(csrfInput instanceof HTMLInputElement)) {
+                    submitProfileForEntryImage();
+                    return;
+                }
+
+                const uploadData = new FormData();
+                uploadData.append('profile_action', 'upload_cv_entry_image');
+                uploadData.append('csrf_token', csrfInput.value);
+                uploadData.append('cv_entry_image', input.files[0], input.files[0].name);
+
+                fetch('panel-usuario.php', {
+                    method: 'POST',
+                    body: uploadData,
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'fetch',
+                    },
+                    credentials: 'same-origin',
+                })
+                    .then(async (response) => {
+                        let payload = null;
+                        try {
+                            payload = await response.json();
+                        } catch (error) {
+                            throw new Error('No se pudo confirmar la subida de la imagen.');
+                        }
+                        if (!response.ok || !payload?.ok || !payload.image_path) {
+                            throw new Error(payload?.errors?.[0] || 'No se pudo guardar la imagen de la entrada.');
+                        }
+                        return payload.image_path;
+                    })
+                    .then((persistedImagePath) => {
+                        const hiddenPath = field?.querySelector('input[type="hidden"][name$="[image_path]"]');
+                        if (hiddenPath instanceof HTMLInputElement) {
+                            hiddenPath.value = persistedImagePath;
+                        }
+                        if (preview instanceof HTMLImageElement) {
+                            preview.src = cacheBustedAssetPath(persistedImagePath);
+                            preview.hidden = false;
+                        }
+                        if (placeholder instanceof HTMLElement) {
+                            placeholder.hidden = true;
+                        }
+                        input.value = '';
+                        submitProfileForEntryImage();
+                    })
+                    .catch((error) => {
+                        const message = error instanceof Error ? error.message : 'No se pudo guardar la imagen de la entrada.';
+                        if (saveBarMessage instanceof HTMLElement) {
+                            saveBarMessage.textContent = message;
+                        }
+                        alert(message);
+                    });
             }
 
             if (input.matches('#main_photo') && input.files?.[0]) {

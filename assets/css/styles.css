@@ -3693,12 +3693,35 @@ h3 {
     font-weight: 900;
 }
 
+.artist-web-name-band {
+    color: var(--color-white);
+    background: #050506;
+    border-top: 1px solid rgba(248, 229, 182, 0.08);
+    border-bottom: 1px solid rgba(248, 229, 182, 0.12);
+}
+
+.artist-web-name-band .container {
+    min-height: clamp(82px, 9vw, 118px);
+    display: grid;
+    place-items: center;
+}
+
+.artist-web-name-band h1 {
+    margin: 0;
+    color: var(--color-white);
+    font-family: var(--font-display);
+    font-size: clamp(2.35rem, 4.8vw, 4.4rem);
+    line-height: 0.95;
+    text-align: center;
+    text-shadow: 0 12px 42px rgba(0, 0, 0, 0.56);
+}
+
 .artist-web-hero {
     position: relative;
-    min-height: calc(100vh - 74px);
+    min-height: clamp(460px, calc(100vh - 190px), 720px);
     display: grid;
     align-items: end;
-    padding: 84px 0 76px;
+    padding: 56px 0 64px;
     color: var(--color-white);
     background:
         linear-gradient(90deg, rgba(17, 17, 20, 0.94), rgba(17, 17, 20, 0.48) 56%, rgba(32, 56, 71, 0.74)),
@@ -3725,17 +3748,18 @@ h3 {
     align-items: end;
 }
 
-.artist-web-hero-copy {
-    max-width: 1080px;
-}
-
-.artist-web-hero h1 {
-    max-width: 1060px;
+.artist-web-hero-subtitle {
+    width: min(680px, 100%);
     margin: 0;
-    color: var(--color-white);
-    font-size: clamp(4rem, 10vw, 9rem);
-    line-height: 0.9;
-    text-shadow: 0 18px 60px rgba(0, 0, 0, 0.42);
+    padding: 18px 22px;
+    color: rgba(255, 250, 242, 0.9);
+    border: 1px solid rgba(248, 229, 182, 0.14);
+    border-radius: 10px;
+    background: rgba(17, 17, 20, 0.46);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+    font-size: clamp(1.02rem, 1.4vw, 1.25rem);
+    font-weight: 750;
+    line-height: 1.45;
 }
 
 .artist-web-section {
@@ -3878,8 +3902,8 @@ h3 {
         min-height: 70px;
     }
 
-    .artist-web-hero h1 {
-        font-size: 5rem;
+    .artist-web-name-band h1 {
+        font-size: 3.8rem;
     }
 
     .artist-web-menu {
@@ -3945,8 +3969,8 @@ h3 {
         padding: 52px 0 44px;
     }
 
-    .artist-web-hero h1 {
-        font-size: 3.25rem;
+    .artist-web-name-band h1 {
+        font-size: 2.7rem;
         line-height: 0.98;
     }
 
