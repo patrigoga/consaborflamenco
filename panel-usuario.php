@@ -343,7 +343,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($profileAction, ['update_p
     $photoPath = null;
     $cvHeaderImagePath = null;
     if (!$profileErrors) {
-        $photoPath = save_member_photo_upload($_FILES['main_photo'] ?? null, $profileErrors, empty($memberProfile['main_photo_path']));
+        $photoPath = save_member_photo_upload($_FILES['main_photo'] ?? null, $profileErrors, false);
         if ($photoPath) {
             $memberProfile['main_photo_path'] = $photoPath;
         }
@@ -633,6 +633,13 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                         <form class="member-profile-form cv-editor" id="member-profile-form" action="panel-usuario.php#perfil" method="post" enctype="multipart/form-data">
                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="profile_action" value="update_profile">
+                            <div class="member-editor-toolbar">
+                                <div>
+                                    <span>Editor del perfil</span>
+                                    <strong>Los cambios del curriculum se guardan en tu cuenta</strong>
+                                </div>
+                                <button class="button button-primary member-save-button" type="submit">Guardar perfil</button>
+                            </div>
                             <fieldset class="cv-fieldset profile-core-fieldset">
                                 <legend>Identidad artistica</legend>
                                 <div class="form-grid-two">
@@ -779,6 +786,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                                         <span data-cv-image-placeholder <?= !empty($entry['image_path']) ? 'hidden' : '' ?>>Sin imagen</span>
                                                     </span>
                                                     <input name="<?= e($sectionKey) ?>[<?= e((string) $rowIndex) ?>][image]" type="file" accept="image/jpeg,image/png,image/webp" data-cv-image-input>
+                                                    <small>Se guarda automaticamente al seleccionar.</small>
                                                 </label>
                                             <?php endif; ?>
                                             <?php foreach ($sectionConfig['fields'] as $fieldName => $fieldLabel): ?>
@@ -820,7 +828,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                             <div class="member-form-savebar">
                                 <div>
                                     <strong>Guardar cambios del perfil</strong>
-                                    <span>Actualiza identidad, datos profesionales y secciones del curriculum.</span>
+                                    <span data-savebar-message>Actualiza identidad, datos profesionales y secciones del curriculum.</span>
                                 </div>
                                 <button class="button button-primary member-save-button" type="submit">Guardar cambios</button>
                             </div>
@@ -1062,16 +1070,71 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
         const originalDocumentTitle = document.title;
         const memberProfileForm = document.getElementById('member-profile-form');
         const profileActionInput = memberProfileForm?.querySelector('input[name="profile_action"]');
+        const csrfInput = memberProfileForm?.querySelector('input[name="csrf_token"]');
+        const saveBar = document.querySelector('.member-form-savebar');
+        const saveBarMessage = saveBar?.querySelector('[data-savebar-message]');
 
-        const submitImageUpdate = () => {
+        const syncRichTextEditors = (form = memberProfileForm) => {
+            if (!(form instanceof HTMLFormElement)) {
+                return;
+            }
+            form.querySelectorAll('[data-rich-editor]').forEach((formEditor) => {
+                if (!(formEditor instanceof HTMLElement)) {
+                    return;
+                }
+                const formTextarea = formEditor.parentElement?.querySelector('textarea[hidden]');
+                if (formTextarea instanceof HTMLTextAreaElement) {
+                    formTextarea.value = formEditor.innerHTML;
+                }
+            });
+        };
+
+        const markProfilePendingSave = (message = 'Hay cambios pendientes. Pulsa Guardar cambios para dejarlos persistentes.') => {
+            if (saveBar instanceof HTMLElement) {
+                saveBar.classList.add('member-form-savebar-pending');
+            }
+            if (saveBarMessage instanceof HTMLElement) {
+                saveBarMessage.textContent = message;
+            }
+        };
+
+        const submitIsolatedImageUpdate = (input) => {
+            if (!(input instanceof HTMLInputElement) || !input.files?.[0] || !(csrfInput instanceof HTMLInputElement)) {
+                return;
+            }
+
+            const temporaryForm = document.createElement('form');
+            temporaryForm.method = 'post';
+            temporaryForm.enctype = 'multipart/form-data';
+            temporaryForm.action = 'panel-usuario.php#perfil';
+            temporaryForm.hidden = true;
+
+            const action = document.createElement('input');
+            action.type = 'hidden';
+            action.name = 'profile_action';
+            action.value = 'update_profile_images';
+
+            const csrf = document.createElement('input');
+            csrf.type = 'hidden';
+            csrf.name = 'csrf_token';
+            csrf.value = csrfInput.value;
+
+            temporaryForm.append(action, csrf, input);
+            document.body.appendChild(temporaryForm);
+            temporaryForm.submit();
+        };
+
+        const submitProfileForEntryImage = () => {
             if (!(memberProfileForm instanceof HTMLFormElement)) {
                 return;
             }
+            syncRichTextEditors(memberProfileForm);
             if (profileActionInput instanceof HTMLInputElement) {
-                profileActionInput.value = 'update_profile_images';
+                profileActionInput.value = 'update_profile';
             }
-            memberProfileForm.requestSubmit();
+            memberProfileForm.submit();
         };
+
         window.addEventListener('beforeprint', () => {
             document.title = ' ';
         });
@@ -1143,6 +1206,8 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                 if (placeholder instanceof HTMLElement) {
                     placeholder.hidden = true;
                 }
+                markProfilePendingSave('Guardando imagen en tu perfil...');
+                submitProfileForEntryImage();
             }
 
             if (input.matches('#main_photo') && input.files?.[0]) {
@@ -1158,7 +1223,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                 placeholders.forEach((placeholder) => {
                     placeholder.hidden = true;
                 });
-                submitImageUpdate();
+                submitIsolatedImageUpdate(input);
             }
 
             if (input.matches('#cv_header_image') && input.files?.[0]) {
@@ -1174,7 +1239,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                         action.textContent = 'Cambiar fondo';
                     }
                 }
-                submitImageUpdate();
+                submitIsolatedImageUpdate(input);
             }
         });
 
@@ -1183,6 +1248,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                 if (profileActionInput instanceof HTMLInputElement && profileActionInput.value !== 'update_profile_images') {
                     profileActionInput.value = 'update_profile';
                 }
+                syncRichTextEditors(memberProfileForm);
             });
         }
 

@@ -301,6 +301,7 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Anadida una barra moderna de guardado como accion unica del formulario de perfil.
 - Ampliado y refinado el sidebar izquierdo del area de usuario, con mejor jerarquia visual y adaptacion responsive.
 - Modernizadas las secciones de Identidad artistica y Datos de perfil e imagen con tarjetas, campos mas limpios y comportamiento movil mejorado.
+- Reforzada la persistencia de imagenes: foto principal y fondo de cabecera se suben con guardado aislado, las imagenes de articulos guardan automaticamente el perfil completo, y las carpetas de uploads quedan protegidas e ignoradas como runtime.
 
 ## Reglas y decisiones
 

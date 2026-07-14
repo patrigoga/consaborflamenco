@@ -214,3 +214,4 @@ Los miembros podran contratar servicios digitales ofrecidos por la plataforma. E
 - 2026-07-11: Reforzada la resolucion de imagenes en `/artista/{slug}` para evitar rutas rotas bajo `/artista/assets`, limpiar prefijos antiguos y mantener fondo de reserva.
 - 2026-07-11: Ajustado el menu publico para usar la imagen de cabecera del perfil como marca visual y anadir enlace `Inicio` hacia la pagina principal.
 - 2026-07-13: Modernizada la vista de perfil del area de miembro con sidebar mas ancho, bloques de identidad/datos mas elegantes, botones simplificados y responsive reforzado.
+- 2026-07-13: Reforzado el guardado real de imagenes del perfil: foto principal, fondo e imagenes de articulos se suben al servidor, y las carpetas runtime quedan preparadas con proteccion e ignore.
