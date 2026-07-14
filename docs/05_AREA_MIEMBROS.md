@@ -219,3 +219,4 @@ Los miembros podran contratar servicios digitales ofrecidos por la plataforma. E
 - 2026-07-14: Convertida Identidad artistica en una composicion con campos y previsualizacion lateral del perfil publico, integrando el guardado dentro del propio bloque.
 - 2026-07-14: Reforzada la persistencia real de la fotografia principal: la columna `miembros.foto_principal_path` pasa a ser la fuente canonica, la subida automatica confirma la ruta en base de datos y la interfaz evita mostrar rutas de imagen inexistentes.
 - 2026-07-14: Cerrada la persistencia de imagenes de entradas del curriculum: cada articulo conserva su `image_path`, se limpia si el archivo no existe y el guardado confirma que las rutas quedan dentro de `miembros.perfil_json`.
+- 2026-07-14: Simplificada la identidad artistica retirando la vista publica redundante, convirtiendo la URL publica en boton de acceso, bloqueando el nombre de cuenta una vez reservado y normalizando espacios del slug a guiones.

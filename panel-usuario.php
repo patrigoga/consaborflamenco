@@ -453,6 +453,8 @@ $profileWantsJsonResponse = $_SERVER['REQUEST_METHOD'] === 'POST'
         str_contains(strtolower((string) ($_SERVER['HTTP_ACCEPT'] ?? '')), 'application/json')
         || strtolower((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'fetch'
     );
+$storedAccountName = clean_text((string) ($user['name'] ?? ''));
+$accountNameLocked = $storedAccountName !== '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($profileAction, ['update_profile', 'update_profile_images'], true)) {
     $isSlugSave = $profileAction === 'update_profile' && (string) ($_POST['slug_action'] ?? '') === 'save_public_slug';
 
@@ -538,13 +540,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($profileAction, ['update_p
         }
         $memberProfile['completed_at'] = profile_is_complete($memberProfile) ? ($memberProfile['completed_at'] ?? gmdate('c')) : null;
 
-        $accountName = clean_text((string) ($_POST['user_name'] ?? $user['name'] ?? ''));
-        if (strlen($accountName) < 2 || strlen($accountName) > 160) {
-            $profileErrors[] = 'El nombre de usuario debe tener entre 2 y 160 caracteres.';
-        } elseif (user_name_in_use($accountName, (string) ($user['id'] ?? ''))) {
-            $profileErrors[] = 'Ya existe otro usuario con ese nombre. Usa una variacion.';
+        if ($accountNameLocked) {
+            $user['name'] = $storedAccountName;
         } else {
-            $user['name'] = $accountName;
+            $accountName = clean_text((string) ($_POST['user_name'] ?? $user['name'] ?? ''));
+            if (strlen($accountName) < 2 || strlen($accountName) > 160) {
+                $profileErrors[] = 'El nombre de usuario debe tener entre 2 y 160 caracteres.';
+            } elseif (user_name_in_use($accountName, (string) ($user['id'] ?? ''))) {
+                $profileErrors[] = 'Ya existe otro usuario con ese nombre. Usa una variacion.';
+            } else {
+                $user['name'] = $accountName;
+            }
         }
     }
 
@@ -644,6 +650,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') ==
 }
 
 $userName = $user['name'] ?? 'Miembro';
+$accountNameLocked = clean_text((string) ($user['name'] ?? '')) !== '';
 
 $memberTypeLabel = member_type_options()[$memberProfile['member_type']] ?? 'Artista';
 $profileStatus = profile_is_complete($memberProfile) ? 'Perfil completo' : 'Perfil pendiente';
@@ -793,7 +800,8 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
 	                                    <div class="profile-identity-fields">
 	                                <div class="form-grid-two">
                                     <label for="user_name">Nombre de usuario (cuenta)
-                                        <input id="user_name" name="user_name" type="text" value="<?= e((string) ($user['name'] ?? '')) ?>" maxlength="160" required>
+                                        <input id="user_name" name="user_name" type="text" value="<?= e((string) ($user['name'] ?? '')) ?>" maxlength="160" <?= $accountNameLocked ? 'readonly aria-readonly="true" data-account-name-locked="1"' : 'required' ?>>
+                                        <span class="field-help"><?= $accountNameLocked ? 'Nombre reservado. Para cambiarlo, solicita autorizacion por correo electronico.' : 'Se comprobara que este libre al guardar el perfil.' ?></span>
                                     </label>
                                     <label for="user_email">Email de acceso
                                         <input id="user_email" type="email" value="<?= e((string) ($user['email'] ?? '')) ?>" readonly>
@@ -816,30 +824,15 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                                 </div>
                                 <div class="public-url-control">
                                     <label for="slug">URL pública (slug)
-                                        <input id="slug" name="slug" type="text" value="<?= e($publicSlug) ?>" placeholder="nombre-artista" required>
+	                                        <input id="slug" name="slug" type="text" value="<?= e($publicSlug) ?>" placeholder="nombre-artista" pattern="[a-z0-9-]+" autocomplete="off" spellcheck="false" data-slug-input data-public-profile-base="<?= e(app_url('artista/')) ?>" required>
                                     </label>
 	                                    <button class="button button-secondary public-url-save" type="submit" name="slug_action" value="save_public_slug" formnovalidate>Guardar URL</button>
-	                                    <p class="field-help public-url-preview">URL publica completa: <a href="<?= e($publicProfileUrl) ?>" target="_blank" rel="noopener"><?= e($publicProfileUrl) ?></a></p>
+		                                    <a class="public-url-cta" href="<?= e($publicProfileUrl) ?>" target="_blank" rel="noopener" data-public-url-cta>
+		                                        <span>Ver URL publica</span>
+		                                        <strong data-public-url-text><?= e($publicProfileUrl) ?></strong>
+		                                    </a>
 	                                </div>
 	                                    </div>
-	                                    <aside class="profile-public-preview" aria-label="Vista previa del perfil publico">
-	                                        <span class="profile-public-preview-kicker">Vista publica</span>
-	                                        <div class="profile-public-preview-card">
-	                                            <span class="profile-public-preview-avatar">
-	                                                <?php if ($mainPhotoVisiblePath !== ''): ?>
-	                                                    <img src="<?= e($mainPhotoVisiblePath) ?>" alt="Fotografia de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview>
-	                                                <?php else: ?>
-	                                                    <?= e(strtoupper(substr($displayName, 0, 1))) ?>
-	                                                <?php endif; ?>
-	                                            </span>
-	                                            <small><?= e($memberTypeLabel) ?></small>
-	                                            <strong><?= e($displayName) ?></strong>
-	                                            <em><?= e($cardHeadline !== '' ? $cardHeadline : 'Titular artistico pendiente') ?></em>
-	                                            <p><?= e($memberProfile['city'] ?: 'Ciudad') ?><?= ($memberProfile['city'] || $memberProfile['province']) ? ', ' : '' ?><?= e($memberProfile['province'] ?: 'Provincia') ?></p>
-	                                        </div>
-	                                        <a href="<?= e($publicProfileUrl) ?>" target="_blank" rel="noopener"><?= e($publicSlug) ?></a>
-	                                        <button class="button button-primary member-save-button profile-preview-save" type="submit">Guardar perfil</button>
-	                                    </aside>
 	                                </div>
 	                            </fieldset>
 
@@ -1280,6 +1273,37 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
             const separator = path.includes('?') ? '&' : '?';
             return `${path}${separator}v=${Date.now()}`;
         };
+
+        const normalizeSlugValue = (value) => value
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+            .replace(/-{2,}/g, '-');
+
+        const syncPublicUrlCta = () => {
+            const slugInput = document.querySelector('[data-slug-input]');
+            const publicUrlCta = document.querySelector('[data-public-url-cta]');
+            const publicUrlText = document.querySelector('[data-public-url-text]');
+            if (!(slugInput instanceof HTMLInputElement) || !(publicUrlCta instanceof HTMLAnchorElement) || !(publicUrlText instanceof HTMLElement)) {
+                return;
+            }
+
+            const normalizedSlug = normalizeSlugValue(slugInput.value);
+            if (slugInput.value !== normalizedSlug) {
+                slugInput.value = normalizedSlug;
+            }
+
+            const baseUrl = slugInput.dataset.publicProfileBase || '';
+            const nextUrl = `${baseUrl}${normalizedSlug || 'nombre-artista'}`;
+            publicUrlCta.href = nextUrl;
+            publicUrlText.textContent = nextUrl;
+        };
+
+        document.querySelector('[data-slug-input]')?.addEventListener('input', syncPublicUrlCta);
+        document.querySelector('[data-slug-input]')?.addEventListener('blur', syncPublicUrlCta);
+        syncPublicUrlCta();
 
         const submitIsolatedImageUpdate = async (input) => {
             if (!(input instanceof HTMLInputElement) || !input.files?.[0] || !(csrfInput instanceof HTMLInputElement)) {
