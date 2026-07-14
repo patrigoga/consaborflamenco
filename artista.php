@@ -54,8 +54,12 @@ function artist_public_base_url(): string
 function artist_public_link_url(string $url): string
 {
     $url = trim($url);
-    if ($url === '' || preg_match('#^[a-z][a-z0-9+.-]*:#i', $url)) {
+    if ($url === '') {
         return $url;
+    }
+
+    if (preg_match('#^[a-z][a-z0-9+.-]*:#i', $url)) {
+        return preg_match('#^(?:https?:|mailto:|tel:)#i', $url) ? $url : '#';
     }
 
     return 'https://' . ltrim($url, '/');
@@ -86,12 +90,8 @@ if (!$member) {
 $profile = default_member_profile($member);
 $webPage = default_member_web_page(is_array($profile['web_page'] ?? null) ? $profile['web_page'] : []);
 $displayName = clean_text((string) ($profile['public_name'] ?: ($member['name'] ?? 'Artista')));
-$headline = clean_text((string) ($profile['artistic_headline'] ?? ''));
-$heroTitle = clean_text((string) ($webPage['header_title'] ?? '')) ?: $displayName;
-$heroSubtitle = clean_text((string) ($webPage['header_subtitle'] ?? '')) ?: $headline;
-$heroImage = artist_public_media_url(clean_text((string) (($webPage['header_image_path'] ?? '') ?: ($profile['cv_header_image_path'] ?? '') ?: ($profile['main_photo_path'] ?? ''))));
+$legacyHeroImage = artist_public_media_url(clean_text((string) (($webPage['header_image_path'] ?? '') ?: ($profile['cv_header_image_path'] ?? '') ?: ($profile['main_photo_path'] ?? ''))));
 $mainPhoto = artist_public_media_url(clean_text((string) ($profile['main_photo_path'] ?? '')));
-$menuImage = $heroImage !== '' ? $heroImage : $mainPhoto;
 $gallery = array_values(array_filter(array_map(
     static fn ($path): string => artist_public_media_url(clean_text((string) $path)),
     array_slice(is_array($webPage['gallery'] ?? null) ? $webPage['gallery'] : [], 0, 9)
@@ -102,6 +102,40 @@ $artistsUrl = $siteBaseUrl . '/artistas.php';
 $registerUrl = $siteBaseUrl . '/registro.php';
 $defaultHeroImage = artist_public_media_url('assets/images/flamenco-header-art.png');
 $homeUrl = $siteBaseUrl . '/index.php#inicio';
+$heroSlides = [];
+foreach (array_slice(is_array($webPage['hero_slides'] ?? null) ? $webPage['hero_slides'] : [], 0, 3) as $slide) {
+    if (!is_array($slide)) {
+        continue;
+    }
+
+    $slideImage = artist_public_media_url(clean_text((string) ($slide['image_path'] ?? '')));
+    $slideTitle = clean_text((string) ($slide['title'] ?? ''));
+    $slideDescription = clean_text((string) ($slide['description'] ?? ''));
+    $slideCtaUrl = trim((string) ($slide['cta_url'] ?? ''));
+    $slideCtaLabel = clean_text((string) ($slide['cta_label'] ?? ''));
+    if ($slideImage === '' && $slideTitle === '' && $slideDescription === '' && $slideCtaUrl === '') {
+        continue;
+    }
+
+    $heroSlides[] = [
+        'image' => $slideImage !== '' ? $slideImage : $defaultHeroImage,
+        'title' => $slideTitle,
+        'description' => $slideDescription,
+        'cta_url' => $slideCtaUrl,
+        'cta_label' => $slideCtaLabel !== '' ? $slideCtaLabel : 'Ver mas',
+    ];
+}
+if (!$heroSlides) {
+    $heroSlides[] = [
+        'image' => $legacyHeroImage !== '' ? $legacyHeroImage : $defaultHeroImage,
+        'title' => '',
+        'description' => '',
+        'cta_url' => '',
+        'cta_label' => '',
+    ];
+}
+$menuImage = ($heroSlides[0]['image'] ?? '') !== '' ? $heroSlides[0]['image'] : ($legacyHeroImage !== '' ? $legacyHeroImage : $mainPhoto);
+$pageDescription = clean_text((string) ($heroSlides[0]['description'] ?? '')) ?: $displayName;
 
 $contactItems = [];
 if (in_array('email', $contactFields, true) && !empty($member['email'])) {
@@ -124,16 +158,10 @@ if ($gallery) {
 if ($contactItems) {
     $publicSections['contacto'] = 'Contacto';
 }
-$heroBackgrounds = array_values(array_unique(array_filter([$heroImage, $defaultHeroImage])));
-$heroStyle = "background-image: linear-gradient(135deg, rgba(17, 17, 20, 0.88), rgba(32, 56, 71, 0.72))";
-foreach ($heroBackgrounds as $backgroundImage) {
-    $heroStyle .= ", url('" . str_replace("'", '%27', $backgroundImage) . "')";
-}
-$heroStyle .= ';';
 ?>
 <!DOCTYPE html>
 <html lang="es">
-<?php page_head($displayName . ' | Con Sabor Flamenco', $heroSubtitle, false); ?>
+<?php page_head($displayName . ' | Con Sabor Flamenco', $pageDescription, false); ?>
 <body class="artist-public-body">
     <header class="artist-web-topbar">
         <div class="container artist-web-topbar-inner">
@@ -160,12 +188,34 @@ $heroStyle .= ';';
                 <h1><?= e($displayName) ?></h1>
             </div>
         </section>
-        <section id="inicio" class="artist-web-hero" style="<?= e($heroStyle) ?>">
-            <div class="container artist-web-hero-inner">
-                <?php if ($heroSubtitle !== ''): ?>
-                    <p class="artist-web-hero-subtitle"><?= e($heroSubtitle) ?></p>
-                <?php endif; ?>
-            </div>
+        <section id="inicio" class="artist-web-hero-slider" data-artist-slider>
+            <?php foreach ($heroSlides as $slideIndex => $slide): ?>
+                <?php
+                $slideImage = (string) ($slide['image'] ?? $defaultHeroImage);
+                $slideStyle = "background-image: linear-gradient(90deg, rgba(17, 17, 20, 0.86), rgba(17, 17, 20, 0.34) 56%, rgba(32, 56, 71, 0.58)), url('" . str_replace("'", '%27', $slideImage) . "');";
+                $slideHasContent = ($slide['title'] ?? '') !== '' || ($slide['description'] ?? '') !== '' || ($slide['cta_url'] ?? '') !== '';
+                ?>
+                <article class="artist-web-hero-slide <?= $slideIndex === 0 ? 'active' : '' ?>" style="<?= e($slideStyle) ?>" data-artist-slide>
+                    <div class="container artist-web-hero-inner">
+                        <?php if ($slideHasContent): ?>
+                            <div class="artist-web-hero-content">
+                                <?php if (($slide['title'] ?? '') !== ''): ?><h2><?= e((string) $slide['title']) ?></h2><?php endif; ?>
+                                <?php if (($slide['description'] ?? '') !== ''): ?><p><?= e((string) $slide['description']) ?></p><?php endif; ?>
+                                <?php if (($slide['cta_url'] ?? '') !== ''): ?>
+                                    <a href="<?= e(artist_public_link_url((string) $slide['cta_url'])) ?>" target="_blank" rel="noopener"><?= e((string) ($slide['cta_label'] ?: 'Ver mas')) ?></a>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </article>
+            <?php endforeach; ?>
+            <?php if (count($heroSlides) > 1): ?>
+                <div class="artist-web-slider-dots" aria-label="Selector de cabecera">
+                    <?php foreach ($heroSlides as $slideIndex => $slide): ?>
+                        <button type="button" class="<?= $slideIndex === 0 ? 'active' : '' ?>" data-artist-slide-dot="<?= e((string) $slideIndex) ?>" aria-label="Ver slide <?= e((string) ($slideIndex + 1)) ?>"></button>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
         </section>
 
         <?php if ($gallery): ?>
@@ -222,5 +272,28 @@ $heroStyle .= ';';
             </nav>
         </div>
     </footer>
+    <script>
+        (() => {
+            const slider = document.querySelector('[data-artist-slider]');
+            if (!(slider instanceof HTMLElement)) {
+                return;
+            }
+            const slides = Array.from(slider.querySelectorAll('[data-artist-slide]'));
+            const dots = Array.from(slider.querySelectorAll('[data-artist-slide-dot]'));
+            if (slides.length <= 1) {
+                return;
+            }
+            let activeIndex = 0;
+            const activateSlide = (nextIndex) => {
+                activeIndex = (nextIndex + slides.length) % slides.length;
+                slides.forEach((slide, index) => slide.classList.toggle('active', index === activeIndex));
+                dots.forEach((dot, index) => dot.classList.toggle('active', index === activeIndex));
+            };
+            dots.forEach((dot, index) => {
+                dot.addEventListener('click', () => activateSlide(index));
+            });
+            window.setInterval(() => activateSlide(activeIndex + 1), 6200);
+        })();
+    </script>
 </body>
 </html>
