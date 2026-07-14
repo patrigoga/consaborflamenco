@@ -212,9 +212,24 @@ function default_member_web_page(array $settings = []): array
         'header_title' => '',
         'header_subtitle' => '',
         'header_image_path' => '',
+        'hero_slides' => [],
         'gallery' => [],
         'contact_fields' => ['email'],
     ], $settings);
+
+    $slideSource = is_array($merged['hero_slides'] ?? null) ? $merged['hero_slides'] : [];
+    $slides = [];
+    for ($index = 0; $index < 3; $index++) {
+        $slide = is_array($slideSource[$index] ?? null) ? $slideSource[$index] : [];
+        $slides[] = [
+            'image_path' => clean_text((string) ($slide['image_path'] ?? '')),
+            'title' => clean_text((string) ($slide['title'] ?? '')),
+            'description' => clean_text((string) ($slide['description'] ?? '')),
+            'cta_label' => clean_text((string) ($slide['cta_label'] ?? '')),
+            'cta_url' => trim((string) ($slide['cta_url'] ?? '')),
+        ];
+    }
+    $merged['hero_slides'] = $slides;
 
     $merged['gallery'] = array_values(array_filter(
         is_array($merged['gallery'] ?? null) ? $merged['gallery'] : [],

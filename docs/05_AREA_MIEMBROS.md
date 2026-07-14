@@ -222,3 +222,4 @@ Los miembros podran contratar servicios digitales ofrecidos por la plataforma. E
 - 2026-07-14: Simplificada la identidad artistica retirando la vista publica redundante, convirtiendo la URL publica en boton de acceso, bloqueando el nombre de cuenta una vez reservado y normalizando espacios del slug a guiones.
 - 2026-07-14: Reforzado el guardado de imagenes de articulos del curriculum con subida AJAX previa, ruta oculta por entrada y guardado posterior del perfil completo; ajustada la pagina publica con banda negra centrada para el nombre artistico.
 - 2026-07-14: Cambiada la gestion de fotografias antiguas con ruta rota para limpiar automaticamente `main_photo_path` en BD y evitar errores rojos persistentes.
+- 2026-07-14: Sustituida la cabecera simple de la pagina publica por un slider configurable de 3 imagenes con titulo, descripcion y CTA opcional desde el apartado Pagina web.

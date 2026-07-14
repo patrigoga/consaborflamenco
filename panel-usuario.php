@@ -252,6 +252,21 @@ function web_gallery_uploaded_file(array $files, int $index): ?array
     ];
 }
 
+function web_slide_uploaded_file(array $files, int $index): ?array
+{
+    if (!isset($files['error'][$index]['image'])) {
+        return null;
+    }
+
+    return [
+        'name' => $files['name'][$index]['image'] ?? '',
+        'type' => $files['type'][$index]['image'] ?? '',
+        'tmp_name' => $files['tmp_name'][$index]['image'] ?? '',
+        'error' => $files['error'][$index]['image'] ?? UPLOAD_ERR_NO_FILE,
+        'size' => $files['size'][$index]['image'] ?? 0,
+    ];
+}
+
 function member_slug_in_use(string $slug, int $excludeUserId = 0): bool
 {
     $slug = slugify(clean_text($slug));
@@ -628,6 +643,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') ==
             $webPage['header_image_path'] = $webHeaderImagePath;
         }
 
+        $submittedSlides = is_array($_POST['web_slides'] ?? null) ? $_POST['web_slides'] : [];
+        $existingSlides = is_array($webPage['hero_slides'] ?? null) ? $webPage['hero_slides'] : [];
+        $slideUploads = is_array($_FILES['web_slides'] ?? null) ? $_FILES['web_slides'] : [];
+        $heroSlides = [];
+        for ($slideIndex = 0; $slideIndex < 3; $slideIndex++) {
+            $slideInput = is_array($submittedSlides[$slideIndex] ?? null) ? $submittedSlides[$slideIndex] : [];
+            $existingSlide = is_array($existingSlides[$slideIndex] ?? null) ? $existingSlides[$slideIndex] : [];
+            $slideImagePath = member_visible_asset_path((string) ($slideInput['image_path'] ?? ($existingSlide['image_path'] ?? '')));
+            $uploadedSlideImage = $slideUploads ? save_member_cv_image_upload(web_slide_uploaded_file($slideUploads, $slideIndex), $profileErrors) : null;
+            if ($uploadedSlideImage) {
+                $slideImagePath = $uploadedSlideImage;
+            }
+
+            $heroSlides[] = [
+                'image_path' => $slideImagePath,
+                'title' => clean_text((string) ($slideInput['title'] ?? '')),
+                'description' => clean_text((string) ($slideInput['description'] ?? '')),
+                'cta_label' => clean_text((string) ($slideInput['cta_label'] ?? '')),
+                'cta_url' => trim((string) ($slideInput['cta_url'] ?? '')),
+            ];
+        }
+        $webPage['hero_slides'] = $heroSlides;
+
         $removeGallery = array_map('intval', is_array($_POST['remove_web_gallery'] ?? null) ? $_POST['remove_web_gallery'] : []);
         $gallery = array_values(array_filter(
             $webPage['gallery'],
@@ -683,6 +721,7 @@ $publicSlug = clean_text((string) ($memberProfile['slug'] ?? slugify($displayNam
 $publicSlug = $publicSlug !== '' ? $publicSlug : slugify($displayName);
 $publicProfileUrl = app_url('artista/' . rawurlencode($publicSlug));
 $webPage = default_member_web_page(is_array($memberProfile['web_page'] ?? null) ? $memberProfile['web_page'] : []);
+$webSlides = is_array($webPage['hero_slides'] ?? null) ? array_slice($webPage['hero_slides'], 0, 3) : [];
 $webGallery = array_slice($webPage['gallery'], 0, 9);
 $webContactFields = is_array($webPage['contact_fields'] ?? null) ? $webPage['contact_fields'] : [];
 $webHeaderImage = clean_text((string) ($webPage['header_image_path'] ?: ($memberProfile['cv_header_image_path'] ?? '')));
@@ -1128,20 +1167,42 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
 
                         <div class="member-website-grid">
                             <article class="member-config-card">
-                                <h3>Cabecera</h3>
-                                <p>La cabecera usa el mismo lenguaje visual del curriculum: nombre artistico, titular, ubicacion y una imagen de fondo.</p>
-                                <label for="web_header_title">Titulo visible
-                                    <input id="web_header_title" name="web_header_title" type="text" value="<?= e((string) ($webPage['header_title'] ?? '')) ?>" placeholder="<?= e($displayName) ?>">
-                                </label>
-                                <label for="web_header_subtitle">Texto breve de cabecera
-                                    <textarea id="web_header_subtitle" name="web_header_subtitle" rows="3" maxlength="280" placeholder="Una frase breve para presentar tu espacio."><?= e((string) ($webPage['header_subtitle'] ?? '')) ?></textarea>
-                                </label>
-                                <label class="cv-header-background-field" for="web_header_image">Fondo de cabecera web
-                                    <span class="cv-header-background-preview" <?= $webHeaderImage !== '' ? 'style="' . e("background-image: linear-gradient(135deg, rgba(17, 17, 20, 0.62), rgba(32, 56, 71, 0.56)), url('" . $webHeaderImage . "');") . '"' : '' ?>>
-                                        <span><?= $webHeaderImage !== '' ? 'Fondo actual' : 'Subir fondo' ?></span>
-                                    </span>
-                                    <input id="web_header_image" name="web_header_image" type="file" accept="image/jpeg,image/png,image/webp" hidden>
-                                </label>
+                                <h3>Slider de cabecera</h3>
+                                <p>Configura hasta 3 imagenes. El titulo, descripcion y boton solo apareceran cuando tengan contenido.</p>
+                                <input type="hidden" name="web_header_title" value="<?= e((string) ($webPage['header_title'] ?? '')) ?>">
+                                <input type="hidden" name="web_header_subtitle" value="<?= e((string) ($webPage['header_subtitle'] ?? '')) ?>">
+                                <?php for ($slideIndex = 0; $slideIndex < 3; $slideIndex++): ?>
+                                    <?php
+                                    $slide = is_array($webSlides[$slideIndex] ?? null) ? $webSlides[$slideIndex] : [];
+                                    $slideImage = member_visible_asset_path((string) ($slide['image_path'] ?? ''));
+                                    ?>
+                                    <div class="website-slide-editor">
+                                        <div class="website-slide-preview" <?= $slideImage !== '' ? 'style="' . e("background-image: linear-gradient(135deg, rgba(17, 17, 20, 0.42), rgba(17, 17, 20, 0.2)), url('" . $slideImage . "');") . '"' : '' ?>>
+                                            <span><?= $slideImage !== '' ? 'Imagen del slide ' . e((string) ($slideIndex + 1)) : 'Sin imagen' ?></span>
+                                        </div>
+                                        <div class="website-slide-fields">
+                                            <strong>Slide <?= e((string) ($slideIndex + 1)) ?></strong>
+                                            <input type="hidden" name="web_slides[<?= e((string) $slideIndex) ?>][image_path]" value="<?= e($slideImage) ?>">
+                                            <label>Imagen
+                                                <input name="web_slides[<?= e((string) $slideIndex) ?>][image]" type="file" accept="image/jpeg,image/png,image/webp">
+                                            </label>
+                                            <label>Titulo
+                                                <input name="web_slides[<?= e((string) $slideIndex) ?>][title]" type="text" value="<?= e((string) ($slide['title'] ?? '')) ?>" maxlength="140">
+                                            </label>
+                                            <label>Descripcion
+                                                <textarea name="web_slides[<?= e((string) $slideIndex) ?>][description]" rows="3" maxlength="320"><?= e((string) ($slide['description'] ?? '')) ?></textarea>
+                                            </label>
+                                            <div class="form-grid-two">
+                                                <label>Texto boton
+                                                    <input name="web_slides[<?= e((string) $slideIndex) ?>][cta_label]" type="text" value="<?= e((string) ($slide['cta_label'] ?? '')) ?>" maxlength="80" placeholder="Ver mas">
+                                                </label>
+                                                <label>URL boton
+                                                    <input name="web_slides[<?= e((string) $slideIndex) ?>][cta_url]" type="url" value="<?= e((string) ($slide['cta_url'] ?? '')) ?>" placeholder="https://...">
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endfor; ?>
                             </article>
 
                             <article class="member-config-card">

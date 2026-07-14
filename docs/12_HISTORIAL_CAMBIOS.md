@@ -355,3 +355,4 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - 2026-07-14: Ajustada Identidad artistica del panel de miembro: eliminada la vista publica duplicada, anadido CTA para abrir la URL publica, bloqueado el nombre de cuenta guardado y normalizado el slug sin espacios.
 - 2026-07-14: Anadida subida AJAX previa para imagenes de entradas del curriculum y redisenada la cabecera del microsite publico con banda negra a ancho completo y nombre artistico centrado.
 - 2026-07-14: Sustituido el error persistente de fotografia principal inexistente por limpieza automatica de ruta rota en el perfil y base de datos.
+- 2026-07-14: Anadido slider de cabecera configurable en la pagina publica del miembro, con tres slides persistidos en `web_page.hero_slides` y CTA opcional por slide.
