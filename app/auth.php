@@ -973,7 +973,7 @@ function db_user_from_row(array $row): array
     if (($profile['phone'] ?? '') === '' && !empty($row['telefono'])) {
         $profile['phone'] = (string) $row['telefono'];
     }
-    if (($profile['main_photo_path'] ?? '') === '' && !empty($row['foto_principal_path'])) {
+    if (!empty($row['foto_principal_path'])) {
         $profile['main_photo_path'] = (string) $row['foto_principal_path'];
     }
     if (($profile['website_url'] ?? '') === '' && !empty($row['web_url'])) {

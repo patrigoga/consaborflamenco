@@ -295,12 +295,76 @@ function user_name_in_use(string $name, string $excludeUserId): bool
     return false;
 }
 
-function persist_member_profile_snapshot(array $user, array $profile): void
+function member_relative_asset_exists(string $path): bool
+{
+    $path = clean_text($path);
+    if ($path === '') {
+        return false;
+    }
+
+    if (preg_match('#^https?://#i', $path) === 1) {
+        return true;
+    }
+
+    $normalizedPath = ltrim(str_replace('\\', '/', $path), '/');
+    if (str_contains($normalizedPath, '..')) {
+        return false;
+    }
+
+    return is_file(__DIR__ . '/' . $normalizedPath);
+}
+
+function member_visible_asset_path(string $path): string
+{
+    $path = clean_text($path);
+    return member_relative_asset_exists($path) ? $path : '';
+}
+
+function member_main_photo_persisted(array $user, string $expectedPath): bool
+{
+    $expectedPath = clean_text($expectedPath);
+    if ($expectedPath === '') {
+        return true;
+    }
+
+    $pdo = db();
+    $userId = (int) ($user['db_id'] ?? 0);
+    if (!$pdo || $userId <= 0 || !db_column_exists($pdo, 'miembros', 'foto_principal_path')) {
+        return true;
+    }
+
+    $columns = 'foto_principal_path';
+    if (db_column_exists($pdo, 'miembros', 'perfil_json')) {
+        $columns .= ', perfil_json';
+    }
+
+    $statement = $pdo->prepare('SELECT ' . $columns . ' FROM miembros WHERE usuario_id = :usuario_id LIMIT 1');
+    $statement->execute(['usuario_id' => $userId]);
+    $row = $statement->fetch(PDO::FETCH_ASSOC);
+    if (!$row) {
+        return false;
+    }
+
+    if (clean_text((string) ($row['foto_principal_path'] ?? '')) !== $expectedPath) {
+        return false;
+    }
+
+    if (!empty($row['perfil_json'])) {
+        $decodedProfile = json_decode((string) $row['perfil_json'], true);
+        if (is_array($decodedProfile) && clean_text((string) ($decodedProfile['main_photo_path'] ?? '')) !== $expectedPath) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function persist_member_profile_snapshot(array $user, array $profile): bool
 {
     $pdo = db();
     $userId = (int) ($user['db_id'] ?? 0);
     if (!$pdo || $userId <= 0) {
-        return;
+        return false;
     }
 
     $assignments = [];
@@ -325,14 +389,20 @@ function persist_member_profile_snapshot(array $user, array $profile): void
     }
 
     if (!$assignments) {
-        return;
+        return false;
     }
 
     $statement = $pdo->prepare('UPDATE miembros SET ' . implode(', ', $assignments) . ' WHERE usuario_id = :usuario_id');
-    $statement->execute($params);
+    return $statement->execute($params);
 }
 
 $profileAction = (string) ($_POST['profile_action'] ?? '');
+$profileWantsJsonResponse = $_SERVER['REQUEST_METHOD'] === 'POST'
+    && $profileAction === 'update_profile_images'
+    && (
+        str_contains(strtolower((string) ($_SERVER['HTTP_ACCEPT'] ?? '')), 'application/json')
+        || strtolower((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'fetch'
+    );
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($profileAction, ['update_profile', 'update_profile_images'], true)) {
     $isSlugSave = $profileAction === 'update_profile' && (string) ($_POST['slug_action'] ?? '') === 'save_public_slug';
 
@@ -432,12 +502,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($profileAction, ['update_p
         $user['artistic_profile'] = $memberProfile;
         update_user($user);
         persist_member_profile_snapshot($user, $memberProfile);
-        $profileMessages[] = $profileAction === 'update_profile_images'
-            ? 'Imagenes actualizadas y guardadas correctamente.'
-            : (profile_is_complete($memberProfile)
-                ? 'Perfil artistico actualizado.'
-                : 'Perfil guardado. Sigue pendiente completar nombre artistico, ciudad, provincia, fotografia principal y al menos una formacion, experiencia profesional o actuacion.');
+
+        if ($profileAction === 'update_profile_images' && $photoPath && !member_main_photo_persisted($user, $photoPath)) {
+            $profileErrors[] = 'La fotografia se ha subido al servidor, pero no se ha podido confirmar su ruta en la base de datos.';
+        }
+
+        if (!$profileErrors) {
+            $profileMessages[] = $profileAction === 'update_profile_images'
+                ? 'Imagenes actualizadas y guardadas correctamente.'
+                : (profile_is_complete($memberProfile)
+                    ? 'Perfil artistico actualizado.'
+                    : 'Perfil guardado. Sigue pendiente completar nombre artistico, ciudad, provincia, fotografia principal y al menos una formacion, experiencia profesional o actuacion.');
+        }
     }
+}
+
+if ($profileWantsJsonResponse) {
+    http_response_code($profileErrors ? 422 : 200);
+    header('Content-Type: application/json; charset=UTF-8');
+    echo json_encode([
+        'ok' => !$profileErrors,
+        'messages' => $profileMessages,
+        'errors' => $profileErrors,
+        'main_photo_path' => member_visible_asset_path((string) ($memberProfile['main_photo_path'] ?? '')),
+        'cv_header_image_path' => member_visible_asset_path((string) ($memberProfile['cv_header_image_path'] ?? '')),
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') === 'update_web_page') {
@@ -512,19 +602,25 @@ $webPage = default_member_web_page(is_array($memberProfile['web_page'] ?? null) 
 $webGallery = array_slice($webPage['gallery'], 0, 9);
 $webContactFields = is_array($webPage['contact_fields'] ?? null) ? $webPage['contact_fields'] : [];
 $webHeaderImage = clean_text((string) ($webPage['header_image_path'] ?: ($memberProfile['cv_header_image_path'] ?? '')));
+$mainPhotoPath = clean_text((string) ($memberProfile['main_photo_path'] ?? ''));
+$mainPhotoVisiblePath = member_visible_asset_path($mainPhotoPath);
+$cvHeaderBackground = clean_text((string) ($memberProfile['cv_header_image_path'] ?? ''));
+$cvHeaderVisibleBackground = member_visible_asset_path($cvHeaderBackground);
+if ($mainPhotoPath !== '' && $mainPhotoVisiblePath === '') {
+    $profileErrors[] = 'La fotografia guardada en la cuenta no se encuentra en el servidor. Vuelve a subirla para corregir la ruta.';
+}
 $cardHeadline = clean_text((string) ($memberProfile['artistic_headline'] ?? ''));
 $profileRequiredFields = [
     $memberProfile['public_name'] ?? '',
     $memberProfile['city'] ?? '',
     $memberProfile['province'] ?? '',
-    $memberProfile['main_photo_path'] ?? '',
+    $mainPhotoVisiblePath,
     (!empty($memberProfile['education']) || !empty($memberProfile['experience']) || !empty($memberProfile['performances'])) ? 'curriculum' : '',
 ];
 $completedProfileFields = count(array_filter($profileRequiredFields, static fn ($value): bool => clean_text((string) $value) !== ''));
 $profileCompletion = (int) round(($completedProfileFields / count($profileRequiredFields)) * 100);
-$cvHeaderBackground = clean_text((string) ($memberProfile['cv_header_image_path'] ?? ''));
-$cvHeaderStyle = $cvHeaderBackground !== ''
-    ? "background-image: linear-gradient(135deg, rgba(17, 17, 20, 0.82), rgba(32, 56, 71, 0.74)), url('" . $cvHeaderBackground . "');"
+$cvHeaderStyle = $cvHeaderVisibleBackground !== ''
+    ? "background-image: linear-gradient(135deg, rgba(17, 17, 20, 0.82), rgba(32, 56, 71, 0.74)), url('" . $cvHeaderVisibleBackground . "');"
     : '';
 ?>
 <!DOCTYPE html>
@@ -574,8 +670,8 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                 <section class="member-dashboard-hero" aria-label="Resumen del espacio">
                     <div class="member-dashboard-identity">
                         <button type="button" class="member-dashboard-photo-edit" data-main-photo-trigger aria-label="Editar fotografia principal">
-                            <?php if (!empty($memberProfile['main_photo_path'])): ?>
-                                <img src="<?= e($memberProfile['main_photo_path']) ?>" alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview>
+                            <?php if ($mainPhotoVisiblePath !== ''): ?>
+                                <img src="<?= e($mainPhotoVisiblePath) ?>" alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview>
                             <?php else: ?>
                                 <img alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview hidden>
                                 <div class="member-dashboard-photo-placeholder" data-main-photo-placeholder><?= e(strtoupper(substr($displayName, 0, 1))) ?></div>
@@ -676,8 +772,8 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
 	                                        <span class="profile-public-preview-kicker">Vista publica</span>
 	                                        <div class="profile-public-preview-card">
 	                                            <span class="profile-public-preview-avatar">
-	                                                <?php if (!empty($memberProfile['main_photo_path'])): ?>
-	                                                    <img src="<?= e($memberProfile['main_photo_path']) ?>" alt="Fotografia de <?= e($displayName) ?>" loading="lazy">
+	                                                <?php if ($mainPhotoVisiblePath !== ''): ?>
+	                                                    <img src="<?= e($mainPhotoVisiblePath) ?>" alt="Fotografia de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview>
 	                                                <?php else: ?>
 	                                                    <?= e(strtoupper(substr($displayName, 0, 1))) ?>
 	                                                <?php endif; ?>
@@ -737,7 +833,7 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                 </div>
                                 <p class="field-help">Cada espacio debe tener al menos una fotografia principal. JPG, PNG o WebP, maximo 5 MB.</p>
                                 <label class="cv-header-background-field" for="cv_header_image">Fondo de cabecera del curriculum PDF
-                                    <span class="cv-header-background-preview" <?= $cvHeaderBackground !== '' ? 'style="background-image: linear-gradient(135deg, rgba(17, 17, 20, 0.72), rgba(32, 56, 71, 0.68)), url(' . e($cvHeaderBackground) . ');"' : '' ?>>
+                                    <span class="cv-header-background-preview" <?= $cvHeaderVisibleBackground !== '' ? 'style="background-image: linear-gradient(135deg, rgba(17, 17, 20, 0.72), rgba(32, 56, 71, 0.68)), url(' . e($cvHeaderVisibleBackground) . ');"' : '' ?>>
                                         <strong><?= $cvHeaderBackground !== '' ? 'Fondo actual' : 'Sin fondo personalizado' ?></strong>
                                         <em>Cambiar fondo</em>
                                     </span>
@@ -857,8 +953,8 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                         </form>
                         <section class="cv-print-document" aria-label="Curriculum imprimible">
                             <header class="cv-print-header" <?= $cvHeaderStyle !== '' ? 'style="' . e($cvHeaderStyle) . '"' : '' ?>>
-                                <?php if (!empty($memberProfile['main_photo_path'])): ?>
-                                    <img src="<?= e($memberProfile['main_photo_path']) ?>" alt="Fotografia principal de <?= e($displayName) ?>">
+                                <?php if ($mainPhotoVisiblePath !== ''): ?>
+                                    <img src="<?= e($mainPhotoVisiblePath) ?>" alt="Fotografia principal de <?= e($displayName) ?>">
                                 <?php endif; ?>
                                 <div>
                                     <h1><?= e($cardHeadline !== '' ? $cardHeadline : $displayName) ?></h1>
@@ -1120,30 +1216,79 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
             }
         };
 
-        const submitIsolatedImageUpdate = (input) => {
+        const cacheBustedAssetPath = (path) => {
+            if (!path) {
+                return '';
+            }
+            const separator = path.includes('?') ? '&' : '?';
+            return `${path}${separator}v=${Date.now()}`;
+        };
+
+        const submitIsolatedImageUpdate = async (input) => {
             if (!(input instanceof HTMLInputElement) || !input.files?.[0] || !(csrfInput instanceof HTMLInputElement)) {
                 return;
             }
 
-            const temporaryForm = document.createElement('form');
-            temporaryForm.method = 'post';
-            temporaryForm.enctype = 'multipart/form-data';
-            temporaryForm.action = 'panel-usuario.php#perfil';
-            temporaryForm.hidden = true;
+            const formData = new FormData();
+            formData.append('profile_action', 'update_profile_images');
+            formData.append('csrf_token', csrfInput.value);
+            formData.append(input.name, input.files[0], input.files[0].name);
+            markProfilePendingSave('Guardando imagen en base de datos...');
 
-            const action = document.createElement('input');
-            action.type = 'hidden';
-            action.name = 'profile_action';
-            action.value = 'update_profile_images';
+            try {
+                const response = await fetch('panel-usuario.php', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'fetch',
+                    },
+                    credentials: 'same-origin',
+                });
+                let payload = null;
+                try {
+                    payload = await response.json();
+                } catch (parseError) {
+                    throw new Error('No se pudo confirmar el guardado de la imagen. Vuelve a iniciar sesion si el problema continua.');
+                }
+                if (!response.ok || !payload?.ok) {
+                    throw new Error(payload?.errors?.[0] || 'No se pudo guardar la imagen en base de datos.');
+                }
 
-            const csrf = document.createElement('input');
-            csrf.type = 'hidden';
-            csrf.name = 'csrf_token';
-            csrf.value = csrfInput.value;
+                if (input.name === 'main_photo' && payload.main_photo_path) {
+                    const persistedPath = cacheBustedAssetPath(payload.main_photo_path);
+                    document.querySelectorAll('[data-main-photo-preview]').forEach((previewImage) => {
+                        if (previewImage instanceof HTMLImageElement) {
+                            previewImage.src = persistedPath;
+                            previewImage.hidden = false;
+                        }
+                    });
+                    document.querySelectorAll('[data-main-photo-placeholder]').forEach((placeholder) => {
+                        placeholder.hidden = true;
+                    });
+                }
 
-            temporaryForm.append(action, csrf, input);
-            document.body.appendChild(temporaryForm);
-            temporaryForm.submit();
+                if (input.name === 'cv_header_image' && payload.cv_header_image_path) {
+                    const preview = document.querySelector('.cv-header-background-preview');
+                    if (preview instanceof HTMLElement) {
+                        preview.style.backgroundImage = `linear-gradient(135deg, rgba(17, 17, 20, 0.72), rgba(32, 56, 71, 0.68)), url("${cacheBustedAssetPath(payload.cv_header_image_path)}")`;
+                    }
+                }
+
+                if (saveBar instanceof HTMLElement) {
+                    saveBar.classList.remove('member-form-savebar-pending');
+                }
+                if (saveBarMessage instanceof HTMLElement) {
+                    saveBarMessage.textContent = payload.messages?.[0] || 'Imagen guardada en tu cuenta.';
+                }
+                input.value = '';
+            } catch (error) {
+                const message = error instanceof Error ? error.message : 'No se pudo guardar la imagen.';
+                if (saveBarMessage instanceof HTMLElement) {
+                    saveBarMessage.textContent = message;
+                }
+                alert(message);
+            }
         };
 
         const submitProfileForEntryImage = () => {
