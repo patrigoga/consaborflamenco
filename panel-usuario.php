@@ -641,7 +641,11 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                 <button class="button button-primary member-save-button" type="submit">Guardar perfil</button>
                             </div>
                             <fieldset class="cv-fieldset profile-core-fieldset">
-                                <legend>Identidad artistica</legend>
+                                <legend>
+                                    <span>Perfil publico</span>
+                                    <strong>Identidad artistica</strong>
+                                    <em>Define como se presentara tu espacio en la web, la tarjeta y el curriculum.</em>
+                                </legend>
                                 <div class="form-grid-two">
                                     <label for="user_name">Nombre de usuario (cuenta)
                                         <input id="user_name" name="user_name" type="text" value="<?= e((string) ($user['name'] ?? '')) ?>" maxlength="160" required>
@@ -675,8 +679,11 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                             </fieldset>
 
                             <fieldset class="cv-fieldset profile-data-fieldset">
-                                <legend>Datos de perfil e imagen</legend>
-                                <p class="field-help">Aqui se rellenan ciudad, provincia, lugar de origen y fotografia principal. Estas opciones definen tu perfil visible.</p>
+                                <legend>
+                                    <span>Datos visibles</span>
+                                    <strong>Perfil e imagen</strong>
+                                    <em>Ubicacion, contacto y recursos visuales para mantener tu presencia publica cuidada.</em>
+                                </legend>
                                 <div class="form-grid-three">
                                     <label for="city">Ciudad
                                         <input id="city" name="city" type="text" value="<?= e($memberProfile['city']) ?>" required>

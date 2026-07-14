@@ -303,6 +303,10 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Modernizadas las secciones de Identidad artistica y Datos de perfil e imagen con tarjetas, campos mas limpios y comportamiento movil mejorado.
 - Reforzada la persistencia de imagenes: foto principal y fondo de cabecera se suben con guardado aislado, las imagenes de articulos guardan automaticamente el perfil completo, y las carpetas de uploads quedan protegidas e ignoradas como runtime.
 
+### 2026-07-14 - Fase 5 - Mejora estetica de identidad de miembro
+
+- Redisenadas las tarjetas de Identidad artistica y Datos de perfil e imagen con cabecera editorial oscura, mejor jerarquia tipografica, campos mas ligeros y URL publica integrada.
+
 ## Reglas y decisiones
 
 - Registrar cambios por fecha.
