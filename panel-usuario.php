@@ -691,7 +691,12 @@ $mainPhotoVisiblePath = member_visible_asset_path($mainPhotoPath);
 $cvHeaderBackground = clean_text((string) ($memberProfile['cv_header_image_path'] ?? ''));
 $cvHeaderVisibleBackground = member_visible_asset_path($cvHeaderBackground);
 if ($mainPhotoPath !== '' && $mainPhotoVisiblePath === '') {
-    $profileErrors[] = 'La fotografia guardada en la cuenta no se encuentra en el servidor. Vuelve a subirla para corregir la ruta.';
+    $memberProfile['main_photo_path'] = '';
+    $user['artistic_profile'] = $memberProfile;
+    update_user($user);
+    persist_member_profile_snapshot($user, $memberProfile);
+    $mainPhotoPath = '';
+    $profileMessages[] = 'La ruta antigua de la fotografia no existia en el servidor y se ha limpiado. Sube la fotografia de nuevo para dejarla guardada correctamente.';
 }
 $cardHeadline = clean_text((string) ($memberProfile['artistic_headline'] ?? ''));
 $profileRequiredFields = [
