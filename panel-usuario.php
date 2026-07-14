@@ -134,7 +134,8 @@ function clean_cv_entries(
         $entry['display_order'] = max(1, (int) ($row['display_order'] ?? ($existingEntries[$rowIndex]['display_order'] ?? ($rowIndex + 1))));
 
         if ($allowsImage) {
-            $entry['image_path'] = clean_text((string) ($existingEntries[$rowIndex]['image_path'] ?? ''));
+            $existingImagePath = clean_text((string) ($row['image_path'] ?? ($existingEntries[$rowIndex]['image_path'] ?? '')));
+            $entry['image_path'] = member_visible_asset_path($existingImagePath);
             $uploadedImagePath = save_member_cv_image_upload(cv_uploaded_file($files, $section, (int) $rowIndex), $errors);
             if ($uploadedImagePath) {
                 $entry['image_path'] = $uploadedImagePath;
@@ -359,6 +360,55 @@ function member_main_photo_persisted(array $user, string $expectedPath): bool
     return true;
 }
 
+function cv_profile_curriculum_image_paths(array $profile, array $sectionConfig): array
+{
+    $paths = [];
+    foreach (array_keys($sectionConfig) as $sectionKey) {
+        $entries = is_array($profile[$sectionKey] ?? null) ? $profile[$sectionKey] : [];
+        foreach ($entries as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+            $imagePath = member_visible_asset_path((string) ($entry['image_path'] ?? ''));
+            if ($imagePath !== '') {
+                $paths[] = $imagePath;
+            }
+        }
+    }
+
+    return array_values(array_unique($paths));
+}
+
+function cv_curriculum_images_persisted(array $user, array $profile, array $sectionConfig): bool
+{
+    $expectedPaths = cv_profile_curriculum_image_paths($profile, $sectionConfig);
+    if (!$expectedPaths) {
+        return true;
+    }
+
+    $pdo = db();
+    $userId = (int) ($user['db_id'] ?? 0);
+    if (!$pdo || $userId <= 0 || !db_column_exists($pdo, 'miembros', 'perfil_json')) {
+        return true;
+    }
+
+    $statement = $pdo->prepare('SELECT perfil_json FROM miembros WHERE usuario_id = :usuario_id LIMIT 1');
+    $statement->execute(['usuario_id' => $userId]);
+    $storedProfile = json_decode((string) $statement->fetchColumn(), true);
+    if (!is_array($storedProfile)) {
+        return false;
+    }
+
+    $storedPaths = cv_profile_curriculum_image_paths($storedProfile, $sectionConfig);
+    foreach ($expectedPaths as $expectedPath) {
+        if (!in_array($expectedPath, $storedPaths, true)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 function persist_member_profile_snapshot(array $user, array $profile): bool
 {
     $pdo = db();
@@ -505,6 +555,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($profileAction, ['update_p
 
         if ($profileAction === 'update_profile_images' && $photoPath && !member_main_photo_persisted($user, $photoPath)) {
             $profileErrors[] = 'La fotografia se ha subido al servidor, pero no se ha podido confirmar su ruta en la base de datos.';
+        }
+
+        if ($profileAction === 'update_profile' && !cv_curriculum_images_persisted($user, $memberProfile, $cvSectionConfig)) {
+            $profileErrors[] = 'Una o varias imagenes del curriculum se han subido, pero no se han podido confirmar en la base de datos.';
         }
 
         if (!$profileErrors) {
@@ -886,6 +940,7 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                                     <?php $sectionRows = !empty($memberProfile[$sectionKey]) ? $memberProfile[$sectionKey] : [[]]; ?>
                                     <?php foreach ($sectionRows as $rowIndex => $entry): ?>
                                         <?php $entry = is_array($memberProfile[$sectionKey][$rowIndex] ?? null) ? $memberProfile[$sectionKey][$rowIndex] : []; ?>
+                                        <?php $entryImagePath = member_visible_asset_path((string) ($entry['image_path'] ?? '')); ?>
                                         <div class="cv-repeat-row <?= !empty($sectionConfig['allows_image']) ? 'cv-repeat-row-with-media' : '' ?>">
                                             <div class="cv-entry-controls">
                                                 <label class="visibility-toggle">
@@ -900,9 +955,10 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                                                 <label class="cv-entry-image-field">
                                                     Imagen de la entrada
                                                     <span class="cv-entry-image-box">
-                                                        <img class="cv-entry-image-preview" src="<?= e((string) ($entry['image_path'] ?? '')) ?>" alt="Imagen guardada de <?= e($sectionConfig['title']) ?>" loading="lazy" data-cv-image-preview <?= empty($entry['image_path']) ? 'hidden' : '' ?>>
-                                                        <span data-cv-image-placeholder <?= !empty($entry['image_path']) ? 'hidden' : '' ?>>Sin imagen</span>
+                                                        <img class="cv-entry-image-preview" src="<?= e($entryImagePath) ?>" alt="Imagen guardada de <?= e($sectionConfig['title']) ?>" loading="lazy" data-cv-image-preview <?= $entryImagePath === '' ? 'hidden' : '' ?>>
+                                                        <span data-cv-image-placeholder <?= $entryImagePath !== '' ? 'hidden' : '' ?>>Sin imagen</span>
                                                     </span>
+                                                    <input type="hidden" name="<?= e($sectionKey) ?>[<?= e((string) $rowIndex) ?>][image_path]" value="<?= e($entryImagePath) ?>">
                                                     <input name="<?= e($sectionKey) ?>[<?= e((string) $rowIndex) ?>][image]" type="file" accept="image/jpeg,image/png,image/webp" data-cv-image-input>
                                                     <small>Se guarda automaticamente al seleccionar.</small>
                                                 </label>
@@ -990,10 +1046,11 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                                                 $entryDescription = clean_html_text((string) ($entry['description'] ?? ''));
                                                 $entryStart = cv_print_date((string) ($entry['date_start'] ?? ''));
                                                 $entryEnd = cv_print_date((string) ($entry['date_end'] ?? ''));
+                                                $entryImagePath = member_visible_asset_path((string) ($entry['image_path'] ?? ''));
                                                 ?>
-                                                <article class="cv-print-entry <?= !empty($entry['image_path']) ? 'cv-print-entry-with-image' : '' ?>">
-                                                    <?php if (!empty($entry['image_path'])): ?>
-                                                        <img class="cv-print-entry-image" src="<?= e((string) $entry['image_path']) ?>" alt="Imagen de <?= e($sectionConfig['title']) ?>">
+                                                <article class="cv-print-entry <?= $entryImagePath !== '' ? 'cv-print-entry-with-image' : '' ?>">
+                                                    <?php if ($entryImagePath !== ''): ?>
+                                                        <img class="cv-print-entry-image" src="<?= e($entryImagePath) ?>" alt="Imagen de <?= e($sectionConfig['title']) ?>">
                                                     <?php endif; ?>
                                                     <div class="cv-print-entry-main">
                                                         <?php if (!empty($entry['category'])): ?>
