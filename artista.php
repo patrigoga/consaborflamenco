@@ -12,6 +12,11 @@ function artist_public_media_url(string $path): string
     }
 
     $baseUrl = artist_public_base_url();
+    $mediaFile = csf_media_file_from_path($path);
+    if ($mediaFile !== null) {
+        return $baseUrl . '/' . csf_media_url($mediaFile);
+    }
+
     if (preg_match('#^(?:https?:)?//#i', $path)) {
         $parts = parse_url($path);
         $urlPath = str_replace('\\', '/', (string) ($parts['path'] ?? ''));

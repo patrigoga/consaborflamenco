@@ -337,7 +337,7 @@ function save_member_photo_upload(?array $file, array &$errors, bool $required =
         return null;
     }
 
-    return MEMBER_PHOTOS_URL . '/' . $filename;
+    return csf_media_url('member-photos/' . $filename);
 }
 
 function save_member_cv_image_upload(?array $file, array &$errors): ?string
@@ -385,7 +385,7 @@ function save_member_cv_image_upload(?array $file, array &$errors): ?string
         return null;
     }
 
-    return MEMBER_CV_IMAGES_URL . '/' . $filename;
+    return csf_media_url('curriculum-images/' . $filename);
 }
 
 function all_users(): array

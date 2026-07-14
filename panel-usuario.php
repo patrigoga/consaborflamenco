@@ -318,6 +318,11 @@ function member_relative_asset_exists(string $path): bool
         return false;
     }
 
+    $mediaFile = csf_media_file_from_path($path);
+    if ($mediaFile !== null) {
+        return csf_media_file_exists($mediaFile);
+    }
+
     if (preg_match('#^https?://#i', $path) === 1) {
         return true;
     }

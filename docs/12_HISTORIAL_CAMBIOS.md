@@ -356,3 +356,4 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - 2026-07-14: Anadida subida AJAX previa para imagenes de entradas del curriculum y redisenada la cabecera del microsite publico con banda negra a ancho completo y nombre artistico centrado.
 - 2026-07-14: Sustituido el error persistente de fotografia principal inexistente por limpieza automatica de ruta rota en el perfil y base de datos.
 - 2026-07-14: Anadido slider de cabecera configurable en la pagina publica del miembro, con tres slides persistidos en `web_page.hero_slides` y CTA opcional por slide.
+- 2026-07-14: Cambiado el almacenamiento de nuevas imagenes de usuario a una carpeta runtime externa al repositorio (`../csf-uploads`, configurable con `CSF_UPLOADS_DIR`) y anadido `media.php` para servirlas sin depender de `assets/uploads` versionado.
