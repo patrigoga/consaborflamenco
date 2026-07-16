@@ -308,6 +308,13 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Redisenadas las tarjetas de Identidad artistica y Datos de perfil e imagen con cabecera editorial oscura, mejor jerarquia tipografica, campos mas ligeros y URL publica integrada.
 - Anadida una previsualizacion lateral del perfil publico dentro de Identidad artistica e integrado el boton Guardar perfil en esa composicion.
 
+### 2026-07-13 - Fase 5 - Imagenes persistentes en base de datos
+
+- Anadida la tabla `media_archivos` en `app/database.php` para almacenar imagenes como binario (`LONGBLOB`) con metadatos y clave unica.
+- Actualizadas `save_member_photo_upload` y `save_member_cv_image_upload` en `app/auth.php` para guardar imagenes nuevas en MySQL y devolver URL estable `media.php?k=...`.
+- Creado `media.php` para servir imagenes almacenadas en BD con cabeceras de cache (`ETag`, `Last-Modified`, `Cache-Control`).
+- Mantenida compatibilidad hacia atras: si la BD no esta disponible, el sistema conserva el guardado en disco existente.
+
 ## Reglas y decisiones
 
 - Registrar cambios por fecha.
@@ -323,6 +330,9 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 
 ## Historial de cambios
 
+- 2026-07-16: Reestructurada la web publica del miembro con menu fijo Inicio, Galeria, Eventos, Actualidad y Contacto; anadida edicion completa desde panel para galeria, eventos y actualidad con limites por membresia (simpatizante vs pago).
+- 2026-07-16: Actualizada la vista publica del miembro con diseno mas elegante para galeria y tarjetas modernas para eventos y articulos.
+- 2026-07-16: Revisado el slider principal para animar la entrada de textos con desplazamiento lateral alterno entre slides.
 - 2026-06-08: Creado el historial de cambios inicial del proyecto.
 - 2026-06-08: Registrada la creacion de AGENTS.md como archivo principal de instrucciones para agentes IA.
 - 2026-06-08: Registrada la preparacion visual inicial de la Fase 1.

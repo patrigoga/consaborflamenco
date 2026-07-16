@@ -49,13 +49,19 @@
             });
         }
 
-        function paint(index) {
+        function paint(index, direction) {
             var safeIndex = (index % slides.length + slides.length) % slides.length;
             currentIndex = safeIndex;
+            var movement = typeof direction === "number" ? direction : 1;
 
             slides.forEach(function (slide, slideIndex) {
                 var isActive = slideIndex === currentIndex;
                 slide.classList.toggle("is-active", isActive);
+                slide.classList.remove("is-copy-from-left", "is-copy-from-right");
+                if (isActive) {
+                    var fromRight = movement < 0 ? slideIndex % 2 === 0 : slideIndex % 2 !== 0;
+                    slide.classList.add(fromRight ? "is-copy-from-right" : "is-copy-from-left");
+                }
                 slide.setAttribute("aria-hidden", isActive ? "false" : "true");
             });
 
@@ -65,7 +71,7 @@
         }
 
         function next() {
-            paint(currentIndex + 1);
+            paint(currentIndex + 1, 1);
         }
 
         function resetAuto() {
@@ -81,7 +87,7 @@
         }
 
         listen(prevButton, "click", function () {
-            paint(currentIndex - 1);
+            paint(currentIndex - 1, -1);
             resetAuto();
         });
 
@@ -96,12 +102,12 @@
                 if (isNaN(index)) {
                     return;
                 }
-                paint(index);
+                paint(index, index >= currentIndex ? 1 : -1);
                 resetAuto();
             });
         });
 
-        paint(0);
+        paint(0, 1);
         resetAuto();
 
         slider.storySliderCleanup = function () {

@@ -134,8 +134,7 @@ function clean_cv_entries(
         $entry['display_order'] = max(1, (int) ($row['display_order'] ?? ($existingEntries[$rowIndex]['display_order'] ?? ($rowIndex + 1))));
 
         if ($allowsImage) {
-            $existingImagePath = clean_text((string) ($row['image_path'] ?? ($existingEntries[$rowIndex]['image_path'] ?? '')));
-            $entry['image_path'] = member_visible_asset_path($existingImagePath);
+            $entry['image_path'] = clean_text((string) ($existingEntries[$rowIndex]['image_path'] ?? ''));
             $uploadedImagePath = save_member_cv_image_upload(cv_uploaded_file($files, $section, (int) $rowIndex), $errors);
             if ($uploadedImagePath) {
                 $entry['image_path'] = $uploadedImagePath;
@@ -252,19 +251,101 @@ function web_gallery_uploaded_file(array $files, int $index): ?array
     ];
 }
 
-function web_slide_uploaded_file(array $files, int $index): ?array
+function clean_web_events(array $source, array $existingEvents, array $files, int $maxItems, array &$errors): array
 {
-    if (!isset($files['error'][$index]['image'])) {
-        return null;
+    $rows = is_array($source['web_events'] ?? null) ? $source['web_events'] : [];
+    $events = [];
+
+    foreach ($rows as $rowIndex => $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+
+        $event = [
+            'title' => clean_text((string) ($row['title'] ?? '')),
+            'date' => clean_text((string) ($row['date'] ?? '')),
+            'time' => clean_text((string) ($row['time'] ?? '')),
+            'description' => clean_html_text((string) ($row['description'] ?? '')),
+            'image_path' => clean_text((string) ($existingEvents[$rowIndex]['image_path'] ?? '')),
+        ];
+
+        if (isset($row['remove_image']) && (string) $row['remove_image'] === '1') {
+            $event['image_path'] = '';
+        }
+
+        $uploadedImagePath = save_member_cv_image_upload(cv_uploaded_file($files, 'web_events', (int) $rowIndex), $errors);
+        if ($uploadedImagePath) {
+            $event['image_path'] = $uploadedImagePath;
+        }
+
+        $hasContent = $event['title'] !== '' || $event['date'] !== '' || $event['time'] !== '' || $event['description'] !== '' || $event['image_path'] !== '';
+        if (!$hasContent) {
+            continue;
+        }
+
+        if ($event['title'] === '' || $event['date'] === '' || $event['time'] === '' || $event['description'] === '') {
+            $errors[] = 'Cada evento debe incluir titulo, fecha, hora y descripcion.';
+            continue;
+        }
+
+        $events[] = $event;
     }
 
-    return [
-        'name' => $files['name'][$index]['image'] ?? '',
-        'type' => $files['type'][$index]['image'] ?? '',
-        'tmp_name' => $files['tmp_name'][$index]['image'] ?? '',
-        'error' => $files['error'][$index]['image'] ?? UPLOAD_ERR_NO_FILE,
-        'size' => $files['size'][$index]['image'] ?? 0,
-    ];
+    if (count($events) > $maxItems) {
+        $errors[] = 'Has superado el maximo de eventos permitido para tu membresia.';
+        $events = array_slice($events, 0, $maxItems);
+    }
+
+    usort($events, static fn (array $left, array $right): int => strcmp((string) ($left['date'] ?? ''), (string) ($right['date'] ?? '')));
+
+    return $events;
+}
+
+function clean_web_articles(array $source, array $existingArticles, array $files, int $maxItems, array &$errors): array
+{
+    $rows = is_array($source['web_articles'] ?? null) ? $source['web_articles'] : [];
+    $articles = [];
+
+    foreach ($rows as $rowIndex => $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+
+        $article = [
+            'title' => clean_text((string) ($row['title'] ?? '')),
+            'summary' => clean_html_text((string) ($row['summary'] ?? '')),
+            'image_path' => clean_text((string) ($existingArticles[$rowIndex]['image_path'] ?? '')),
+            'submit_to_magazine' => isset($row['submit_to_magazine']) && (string) $row['submit_to_magazine'] === '1',
+        ];
+
+        if (isset($row['remove_image']) && (string) $row['remove_image'] === '1') {
+            $article['image_path'] = '';
+        }
+
+        $uploadedImagePath = save_member_cv_image_upload(cv_uploaded_file($files, 'web_articles', (int) $rowIndex), $errors);
+        if ($uploadedImagePath) {
+            $article['image_path'] = $uploadedImagePath;
+        }
+
+        $hasContent = $article['title'] !== '' || $article['summary'] !== '' || $article['image_path'] !== '';
+        if (!$hasContent) {
+            continue;
+        }
+
+        if ($article['title'] === '' || $article['summary'] === '') {
+            $errors[] = 'Cada articulo de actualidad debe incluir titulo y contenido breve.';
+            continue;
+        }
+
+        $articles[] = $article;
+    }
+
+    if (count($articles) > $maxItems) {
+        $errors[] = 'Has superado el maximo de articulos permitido para tu membresia.';
+        $articles = array_slice($articles, 0, $maxItems);
+    }
+
+    return $articles;
 }
 
 function member_slug_in_use(string $slug, int $excludeUserId = 0): bool
@@ -311,170 +392,7 @@ function user_name_in_use(string $name, string $excludeUserId): bool
     return false;
 }
 
-function member_relative_asset_exists(string $path): bool
-{
-    $path = clean_text($path);
-    if ($path === '') {
-        return false;
-    }
-
-    $mediaFile = csf_media_file_from_path($path);
-    if ($mediaFile !== null) {
-        return csf_media_file_exists($mediaFile);
-    }
-
-    if (preg_match('#^https?://#i', $path) === 1) {
-        return true;
-    }
-
-    $normalizedPath = ltrim(str_replace('\\', '/', $path), '/');
-    if (str_contains($normalizedPath, '..')) {
-        return false;
-    }
-
-    return is_file(__DIR__ . '/' . $normalizedPath);
-}
-
-function member_visible_asset_path(string $path): string
-{
-    $path = clean_text($path);
-    return member_relative_asset_exists($path) ? $path : '';
-}
-
-function member_main_photo_persisted(array $user, string $expectedPath): bool
-{
-    $expectedPath = clean_text($expectedPath);
-    if ($expectedPath === '') {
-        return true;
-    }
-
-    $pdo = db();
-    $userId = (int) ($user['db_id'] ?? 0);
-    if (!$pdo || $userId <= 0 || !db_column_exists($pdo, 'miembros', 'foto_principal_path')) {
-        return true;
-    }
-
-    $columns = 'foto_principal_path';
-    if (db_column_exists($pdo, 'miembros', 'perfil_json')) {
-        $columns .= ', perfil_json';
-    }
-
-    $statement = $pdo->prepare('SELECT ' . $columns . ' FROM miembros WHERE usuario_id = :usuario_id LIMIT 1');
-    $statement->execute(['usuario_id' => $userId]);
-    $row = $statement->fetch(PDO::FETCH_ASSOC);
-    if (!$row) {
-        return false;
-    }
-
-    if (clean_text((string) ($row['foto_principal_path'] ?? '')) !== $expectedPath) {
-        return false;
-    }
-
-    if (!empty($row['perfil_json'])) {
-        $decodedProfile = json_decode((string) $row['perfil_json'], true);
-        if (is_array($decodedProfile) && clean_text((string) ($decodedProfile['main_photo_path'] ?? '')) !== $expectedPath) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-function cv_profile_curriculum_image_paths(array $profile, array $sectionConfig): array
-{
-    $paths = [];
-    foreach (array_keys($sectionConfig) as $sectionKey) {
-        $entries = is_array($profile[$sectionKey] ?? null) ? $profile[$sectionKey] : [];
-        foreach ($entries as $entry) {
-            if (!is_array($entry)) {
-                continue;
-            }
-            $imagePath = member_visible_asset_path((string) ($entry['image_path'] ?? ''));
-            if ($imagePath !== '') {
-                $paths[] = $imagePath;
-            }
-        }
-    }
-
-    return array_values(array_unique($paths));
-}
-
-function cv_curriculum_images_persisted(array $user, array $profile, array $sectionConfig): bool
-{
-    $expectedPaths = cv_profile_curriculum_image_paths($profile, $sectionConfig);
-    if (!$expectedPaths) {
-        return true;
-    }
-
-    $pdo = db();
-    $userId = (int) ($user['db_id'] ?? 0);
-    if (!$pdo || $userId <= 0 || !db_column_exists($pdo, 'miembros', 'perfil_json')) {
-        return true;
-    }
-
-    $statement = $pdo->prepare('SELECT perfil_json FROM miembros WHERE usuario_id = :usuario_id LIMIT 1');
-    $statement->execute(['usuario_id' => $userId]);
-    $storedProfile = json_decode((string) $statement->fetchColumn(), true);
-    if (!is_array($storedProfile)) {
-        return false;
-    }
-
-    $storedPaths = cv_profile_curriculum_image_paths($storedProfile, $sectionConfig);
-    foreach ($expectedPaths as $expectedPath) {
-        if (!in_array($expectedPath, $storedPaths, true)) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-function persist_member_profile_snapshot(array $user, array $profile): bool
-{
-    $pdo = db();
-    $userId = (int) ($user['db_id'] ?? 0);
-    if (!$pdo || $userId <= 0) {
-        return false;
-    }
-
-    $assignments = [];
-    $params = ['usuario_id' => $userId];
-    if (db_column_exists($pdo, 'miembros', 'foto_principal_path')) {
-        $assignments[] = 'foto_principal_path = :foto_principal_path';
-        $params['foto_principal_path'] = clean_text((string) ($profile['main_photo_path'] ?? ''));
-    }
-    if (db_column_exists($pdo, 'miembros', 'perfil_json')) {
-        $encodedProfile = json_encode($profile, JSON_UNESCAPED_UNICODE);
-        if ($encodedProfile !== false) {
-            $assignments[] = 'perfil_json = :perfil_json';
-            $params['perfil_json'] = $encodedProfile;
-        }
-    }
-    if (db_column_exists($pdo, 'miembros', 'perfil_completo_at')) {
-        $assignments[] = 'perfil_completo_at = :perfil_completo_at';
-        $params['perfil_completo_at'] = db_nullable_datetime($profile['completed_at'] ?? null);
-    }
-    if (db_column_exists($pdo, 'miembros', 'updated_at')) {
-        $assignments[] = 'updated_at = UTC_TIMESTAMP()';
-    }
-
-    if (!$assignments) {
-        return false;
-    }
-
-    $statement = $pdo->prepare('UPDATE miembros SET ' . implode(', ', $assignments) . ' WHERE usuario_id = :usuario_id');
-    return $statement->execute($params);
-}
-
 $profileAction = (string) ($_POST['profile_action'] ?? '');
-$profileWantsJsonResponse = $_SERVER['REQUEST_METHOD'] === 'POST'
-    && $profileAction === 'update_profile_images'
-    && (
-        str_contains(strtolower((string) ($_SERVER['HTTP_ACCEPT'] ?? '')), 'application/json')
-        || strtolower((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'fetch'
-    );
-$storedAccountName = clean_text((string) ($user['name'] ?? ''));
-$accountNameLocked = $storedAccountName !== '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($profileAction, ['update_profile', 'update_profile_images'], true)) {
     $isSlugSave = $profileAction === 'update_profile' && (string) ($_POST['slug_action'] ?? '') === 'save_public_slug';
 
@@ -485,7 +403,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($profileAction, ['update_p
     $photoPath = null;
     $cvHeaderImagePath = null;
     if (!$profileErrors) {
-        $photoPath = save_member_photo_upload($_FILES['main_photo'] ?? null, $profileErrors, false);
+        $photoPath = save_member_photo_upload($_FILES['main_photo'] ?? null, $profileErrors, empty($memberProfile['main_photo_path']));
         if ($photoPath) {
             $memberProfile['main_photo_path'] = $photoPath;
         }
@@ -560,77 +478,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($profileAction, ['update_p
         }
         $memberProfile['completed_at'] = profile_is_complete($memberProfile) ? ($memberProfile['completed_at'] ?? gmdate('c')) : null;
 
-        if ($accountNameLocked) {
-            $user['name'] = $storedAccountName;
+        $accountName = clean_text((string) ($_POST['user_name'] ?? $user['name'] ?? ''));
+        if (strlen($accountName) < 2 || strlen($accountName) > 160) {
+            $profileErrors[] = 'El nombre de usuario debe tener entre 2 y 160 caracteres.';
+        } elseif (user_name_in_use($accountName, (string) ($user['id'] ?? ''))) {
+            $profileErrors[] = 'Ya existe otro usuario con ese nombre. Usa una variacion.';
         } else {
-            $accountName = clean_text((string) ($_POST['user_name'] ?? $user['name'] ?? ''));
-            if (strlen($accountName) < 2 || strlen($accountName) > 160) {
-                $profileErrors[] = 'El nombre de usuario debe tener entre 2 y 160 caracteres.';
-            } elseif (user_name_in_use($accountName, (string) ($user['id'] ?? ''))) {
-                $profileErrors[] = 'Ya existe otro usuario con ese nombre. Usa una variacion.';
-            } else {
-                $user['name'] = $accountName;
-            }
+            $user['name'] = $accountName;
         }
     }
 
     if (!$profileErrors && !$isSlugSave) {
         $user['artistic_profile'] = $memberProfile;
         update_user($user);
-        persist_member_profile_snapshot($user, $memberProfile);
-
-        if ($profileAction === 'update_profile_images' && $photoPath && !member_main_photo_persisted($user, $photoPath)) {
-            $profileErrors[] = 'La fotografia se ha subido al servidor, pero no se ha podido confirmar su ruta en la base de datos.';
-        }
-
-        if ($profileAction === 'update_profile' && !cv_curriculum_images_persisted($user, $memberProfile, $cvSectionConfig)) {
-            $profileErrors[] = 'Una o varias imagenes del curriculum se han subido, pero no se han podido confirmar en la base de datos.';
-        }
-
-        if (!$profileErrors) {
-            $profileMessages[] = $profileAction === 'update_profile_images'
-                ? 'Imagenes actualizadas y guardadas correctamente.'
-                : (profile_is_complete($memberProfile)
-                    ? 'Perfil artistico actualizado.'
-                    : 'Perfil guardado. Sigue pendiente completar nombre artistico, ciudad, provincia, fotografia principal y al menos una formacion, experiencia profesional o actuacion.');
-        }
+        $profileMessages[] = $profileAction === 'update_profile_images'
+            ? 'Imagenes actualizadas y guardadas correctamente.'
+            : (profile_is_complete($memberProfile)
+                ? 'Perfil artistico actualizado.'
+                : 'Perfil guardado. Sigue pendiente completar nombre artistico, ciudad, provincia, fotografia principal y al menos una formacion, experiencia profesional o actuacion.');
     }
-}
-
-if ($profileWantsJsonResponse) {
-    http_response_code($profileErrors ? 422 : 200);
-    header('Content-Type: application/json; charset=UTF-8');
-    echo json_encode([
-        'ok' => !$profileErrors,
-        'messages' => $profileMessages,
-        'errors' => $profileErrors,
-        'main_photo_path' => member_visible_asset_path((string) ($memberProfile['main_photo_path'] ?? '')),
-        'cv_header_image_path' => member_visible_asset_path((string) ($memberProfile['cv_header_image_path'] ?? '')),
-    ], JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $profileAction === 'upload_cv_entry_image') {
-    if (!verify_csrf($_POST['csrf_token'] ?? null)) {
-        $profileErrors[] = 'La sesion ha caducado. Vuelve a intentarlo.';
-    }
-
-    $uploadedEntryImagePath = null;
-    if (!$profileErrors) {
-        $uploadedEntryImagePath = save_member_cv_image_upload($_FILES['cv_entry_image'] ?? null, $profileErrors);
-        if (!$uploadedEntryImagePath) {
-            $profileErrors[] = 'Selecciona una imagen valida para esta entrada.';
-        }
-    }
-
-    http_response_code($profileErrors ? 422 : 200);
-    header('Content-Type: application/json; charset=UTF-8');
-    echo json_encode([
-        'ok' => !$profileErrors,
-        'errors' => $profileErrors,
-        'image_path' => member_visible_asset_path((string) $uploadedEntryImagePath),
-    ], JSON_UNESCAPED_UNICODE);
-    exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') === 'update_web_page') {
@@ -647,29 +513,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') ==
         if ($webHeaderImagePath) {
             $webPage['header_image_path'] = $webHeaderImagePath;
         }
-
-        $submittedSlides = is_array($_POST['web_slides'] ?? null) ? $_POST['web_slides'] : [];
-        $existingSlides = is_array($webPage['hero_slides'] ?? null) ? $webPage['hero_slides'] : [];
-        $slideUploads = is_array($_FILES['web_slides'] ?? null) ? $_FILES['web_slides'] : [];
-        $heroSlides = [];
-        for ($slideIndex = 0; $slideIndex < 3; $slideIndex++) {
-            $slideInput = is_array($submittedSlides[$slideIndex] ?? null) ? $submittedSlides[$slideIndex] : [];
-            $existingSlide = is_array($existingSlides[$slideIndex] ?? null) ? $existingSlides[$slideIndex] : [];
-            $slideImagePath = member_visible_asset_path((string) ($slideInput['image_path'] ?? ($existingSlide['image_path'] ?? '')));
-            $uploadedSlideImage = $slideUploads ? save_member_cv_image_upload(web_slide_uploaded_file($slideUploads, $slideIndex), $profileErrors) : null;
-            if ($uploadedSlideImage) {
-                $slideImagePath = $uploadedSlideImage;
-            }
-
-            $heroSlides[] = [
-                'image_path' => $slideImagePath,
-                'title' => clean_text((string) ($slideInput['title'] ?? '')),
-                'description' => clean_text((string) ($slideInput['description'] ?? '')),
-                'cta_label' => clean_text((string) ($slideInput['cta_label'] ?? '')),
-                'cta_url' => trim((string) ($slideInput['cta_url'] ?? '')),
-            ];
-        }
-        $webPage['hero_slides'] = $heroSlides;
 
         $removeGallery = array_map('intval', is_array($_POST['remove_web_gallery'] ?? null) ? $_POST['remove_web_gallery'] : []);
         $gallery = array_values(array_filter(
@@ -700,6 +543,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') ==
         }
 
         $webPage['gallery'] = array_slice($gallery, 0, 9);
+        $maxEvents = $isVipMember ? 15 : 3;
+        $maxArticles = $isVipMember ? 5 : 1;
+        $webPage['events'] = clean_web_events(
+            $_POST,
+            is_array($webPage['events'] ?? null) ? $webPage['events'] : [],
+            $_FILES,
+            $maxEvents,
+            $profileErrors
+        );
+        $webPage['articles'] = clean_web_articles(
+            $_POST,
+            is_array($webPage['articles'] ?? null) ? $webPage['articles'] : [],
+            $_FILES,
+            $maxArticles,
+            $profileErrors
+        );
         $webPage['contact_fields'] = array_values(array_intersect(
             ['email', 'phone', 'website', 'instagram'],
             array_map('strval', is_array($_POST['web_contact_fields'] ?? null) ? $_POST['web_contact_fields'] : [])
@@ -709,14 +568,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') ==
             $memberProfile['web_page'] = default_member_web_page($webPage);
             $user['artistic_profile'] = $memberProfile;
             update_user($user);
-            persist_member_profile_snapshot($user, $memberProfile);
             $profileMessages[] = 'Pagina web actualizada.';
         }
     }
 }
 
 $userName = $user['name'] ?? 'Miembro';
-$accountNameLocked = clean_text((string) ($user['name'] ?? '')) !== '';
 
 $memberTypeLabel = member_type_options()[$memberProfile['member_type']] ?? 'Artista';
 $profileStatus = profile_is_complete($memberProfile) ? 'Perfil completo' : 'Perfil pendiente';
@@ -726,34 +583,30 @@ $publicSlug = clean_text((string) ($memberProfile['slug'] ?? slugify($displayNam
 $publicSlug = $publicSlug !== '' ? $publicSlug : slugify($displayName);
 $publicProfileUrl = app_url('artista/' . rawurlencode($publicSlug));
 $webPage = default_member_web_page(is_array($memberProfile['web_page'] ?? null) ? $memberProfile['web_page'] : []);
-$webSlides = is_array($webPage['hero_slides'] ?? null) ? array_slice($webPage['hero_slides'], 0, 3) : [];
 $webGallery = array_slice($webPage['gallery'], 0, 9);
+$webEvents = array_values(is_array($webPage['events'] ?? null) ? $webPage['events'] : []);
+$webArticles = array_values(is_array($webPage['articles'] ?? null) ? $webPage['articles'] : []);
+$maxWebEvents = $isVipMember ? 15 : 3;
+$maxWebArticles = $isVipMember ? 5 : 1;
+$webEvents = array_slice($webEvents, 0, $maxWebEvents);
+$webArticles = array_slice($webArticles, 0, $maxWebArticles);
+$webEvents = $webEvents ?: [['title' => '', 'date' => '', 'time' => '', 'description' => '', 'image_path' => '']];
+$webArticles = $webArticles ?: [['title' => '', 'summary' => '', 'image_path' => '', 'submit_to_magazine' => false]];
 $webContactFields = is_array($webPage['contact_fields'] ?? null) ? $webPage['contact_fields'] : [];
 $webHeaderImage = clean_text((string) ($webPage['header_image_path'] ?: ($memberProfile['cv_header_image_path'] ?? '')));
-$mainPhotoPath = clean_text((string) ($memberProfile['main_photo_path'] ?? ''));
-$mainPhotoVisiblePath = member_visible_asset_path($mainPhotoPath);
-$cvHeaderBackground = clean_text((string) ($memberProfile['cv_header_image_path'] ?? ''));
-$cvHeaderVisibleBackground = member_visible_asset_path($cvHeaderBackground);
-if ($mainPhotoPath !== '' && $mainPhotoVisiblePath === '') {
-    $memberProfile['main_photo_path'] = '';
-    $user['artistic_profile'] = $memberProfile;
-    update_user($user);
-    persist_member_profile_snapshot($user, $memberProfile);
-    $mainPhotoPath = '';
-    $profileMessages[] = 'La ruta antigua de la fotografia no existia en el servidor y se ha limpiado. Sube la fotografia de nuevo para dejarla guardada correctamente.';
-}
 $cardHeadline = clean_text((string) ($memberProfile['artistic_headline'] ?? ''));
 $profileRequiredFields = [
     $memberProfile['public_name'] ?? '',
     $memberProfile['city'] ?? '',
     $memberProfile['province'] ?? '',
-    $mainPhotoVisiblePath,
+    $memberProfile['main_photo_path'] ?? '',
     (!empty($memberProfile['education']) || !empty($memberProfile['experience']) || !empty($memberProfile['performances'])) ? 'curriculum' : '',
 ];
 $completedProfileFields = count(array_filter($profileRequiredFields, static fn ($value): bool => clean_text((string) $value) !== ''));
 $profileCompletion = (int) round(($completedProfileFields / count($profileRequiredFields)) * 100);
-$cvHeaderStyle = $cvHeaderVisibleBackground !== ''
-    ? "background-image: linear-gradient(135deg, rgba(17, 17, 20, 0.82), rgba(32, 56, 71, 0.74)), url('" . $cvHeaderVisibleBackground . "');"
+$cvHeaderBackground = clean_text((string) ($memberProfile['cv_header_image_path'] ?? ''));
+$cvHeaderStyle = $cvHeaderBackground !== ''
+    ? "background-image: linear-gradient(135deg, rgba(17, 17, 20, 0.82), rgba(32, 56, 71, 0.74)), url('" . $cvHeaderBackground . "');"
     : '';
 ?>
 <!DOCTYPE html>
@@ -803,8 +656,8 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                 <section class="member-dashboard-hero" aria-label="Resumen del espacio">
                     <div class="member-dashboard-identity">
                         <button type="button" class="member-dashboard-photo-edit" data-main-photo-trigger aria-label="Editar fotografia principal">
-                            <?php if ($mainPhotoVisiblePath !== ''): ?>
-                                <img src="<?= e($mainPhotoVisiblePath) ?>" alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview>
+                            <?php if (!empty($memberProfile['main_photo_path'])): ?>
+                                <img src="<?= e($memberProfile['main_photo_path']) ?>" alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview>
                             <?php else: ?>
                                 <img alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview hidden>
                                 <div class="member-dashboard-photo-placeholder" data-main-photo-placeholder><?= e(strtoupper(substr($displayName, 0, 1))) ?></div>
@@ -862,18 +715,16 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                         <form class="member-profile-form cv-editor" id="member-profile-form" action="panel-usuario.php#perfil" method="post" enctype="multipart/form-data">
                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="profile_action" value="update_profile">
-                            <fieldset class="cv-fieldset profile-core-fieldset">
-	                                <legend>
-	                                    <span>Perfil publico</span>
-	                                    <strong>Identidad artistica</strong>
-	                                    <em>Define como se presentara tu espacio en la web, la tarjeta y el curriculum.</em>
-	                                </legend>
-	                                <div class="profile-identity-layout">
-	                                    <div class="profile-identity-fields">
-	                                <div class="form-grid-two">
+                            <div class="cv-editor-actions">
+                                <button class="button button-primary" type="submit">Guardar curriculum</button>
+                                <button class="button button-secondary" type="button" onclick="window.print()">Imprimir / guardar PDF</button>
+                            </div>
+
+                            <fieldset class="cv-fieldset profile-tab-panel active" data-profile-tab="artistica">
+                                <legend>Identidad artistica</legend>
+                                <div class="form-grid-two">
                                     <label for="user_name">Nombre de usuario (cuenta)
-                                        <input id="user_name" name="user_name" type="text" value="<?= e((string) ($user['name'] ?? '')) ?>" maxlength="160" <?= $accountNameLocked ? 'readonly aria-readonly="true" data-account-name-locked="1"' : 'required' ?>>
-                                        <span class="field-help"><?= $accountNameLocked ? 'Nombre reservado. Para cambiarlo, solicita autorizacion por correo electronico.' : 'Se comprobara que este libre al guardar el perfil.' ?></span>
+                                        <input id="user_name" name="user_name" type="text" value="<?= e((string) ($user['name'] ?? '')) ?>" maxlength="160" required>
                                     </label>
                                     <label for="user_email">Email de acceso
                                         <input id="user_email" type="email" value="<?= e((string) ($user['email'] ?? '')) ?>" readonly disabled aria-readonly="true">
@@ -897,24 +748,16 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                                 </div>
                                 <div class="public-url-control">
                                     <label for="slug">URL pública (slug)
-	                                        <input id="slug" name="slug" type="text" value="<?= e($publicSlug) ?>" placeholder="nombre-artista" pattern="[a-z0-9-]+" autocomplete="off" spellcheck="false" data-slug-input data-public-profile-base="<?= e(app_url('artista/')) ?>" required>
+                                        <input id="slug" name="slug" type="text" value="<?= e($publicSlug) ?>" placeholder="nombre-artista" required>
                                     </label>
-	                                    <button class="button button-secondary public-url-save" type="submit" name="slug_action" value="save_public_slug" formnovalidate>Guardar URL</button>
-		                                    <a class="public-url-cta" href="<?= e($publicProfileUrl) ?>" target="_blank" rel="noopener" data-public-url-cta>
-		                                        <span>Ver URL publica</span>
-		                                        <strong data-public-url-text><?= e($publicProfileUrl) ?></strong>
-		                                    </a>
-	                                </div>
-	                                    </div>
-	                                </div>
-	                            </fieldset>
+                                    <button class="button button-secondary public-url-save" type="submit" name="slug_action" value="save_public_slug" formnovalidate>Guardar URL</button>
+                                    <p class="field-help public-url-preview">URL publica completa: <a href="<?= e($publicProfileUrl) ?>" target="_blank" rel="noopener"><?= e($publicProfileUrl) ?></a></p>
+                                </div>
+                            </fieldset>
 
-                            <fieldset class="cv-fieldset profile-data-fieldset">
-                                <legend>
-                                    <span>Datos visibles</span>
-                                    <strong>Perfil e imagen</strong>
-                                    <em>Ubicacion, contacto y recursos visuales para mantener tu presencia publica cuidada.</em>
-                                </legend>
+                            <fieldset class="cv-fieldset profile-tab-panel" data-profile-tab="datos">
+                                <legend>Datos de perfil e imagen</legend>
+                                <p class="field-help">Aqui se rellenan ciudad, provincia, lugar de origen y fotografia principal. Estas opciones definen tu perfil visible.</p>
                                 <div class="form-grid-three">
                                     <label for="city">Ciudad
                                         <input id="city" name="city" type="text" value="<?= e($memberProfile['city']) ?>" required>
@@ -953,7 +796,7 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                                 </div>
                                 <p class="field-help">Cada espacio debe tener al menos una fotografia principal. JPG, PNG o WebP, maximo 5 MB.</p>
                                 <label class="cv-header-background-field" for="cv_header_image">Fondo de cabecera del curriculum PDF
-                                    <span class="cv-header-background-preview" <?= $cvHeaderVisibleBackground !== '' ? 'style="background-image: linear-gradient(135deg, rgba(17, 17, 20, 0.72), rgba(32, 56, 71, 0.68)), url(' . e($cvHeaderVisibleBackground) . ');"' : '' ?>>
+                                    <span class="cv-header-background-preview" <?= $cvHeaderBackground !== '' ? 'style="background-image: linear-gradient(135deg, rgba(17, 17, 20, 0.72), rgba(32, 56, 71, 0.68)), url(' . e($cvHeaderBackground) . ');"' : '' ?>>
                                         <strong><?= $cvHeaderBackground !== '' ? 'Fondo actual' : 'Sin fondo personalizado' ?></strong>
                                         <em>Cambiar fondo</em>
                                     </span>
@@ -1006,7 +849,6 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                                     <?php $sectionRows = !empty($memberProfile[$sectionKey]) ? $memberProfile[$sectionKey] : [[]]; ?>
                                     <?php foreach ($sectionRows as $rowIndex => $entry): ?>
                                         <?php $entry = is_array($memberProfile[$sectionKey][$rowIndex] ?? null) ? $memberProfile[$sectionKey][$rowIndex] : []; ?>
-                                        <?php $entryImagePath = member_visible_asset_path((string) ($entry['image_path'] ?? '')); ?>
                                         <div class="cv-repeat-row <?= !empty($sectionConfig['allows_image']) ? 'cv-repeat-row-with-media' : '' ?>">
                                             <div class="cv-entry-controls">
                                                 <label class="visibility-toggle">
@@ -1021,12 +863,10 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                                                 <label class="cv-entry-image-field">
                                                     Imagen de la entrada
                                                     <span class="cv-entry-image-box">
-                                                        <img class="cv-entry-image-preview" src="<?= e($entryImagePath) ?>" alt="Imagen guardada de <?= e($sectionConfig['title']) ?>" loading="lazy" data-cv-image-preview <?= $entryImagePath === '' ? 'hidden' : '' ?>>
-                                                        <span data-cv-image-placeholder <?= $entryImagePath !== '' ? 'hidden' : '' ?>>Sin imagen</span>
+                                                        <img class="cv-entry-image-preview" src="<?= e((string) ($entry['image_path'] ?? '')) ?>" alt="Imagen guardada de <?= e($sectionConfig['title']) ?>" loading="lazy" data-cv-image-preview <?= empty($entry['image_path']) ? 'hidden' : '' ?>>
+                                                        <span data-cv-image-placeholder <?= !empty($entry['image_path']) ? 'hidden' : '' ?>>Sin imagen</span>
                                                     </span>
-                                                    <input type="hidden" name="<?= e($sectionKey) ?>[<?= e((string) $rowIndex) ?>][image_path]" value="<?= e($entryImagePath) ?>">
                                                     <input name="<?= e($sectionKey) ?>[<?= e((string) $rowIndex) ?>][image]" type="file" accept="image/jpeg,image/png,image/webp" data-cv-image-input>
-                                                    <small>Se guarda automaticamente al seleccionar.</small>
                                                 </label>
                                             <?php endif; ?>
                                             <?php foreach ($sectionConfig['fields'] as $fieldName => $fieldLabel): ?>
@@ -1065,18 +905,15 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                                 </label>
                             </fieldset>
 
-                            <div class="member-form-savebar">
-                                <div>
-                                    <strong>Guardar cambios del perfil</strong>
-                                    <span data-savebar-message>Actualiza identidad, datos profesionales y secciones del curriculum.</span>
-                                </div>
-                                <button class="button button-primary member-save-button" type="submit">Guardar cambios</button>
+                            <div class="cv-editor-actions">
+                                <button class="button button-primary" type="submit">Guardar curriculum</button>
+                                <button class="button button-secondary" type="button" onclick="window.print()">Imprimir / guardar PDF</button>
                             </div>
                         </form>
                         <section class="cv-print-document" aria-label="Curriculum imprimible">
                             <header class="cv-print-header" <?= $cvHeaderStyle !== '' ? 'style="' . e($cvHeaderStyle) . '"' : '' ?>>
-                                <?php if ($mainPhotoVisiblePath !== ''): ?>
-                                    <img src="<?= e($mainPhotoVisiblePath) ?>" alt="Fotografia principal de <?= e($displayName) ?>">
+                                <?php if (!empty($memberProfile['main_photo_path'])): ?>
+                                    <img src="<?= e($memberProfile['main_photo_path']) ?>" alt="Fotografia principal de <?= e($displayName) ?>">
                                 <?php endif; ?>
                                 <div>
                                     <h1><?= e($cardHeadline !== '' ? $cardHeadline : $displayName) ?></h1>
@@ -1112,11 +949,10 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                                                 $entryDescription = clean_html_text((string) ($entry['description'] ?? ''));
                                                 $entryStart = cv_print_date((string) ($entry['date_start'] ?? ''));
                                                 $entryEnd = cv_print_date((string) ($entry['date_end'] ?? ''));
-                                                $entryImagePath = member_visible_asset_path((string) ($entry['image_path'] ?? ''));
                                                 ?>
-                                                <article class="cv-print-entry <?= $entryImagePath !== '' ? 'cv-print-entry-with-image' : '' ?>">
-                                                    <?php if ($entryImagePath !== ''): ?>
-                                                        <img class="cv-print-entry-image" src="<?= e($entryImagePath) ?>" alt="Imagen de <?= e($sectionConfig['title']) ?>">
+                                                <article class="cv-print-entry <?= !empty($entry['image_path']) ? 'cv-print-entry-with-image' : '' ?>">
+                                                    <?php if (!empty($entry['image_path'])): ?>
+                                                        <img class="cv-print-entry-image" src="<?= e((string) $entry['image_path']) ?>" alt="Imagen de <?= e($sectionConfig['title']) ?>">
                                                     <?php endif; ?>
                                                     <div class="cv-print-entry-main">
                                                         <?php if (!empty($entry['category'])): ?>
@@ -1162,7 +998,7 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                         <div class="section-heading-content">
                             <p class="section-kicker">Pagina web</p>
                             <h2>Web de una sola pagina</h2>
-                            <p>Configura los bloques que apareceran en tu pagina publica. El menu solo mostrara Galeria o Contacto cuando tengan contenido.</p>
+                            <p>Configura tu propia web con menu fijo: Inicio, Galeria, Eventos, Actualidad y Contacto.</p>
                         </div>
                         <a class="section-enter-link" href="<?= e($publicProfileUrl) ?>" target="_blank" rel="noopener">Ver pagina publica</a>
                     </div>
@@ -1171,49 +1007,35 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="profile_action" value="update_web_page">
 
+                        <nav class="member-web-submenu" aria-label="Submenu de pagina web">
+                            <a href="#web-inicio">Inicio</a>
+                            <a href="#web-galeria">Galeria</a>
+                            <a href="#web-eventos">Eventos</a>
+                            <a href="#web-actualidad">Actualidad</a>
+                            <a href="#web-contacto">Contacto</a>
+                        </nav>
+
                         <div class="member-website-grid">
-                            <article class="member-config-card">
-                                <h3>Slider de cabecera</h3>
-                                <p>Configura hasta 3 imagenes. El titulo, descripcion y boton solo apareceran cuando tengan contenido.</p>
-                                <input type="hidden" name="web_header_title" value="<?= e((string) ($webPage['header_title'] ?? '')) ?>">
-                                <input type="hidden" name="web_header_subtitle" value="<?= e((string) ($webPage['header_subtitle'] ?? '')) ?>">
-                                <?php for ($slideIndex = 0; $slideIndex < 3; $slideIndex++): ?>
-                                    <?php
-                                    $slide = is_array($webSlides[$slideIndex] ?? null) ? $webSlides[$slideIndex] : [];
-                                    $slideImage = member_visible_asset_path((string) ($slide['image_path'] ?? ''));
-                                    ?>
-                                    <div class="website-slide-editor">
-                                        <div class="website-slide-preview" <?= $slideImage !== '' ? 'style="' . e("background-image: linear-gradient(135deg, rgba(17, 17, 20, 0.42), rgba(17, 17, 20, 0.2)), url('" . $slideImage . "');") . '"' : '' ?>>
-                                            <span><?= $slideImage !== '' ? 'Imagen del slide ' . e((string) ($slideIndex + 1)) : 'Sin imagen' ?></span>
-                                        </div>
-                                        <div class="website-slide-fields">
-                                            <strong>Slide <?= e((string) ($slideIndex + 1)) ?></strong>
-                                            <input type="hidden" name="web_slides[<?= e((string) $slideIndex) ?>][image_path]" value="<?= e($slideImage) ?>">
-                                            <label>Imagen
-                                                <input name="web_slides[<?= e((string) $slideIndex) ?>][image]" type="file" accept="image/jpeg,image/png,image/webp">
-                                            </label>
-                                            <label>Titulo
-                                                <input name="web_slides[<?= e((string) $slideIndex) ?>][title]" type="text" value="<?= e((string) ($slide['title'] ?? '')) ?>" maxlength="140">
-                                            </label>
-                                            <label>Descripcion
-                                                <textarea name="web_slides[<?= e((string) $slideIndex) ?>][description]" rows="3" maxlength="320"><?= e((string) ($slide['description'] ?? '')) ?></textarea>
-                                            </label>
-                                            <div class="form-grid-two">
-                                                <label>Texto boton
-                                                    <input name="web_slides[<?= e((string) $slideIndex) ?>][cta_label]" type="text" value="<?= e((string) ($slide['cta_label'] ?? '')) ?>" maxlength="80" placeholder="Ver mas">
-                                                </label>
-                                                <label>URL boton
-                                                    <input name="web_slides[<?= e((string) $slideIndex) ?>][cta_url]" type="url" value="<?= e((string) ($slide['cta_url'] ?? '')) ?>" placeholder="https://...">
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                <?php endfor; ?>
+                            <article id="web-inicio" class="member-config-card">
+                                <h3>Cabecera</h3>
+                                <p>Esta seccion representa el Inicio de tu web personal, no el Inicio de Con Sabor Flamenco.</p>
+                                <label for="web_header_title">Titulo visible
+                                    <input id="web_header_title" name="web_header_title" type="text" value="<?= e((string) ($webPage['header_title'] ?? '')) ?>" placeholder="<?= e($displayName) ?>">
+                                </label>
+                                <label for="web_header_subtitle">Texto breve de cabecera
+                                    <textarea id="web_header_subtitle" name="web_header_subtitle" rows="3" maxlength="280" placeholder="Una frase breve para presentar tu espacio."><?= e((string) ($webPage['header_subtitle'] ?? '')) ?></textarea>
+                                </label>
+                                <label class="cv-header-background-field" for="web_header_image">Fondo de cabecera web
+                                    <span class="cv-header-background-preview" <?= $webHeaderImage !== '' ? 'style="' . e("background-image: linear-gradient(135deg, rgba(17, 17, 20, 0.62), rgba(32, 56, 71, 0.56)), url('" . $webHeaderImage . "');") . '"' : '' ?>>
+                                        <span><?= $webHeaderImage !== '' ? 'Fondo actual' : 'Subir fondo' ?></span>
+                                    </span>
+                                    <input id="web_header_image" name="web_header_image" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+                                </label>
                             </article>
 
-                            <article class="member-config-card">
+                            <article id="web-galeria" class="member-config-card">
                                 <h3>Galeria</h3>
-                                <p>Sube hasta 9 imagenes. Si no hay imagenes, la seccion Galeria no aparecera en la web publica.</p>
+                                <p>Sube hasta 9 imagenes desde este submenu para mostrarlas en tu web.</p>
                                 <div class="website-gallery-grid">
                                     <?php if ($webGallery): ?>
                                         <?php foreach ($webGallery as $galleryIndex => $galleryImage): ?>
@@ -1231,9 +1053,82 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                                 </label>
                             </article>
 
-                            <article class="member-config-card">
+                            <article id="web-eventos" class="member-config-card">
+                                <h3>Eventos</h3>
+                                <p><?= $isVipMember ? 'Como miembro de pago puedes publicar mas de 3 eventos.' : 'Como miembro simpatizante puedes publicar hasta 3 eventos.' ?></p>
+                                <div class="member-web-repeat-list" data-web-repeat-list="events" data-web-max="<?= e((string) $maxWebEvents) ?>">
+                                    <?php foreach ($webEvents as $eventIndex => $event): ?>
+                                        <div class="member-web-repeat-row" data-web-repeat-row>
+                                            <div class="form-grid-three">
+                                                <label>Titulo
+                                                    <input name="web_events[<?= e((string) $eventIndex) ?>][title]" type="text" value="<?= e((string) ($event['title'] ?? '')) ?>" maxlength="140" placeholder="Nombre del evento flamenco">
+                                                </label>
+                                                <label>Fecha
+                                                    <input name="web_events[<?= e((string) $eventIndex) ?>][date]" type="date" value="<?= e((string) ($event['date'] ?? '')) ?>">
+                                                </label>
+                                                <label>Hora
+                                                    <input name="web_events[<?= e((string) $eventIndex) ?>][time]" type="time" value="<?= e((string) ($event['time'] ?? '')) ?>">
+                                                </label>
+                                            </div>
+                                            <label>Descripcion
+                                                <textarea name="web_events[<?= e((string) $eventIndex) ?>][description]" rows="3" maxlength="700" placeholder="Programa, artistas invitados, direccion y detalles clave."><?= e((string) ($event['description'] ?? '')) ?></textarea>
+                                            </label>
+                                            <div class="member-web-image-row">
+                                                <?php if (!empty($event['image_path'])): ?>
+                                                    <img src="<?= e((string) $event['image_path']) ?>" alt="Imagen del evento <?= e((string) ($eventIndex + 1)) ?>" loading="lazy">
+                                                <?php endif; ?>
+                                                <label>Imagen del evento
+                                                    <input name="web_events[<?= e((string) $eventIndex) ?>][image]" type="file" accept="image/jpeg,image/png,image/webp">
+                                                </label>
+                                                <?php if (!empty($event['image_path'])): ?>
+                                                    <label><input type="checkbox" name="web_events[<?= e((string) $eventIndex) ?>][remove_image]" value="1"> Quitar imagen actual</label>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <div class="member-web-repeat-actions">
+                                    <button type="button" class="button button-secondary" data-web-add="events">Anadir evento</button>
+                                    <p class="field-help">Maximo actual: <?= e((string) $maxWebEvents) ?> eventos.</p>
+                                </div>
+                            </article>
+
+                            <article id="web-actualidad" class="member-config-card">
+                                <h3>Actualidad y revista</h3>
+                                <p><?= $isVipMember ? 'Puedes publicar hasta 5 articulos y marcarlos para revista.' : 'Como simpatizante puedes publicar 1 articulo y marcarlo para revista.' ?></p>
+                                <div class="member-web-repeat-list" data-web-repeat-list="articles" data-web-max="<?= e((string) $maxWebArticles) ?>">
+                                    <?php foreach ($webArticles as $articleIndex => $article): ?>
+                                        <div class="member-web-repeat-row" data-web-repeat-row>
+                                            <label>Titulo del articulo
+                                                <input name="web_articles[<?= e((string) $articleIndex) ?>][title]" type="text" value="<?= e((string) ($article['title'] ?? '')) ?>" maxlength="140" placeholder="Titular del articulo">
+                                            </label>
+                                            <label>Texto breve
+                                                <textarea name="web_articles[<?= e((string) $articleIndex) ?>][summary]" rows="4" maxlength="1200" placeholder="Comparte una novedad, lanzamiento o noticia."><?= e((string) ($article['summary'] ?? '')) ?></textarea>
+                                            </label>
+                                            <div class="member-web-image-row">
+                                                <?php if (!empty($article['image_path'])): ?>
+                                                    <img src="<?= e((string) $article['image_path']) ?>" alt="Imagen del articulo <?= e((string) ($articleIndex + 1)) ?>" loading="lazy">
+                                                <?php endif; ?>
+                                                <label>Imagen del articulo
+                                                    <input name="web_articles[<?= e((string) $articleIndex) ?>][image]" type="file" accept="image/jpeg,image/png,image/webp">
+                                                </label>
+                                                <?php if (!empty($article['image_path'])): ?>
+                                                    <label><input type="checkbox" name="web_articles[<?= e((string) $articleIndex) ?>][remove_image]" value="1"> Quitar imagen actual</label>
+                                                <?php endif; ?>
+                                            </div>
+                                            <label><input type="checkbox" name="web_articles[<?= e((string) $articleIndex) ?>][submit_to_magazine]" value="1" <?= !empty($article['submit_to_magazine']) ? 'checked' : '' ?>> Marcar para propuesta en revista</label>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <div class="member-web-repeat-actions">
+                                    <button type="button" class="button button-secondary" data-web-add="articles">Anadir articulo</button>
+                                    <p class="field-help">Limite de articulos para tu membresia: <?= e((string) $maxWebArticles) ?>.</p>
+                                </div>
+                            </article>
+
+                            <article id="web-contacto" class="member-config-card">
                                 <h3>Contacto</h3>
-                                <p>Elige que datos se mostraran. Si no seleccionas ningun dato con contenido, Contacto no aparecera en el menu publico.</p>
+                                <p>Elige que datos se mostraran en la seccion Contacto de tu web.</p>
                                 <div class="website-contact-options">
                                     <label><input type="checkbox" name="web_contact_fields[]" value="email" <?= in_array('email', $webContactFields, true) ? 'checked' : '' ?>> Email</label>
                                     <label><input type="checkbox" name="web_contact_fields[]" value="phone" <?= in_array('phone', $webContactFields, true) ? 'checked' : '' ?>> Telefono</label>
@@ -1333,151 +1228,16 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
         const originalDocumentTitle = document.title;
         const memberProfileForm = document.getElementById('member-profile-form');
         const profileActionInput = memberProfileForm?.querySelector('input[name="profile_action"]');
-        const csrfInput = memberProfileForm?.querySelector('input[name="csrf_token"]');
-        const saveBar = document.querySelector('.member-form-savebar');
-        const saveBarMessage = saveBar?.querySelector('[data-savebar-message]');
 
-        const syncRichTextEditors = (form = memberProfileForm) => {
-            if (!(form instanceof HTMLFormElement)) {
-                return;
-            }
-            form.querySelectorAll('[data-rich-editor]').forEach((formEditor) => {
-                if (!(formEditor instanceof HTMLElement)) {
-                    return;
-                }
-                const formTextarea = formEditor.parentElement?.querySelector('textarea[hidden]');
-                if (formTextarea instanceof HTMLTextAreaElement) {
-                    formTextarea.value = formEditor.innerHTML;
-                }
-            });
-        };
-
-        const markProfilePendingSave = (message = 'Hay cambios pendientes. Pulsa Guardar cambios para dejarlos persistentes.') => {
-            if (saveBar instanceof HTMLElement) {
-                saveBar.classList.add('member-form-savebar-pending');
-            }
-            if (saveBarMessage instanceof HTMLElement) {
-                saveBarMessage.textContent = message;
-            }
-        };
-
-        const cacheBustedAssetPath = (path) => {
-            if (!path) {
-                return '';
-            }
-            const separator = path.includes('?') ? '&' : '?';
-            return `${path}${separator}v=${Date.now()}`;
-        };
-
-        const normalizeSlugValue = (value) => value
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/^-+|-+$/g, '')
-            .replace(/-{2,}/g, '-');
-
-        const syncPublicUrlCta = () => {
-            const slugInput = document.querySelector('[data-slug-input]');
-            const publicUrlCta = document.querySelector('[data-public-url-cta]');
-            const publicUrlText = document.querySelector('[data-public-url-text]');
-            if (!(slugInput instanceof HTMLInputElement) || !(publicUrlCta instanceof HTMLAnchorElement) || !(publicUrlText instanceof HTMLElement)) {
-                return;
-            }
-
-            const normalizedSlug = normalizeSlugValue(slugInput.value);
-            if (slugInput.value !== normalizedSlug) {
-                slugInput.value = normalizedSlug;
-            }
-
-            const baseUrl = slugInput.dataset.publicProfileBase || '';
-            const nextUrl = `${baseUrl}${normalizedSlug || 'nombre-artista'}`;
-            publicUrlCta.href = nextUrl;
-            publicUrlText.textContent = nextUrl;
-        };
-
-        document.querySelector('[data-slug-input]')?.addEventListener('input', syncPublicUrlCta);
-        document.querySelector('[data-slug-input]')?.addEventListener('blur', syncPublicUrlCta);
-        syncPublicUrlCta();
-
-        const submitIsolatedImageUpdate = async (input) => {
-            if (!(input instanceof HTMLInputElement) || !input.files?.[0] || !(csrfInput instanceof HTMLInputElement)) {
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('profile_action', 'update_profile_images');
-            formData.append('csrf_token', csrfInput.value);
-            formData.append(input.name, input.files[0], input.files[0].name);
-            markProfilePendingSave('Guardando imagen en base de datos...');
-
-            try {
-                const response = await fetch('panel-usuario.php', {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        Accept: 'application/json',
-                        'X-Requested-With': 'fetch',
-                    },
-                    credentials: 'same-origin',
-                });
-                let payload = null;
-                try {
-                    payload = await response.json();
-                } catch (parseError) {
-                    throw new Error('No se pudo confirmar el guardado de la imagen. Vuelve a iniciar sesion si el problema continua.');
-                }
-                if (!response.ok || !payload?.ok) {
-                    throw new Error(payload?.errors?.[0] || 'No se pudo guardar la imagen en base de datos.');
-                }
-
-                if (input.name === 'main_photo' && payload.main_photo_path) {
-                    const persistedPath = cacheBustedAssetPath(payload.main_photo_path);
-                    document.querySelectorAll('[data-main-photo-preview]').forEach((previewImage) => {
-                        if (previewImage instanceof HTMLImageElement) {
-                            previewImage.src = persistedPath;
-                            previewImage.hidden = false;
-                        }
-                    });
-                    document.querySelectorAll('[data-main-photo-placeholder]').forEach((placeholder) => {
-                        placeholder.hidden = true;
-                    });
-                }
-
-                if (input.name === 'cv_header_image' && payload.cv_header_image_path) {
-                    const preview = document.querySelector('.cv-header-background-preview');
-                    if (preview instanceof HTMLElement) {
-                        preview.style.backgroundImage = `linear-gradient(135deg, rgba(17, 17, 20, 0.72), rgba(32, 56, 71, 0.68)), url("${cacheBustedAssetPath(payload.cv_header_image_path)}")`;
-                    }
-                }
-
-                if (saveBar instanceof HTMLElement) {
-                    saveBar.classList.remove('member-form-savebar-pending');
-                }
-                if (saveBarMessage instanceof HTMLElement) {
-                    saveBarMessage.textContent = payload.messages?.[0] || 'Imagen guardada en tu cuenta.';
-                }
-                input.value = '';
-            } catch (error) {
-                const message = error instanceof Error ? error.message : 'No se pudo guardar la imagen.';
-                if (saveBarMessage instanceof HTMLElement) {
-                    saveBarMessage.textContent = message;
-                }
-                alert(message);
-            }
-        };
-
-        const submitProfileForEntryImage = () => {
+        const submitImageUpdate = () => {
             if (!(memberProfileForm instanceof HTMLFormElement)) {
                 return;
             }
-            syncRichTextEditors(memberProfileForm);
             if (profileActionInput instanceof HTMLInputElement) {
-                profileActionInput.value = 'update_profile';
+                profileActionInput.value = 'update_profile_images';
             }
-            memberProfileForm.submit();
+            memberProfileForm.requestSubmit();
         };
-
         window.addEventListener('beforeprint', () => {
             document.title = ' ';
         });
@@ -1549,60 +1309,6 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                 if (placeholder instanceof HTMLElement) {
                     placeholder.hidden = true;
                 }
-                markProfilePendingSave('Guardando imagen en tu perfil...');
-                if (!(csrfInput instanceof HTMLInputElement)) {
-                    submitProfileForEntryImage();
-                    return;
-                }
-
-                const uploadData = new FormData();
-                uploadData.append('profile_action', 'upload_cv_entry_image');
-                uploadData.append('csrf_token', csrfInput.value);
-                uploadData.append('cv_entry_image', input.files[0], input.files[0].name);
-
-                fetch('panel-usuario.php', {
-                    method: 'POST',
-                    body: uploadData,
-                    headers: {
-                        Accept: 'application/json',
-                        'X-Requested-With': 'fetch',
-                    },
-                    credentials: 'same-origin',
-                })
-                    .then(async (response) => {
-                        let payload = null;
-                        try {
-                            payload = await response.json();
-                        } catch (error) {
-                            throw new Error('No se pudo confirmar la subida de la imagen.');
-                        }
-                        if (!response.ok || !payload?.ok || !payload.image_path) {
-                            throw new Error(payload?.errors?.[0] || 'No se pudo guardar la imagen de la entrada.');
-                        }
-                        return payload.image_path;
-                    })
-                    .then((persistedImagePath) => {
-                        const hiddenPath = field?.querySelector('input[type="hidden"][name$="[image_path]"]');
-                        if (hiddenPath instanceof HTMLInputElement) {
-                            hiddenPath.value = persistedImagePath;
-                        }
-                        if (preview instanceof HTMLImageElement) {
-                            preview.src = cacheBustedAssetPath(persistedImagePath);
-                            preview.hidden = false;
-                        }
-                        if (placeholder instanceof HTMLElement) {
-                            placeholder.hidden = true;
-                        }
-                        input.value = '';
-                        submitProfileForEntryImage();
-                    })
-                    .catch((error) => {
-                        const message = error instanceof Error ? error.message : 'No se pudo guardar la imagen de la entrada.';
-                        if (saveBarMessage instanceof HTMLElement) {
-                            saveBarMessage.textContent = message;
-                        }
-                        alert(message);
-                    });
             }
 
             if (input.matches('#main_photo') && input.files?.[0]) {
@@ -1618,7 +1324,7 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                 placeholders.forEach((placeholder) => {
                     placeholder.hidden = true;
                 });
-                submitIsolatedImageUpdate(input);
+                submitImageUpdate();
             }
 
             if (input.matches('#cv_header_image') && input.files?.[0]) {
@@ -1634,7 +1340,7 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                         action.textContent = 'Cambiar fondo';
                     }
                 }
-                submitIsolatedImageUpdate(input);
+                submitImageUpdate();
             }
         });
 
@@ -1643,7 +1349,6 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                 if (profileActionInput instanceof HTMLInputElement && profileActionInput.value !== 'update_profile_images') {
                     profileActionInput.value = 'update_profile';
                 }
-                syncRichTextEditors(memberProfileForm);
             });
         }
 
@@ -1892,6 +1597,58 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                 if (input instanceof HTMLInputElement) {
                     input.click();
                 }
+            });
+        });
+
+        document.querySelectorAll('[data-web-add]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const repeatKey = button.getAttribute('data-web-add');
+                if (!repeatKey) {
+                    return;
+                }
+
+                const list = document.querySelector(`[data-web-repeat-list="${repeatKey}"]`);
+                if (!(list instanceof HTMLElement)) {
+                    return;
+                }
+
+                const rows = list.querySelectorAll('[data-web-repeat-row]');
+                const maxItems = Number(list.getAttribute('data-web-max') || '1');
+                if (rows.length >= maxItems) {
+                    return;
+                }
+
+                const firstRow = rows[0];
+                if (!(firstRow instanceof HTMLElement)) {
+                    return;
+                }
+
+                const clone = firstRow.cloneNode(true);
+                const nextIndex = rows.length;
+                clone.querySelectorAll('input, textarea').forEach((field) => {
+                    if (!(field instanceof HTMLInputElement) && !(field instanceof HTMLTextAreaElement)) {
+                        return;
+                    }
+
+                    if (field.name) {
+                        field.name = field.name.replace(/\[\d+\]/, `[${nextIndex}]`);
+                    }
+
+                    if (field instanceof HTMLInputElement && field.type === 'checkbox') {
+                        field.checked = false;
+                        return;
+                    }
+
+                    if (field instanceof HTMLInputElement && field.type === 'file') {
+                        field.value = '';
+                        return;
+                    }
+
+                    field.value = '';
+                });
+
+                clone.querySelectorAll('img').forEach((image) => image.remove());
+                list.appendChild(clone);
             });
         });
 

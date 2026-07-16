@@ -214,6 +214,8 @@ function default_member_web_page(array $settings = []): array
         'header_image_path' => '',
         'hero_slides' => [],
         'gallery' => [],
+        'events' => [],
+        'articles' => [],
         'contact_fields' => ['email'],
     ], $settings);
 
@@ -239,6 +241,33 @@ function default_member_web_page(array $settings = []): array
         ['email', 'phone', 'website', 'instagram'],
         array_map('strval', is_array($merged['contact_fields'] ?? null) ? $merged['contact_fields'] : [])
     ));
+
+    $merged['events'] = array_values(array_filter(array_map(static function ($event): array {
+        if (!is_array($event)) {
+            return [];
+        }
+
+        return [
+            'title' => clean_text((string) ($event['title'] ?? '')),
+            'date' => clean_text((string) ($event['date'] ?? '')),
+            'time' => clean_text((string) ($event['time'] ?? '')),
+            'description' => clean_html_text((string) ($event['description'] ?? '')),
+            'image_path' => clean_text((string) ($event['image_path'] ?? '')),
+        ];
+    }, is_array($merged['events'] ?? null) ? $merged['events'] : []), static fn (array $event): bool => ($event['title'] ?? '') !== '' || ($event['date'] ?? '') !== '' || ($event['time'] ?? '') !== '' || ($event['description'] ?? '') !== '' || ($event['image_path'] ?? '') !== '')));
+
+    $merged['articles'] = array_values(array_filter(array_map(static function ($article): array {
+        if (!is_array($article)) {
+            return [];
+        }
+
+        return [
+            'title' => clean_text((string) ($article['title'] ?? '')),
+            'summary' => clean_html_text((string) ($article['summary'] ?? '')),
+            'image_path' => clean_text((string) ($article['image_path'] ?? '')),
+            'submit_to_magazine' => (bool) ($article['submit_to_magazine'] ?? false),
+        ];
+    }, is_array($merged['articles'] ?? null) ? $merged['articles'] : []), static fn (array $article): bool => ($article['title'] ?? '') !== '' || ($article['summary'] ?? '') !== '' || ($article['image_path'] ?? '') !== '')));
 
     return $merged;
 }
@@ -289,6 +318,45 @@ function member_profile_from_input(array $input, array $existingProfile = []): a
     return $profile;
 }
 
+function save_member_image_to_database(
+    ?PDO $pdo,
+    string $binary,
+    string $originalName,
+    string $mime,
+    string $extension,
+    string $category,
+    array &$errors
+): ?string {
+    if (!$pdo) {
+        return null;
+    }
+
+    $storageKey = $category . '-' . gmdate('YmdHis') . '-' . bin2hex(random_bytes(6));
+    $safeOriginalName = clean_text(basename($originalName));
+
+    try {
+        $statement = $pdo->prepare(
+            'INSERT INTO media_archivos (storage_key, categoria, filename_original, extension, mime_type, size_bytes, sha256, contenido_binario)
+             VALUES (:storage_key, :categoria, :filename_original, :extension, :mime_type, :size_bytes, :sha256, :contenido_binario)'
+        );
+        $statement->bindValue(':storage_key', $storageKey);
+        $statement->bindValue(':categoria', clean_text($category));
+        $statement->bindValue(':filename_original', $safeOriginalName !== '' ? $safeOriginalName : null);
+        $statement->bindValue(':extension', clean_text($extension));
+        $statement->bindValue(':mime_type', clean_text($mime));
+        $statement->bindValue(':size_bytes', strlen($binary), PDO::PARAM_INT);
+        $statement->bindValue(':sha256', hash('sha256', $binary));
+        $statement->bindValue(':contenido_binario', $binary, PDO::PARAM_LOB);
+        $statement->execute();
+    } catch (Throwable $exception) {
+        $errors[] = 'No se pudo guardar la imagen en la base de datos.';
+        error_log('Media DB save failed: ' . $exception->getMessage());
+        return null;
+    }
+
+    return 'media.php?k=' . rawurlencode($storageKey);
+}
+
 function save_member_photo_upload(?array $file, array &$errors, bool $required = false): ?string
 {
     if (!$file || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
@@ -325,9 +393,32 @@ function save_member_photo_upload(?array $file, array &$errors, bool $required =
         return null;
     }
 
+    $tmpName = (string) ($file['tmp_name'] ?? '');
+    $binary = @file_get_contents($tmpName);
+    if (!is_string($binary) || $binary === '') {
+        $errors[] = 'No se pudo leer la fotografia subida.';
+        return null;
+    }
+
+    $pdo = auth_database();
+    $databasePath = save_member_image_to_database(
+        $pdo,
+        $binary,
+        (string) ($file['name'] ?? ''),
+        $mime,
+        $extensions[$mime],
+        'member-photo',
+        $errors
+    );
+    if ($databasePath) {
+        return $databasePath;
+    }
+    if ($pdo) {
+        return null;
+    }
+
     $filename = 'member-' . gmdate('YmdHis') . '-' . bin2hex(random_bytes(6)) . '.' . $extensions[$mime];
     $destination = MEMBER_PHOTOS_DIR . '/' . $filename;
-    $tmpName = (string) ($file['tmp_name'] ?? '');
     $moved = is_uploaded_file($tmpName)
         ? move_uploaded_file($tmpName, $destination)
         : rename($tmpName, $destination);
@@ -373,9 +464,32 @@ function save_member_cv_image_upload(?array $file, array &$errors): ?string
         return null;
     }
 
+    $tmpName = (string) ($file['tmp_name'] ?? '');
+    $binary = @file_get_contents($tmpName);
+    if (!is_string($binary) || $binary === '') {
+        $errors[] = 'No se pudo leer la imagen subida.';
+        return null;
+    }
+
+    $pdo = auth_database();
+    $databasePath = save_member_image_to_database(
+        $pdo,
+        $binary,
+        (string) ($file['name'] ?? ''),
+        $mime,
+        $extensions[$mime],
+        'member-cv',
+        $errors
+    );
+    if ($databasePath) {
+        return $databasePath;
+    }
+    if ($pdo) {
+        return null;
+    }
+
     $filename = 'cv-' . gmdate('YmdHis') . '-' . bin2hex(random_bytes(6)) . '.' . $extensions[$mime];
     $destination = MEMBER_CV_IMAGES_DIR . '/' . $filename;
-    $tmpName = (string) ($file['tmp_name'] ?? '');
     $moved = is_uploaded_file($tmpName)
         ? move_uploaded_file($tmpName, $destination)
         : rename($tmpName, $destination);

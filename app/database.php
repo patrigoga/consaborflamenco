@@ -222,6 +222,22 @@ function db_bootstrap(PDO $pdo): void
             INDEX idx_banners_miembro_estado (miembro_id, estado)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
+        "CREATE TABLE IF NOT EXISTS media_archivos (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            storage_key VARCHAR(120) NOT NULL UNIQUE,
+            categoria VARCHAR(60) NOT NULL,
+            filename_original VARCHAR(255) NULL,
+            extension VARCHAR(12) NULL,
+            mime_type VARCHAR(120) NOT NULL,
+            size_bytes INT UNSIGNED NOT NULL,
+            sha256 CHAR(64) NOT NULL,
+            contenido_binario LONGBLOB NOT NULL,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_media_categoria_created (categoria, created_at),
+            INDEX idx_media_sha256 (sha256)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
         "CREATE TABLE IF NOT EXISTS appointment_setters (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             usuario_id BIGINT UNSIGNED NOT NULL UNIQUE,

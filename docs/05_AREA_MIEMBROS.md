@@ -71,8 +71,15 @@ El panel de miembro se organiza con:
 - Editor de perfil artistico con tipo de espacio, nombre artistico, titular artistico, ubicacion, contacto, redes y fotografia principal.
 - La URL publica del perfil se guarda con un boton propio y valida duplicados antes de persistir el slug.
 - Editor de curriculum artistico con formacion, experiencia escenica, docencia, actuaciones destacadas, premios, repertorio, disponibilidad y notas privadas.
-- Configuracion de pagina web de una sola pagina con cabecera, galeria de hasta 9 imagenes y contacto.
-- La pagina publica mostrara en su menu interno solo las secciones con contenido, manteniendo la cabecera siempre visible.
+- Configuracion de pagina web de una sola pagina con menu fijo: Inicio, Galeria, Eventos, Actualidad y Contacto.
+- La seccion Inicio de la web del miembro es su propia portada y no redirige al Inicio de consaborflamenco.com.
+- La cabecera global del sitio no se muestra en la web publica del miembro para priorizar su marca personal.
+- Galeria editable desde submenu dedicado con carga y retirada de imagenes (maximo 9).
+- Eventos editables con campos obligatorios de fecha, hora, titulo, descripcion e imagen opcional.
+- Limites de eventos por membresia: simpatizante hasta 3, membresia de pago con limite ampliado.
+- Seccion Actualidad editable con articulos del miembro y opcion para marcar propuesta de revista.
+- Limites de articulos por membresia: simpatizante hasta 1, membresia de pago hasta 5.
+- Slider de cabecera revisado con animacion de entrada del texto en direcciones alternas por slide.
 - Control de visibilidad por bloques para decidir que datos se publican y que datos quedan privados.
 - Bloques repetibles con boton para anadir nuevas entradas sin limite fijo inicial.
 - Fechas en formacion, experiencia, docencia, actuaciones y premios para permitir orden cronologico ascendente o descendente.
