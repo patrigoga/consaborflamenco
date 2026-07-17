@@ -1073,6 +1073,9 @@ $cvHeaderStyle = $cvHeaderBackground !== ''
                                             <label>Descripcion
                                                 <textarea name="web_events[<?= e((string) $eventIndex) ?>][description]" rows="3" maxlength="700" placeholder="Programa, artistas invitados, direccion y detalles clave."><?= e((string) ($event['description'] ?? '')) ?></textarea>
                                             </label>
+                                            <label>URL del evento (opcional)
+                                                <input name="web_events[<?= e((string) $eventIndex) ?>][url]" type="url" value="<?= e((string) ($event['url'] ?? '')) ?>" placeholder="https://ejemplo.com">
+                                            </label>
                                             <div class="member-web-image-row">
                                                 <?php if (!empty($event['image_path'])): ?>
                                                     <img src="<?= e((string) $event['image_path']) ?>" alt="Imagen del evento <?= e((string) ($eventIndex + 1)) ?>" loading="lazy">

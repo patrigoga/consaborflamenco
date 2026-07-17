@@ -44,6 +44,8 @@ function page_header(string $active = ''): void
     $flamencoOpen = $active === 'FLAMENCO';
     $academiasOpen = in_array($active, ['ACADEMIAS', 'CURSOS'], true);
     $modaOpen = $active === 'MODA';
+    $isArtistPage = preg_match('#/artista/[a-z0-9\-_%]+#i', $_SERVER['REQUEST_URI'] ?? '') === 1;
+    $brandHref = $isArtistPage ? '#inicio' : 'index.php#inicio';
     $user = function_exists('current_user') ? current_user() : null;
     if ($user && ($user['role'] ?? 'user') !== 'admin' && function_exists('user_email_is_verified') && !user_email_is_verified($user)) {
         $user = null;
@@ -54,7 +56,7 @@ function page_header(string $active = ''): void
     $userProfilePhoto = clean_text((string) ($user['artistic_profile']['main_photo_path'] ?? ''));
     ?>
     <header class="site-header">
-        <a class="brand" href="index.php#inicio" aria-label="Con Sabor Flamenco - Inicio">
+        <a class="brand" href="<?= e($brandHref) ?>" aria-label="Con Sabor Flamenco - Inicio">
             <span class="brand-mark">CSF</span>
             <span>Con Sabor Flamenco</span>
         </a>

@@ -138,6 +138,7 @@ $formatPublicDate = static function (string $date): string {
                                     <p class="artist-web-event-meta"><?= e($formatPublicDate((string) ($event['date'] ?? ''))) ?><?php if (!empty($event['time'])): ?> · <?= e((string) $event['time']) ?><?php endif; ?></p>
                                     <h3><?= e((string) ($event['title'] ?? 'Evento')) ?></h3>
                                     <?php if (!empty($event['description'])): ?><p><?= nl2br(e((string) $event['description'])) ?></p><?php endif; ?>
+                                    <?php if (!empty($event['url'])): ?><a href="<?= e((string) $event['url']) ?>" target="_blank" rel="noopener" class="artist-web-event-link">Ver evento</a><?php endif; ?>
                                 </div>
                             </article>
                         <?php endforeach; ?>
