@@ -3,6 +3,14 @@
 !/storage/.htaccess
 !/storage/.gitkeep
 
+# Runtime uploads
+/assets/uploads/member-photos/*
+!/assets/uploads/member-photos/.htaccess
+!/assets/uploads/member-photos/.gitkeep
+/assets/uploads/curriculum-images/*
+!/assets/uploads/curriculum-images/.htaccess
+!/assets/uploads/curriculum-images/.gitkeep
+
 # Local environment
 .env
 .env.local

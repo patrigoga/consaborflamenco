@@ -207,5 +207,20 @@ Los miembros podran contratar servicios digitales ofrecidos por la plataforma. E
 - 2026-06-30: Anadido nombre y apellidos al registro, movida la bienvenida a la verificacion correcta, eliminada la imagen duplicada del perfil y compactados los controles de PDF por seccion.
 - 2026-06-30: Movido el QR de tarjeta a la cabecera del panel, corregido el editor enriquecido con fuente/peso por defecto y preparada la impresion exclusiva de la tarjeta de miembro.
 - 2026-07-03: Refinado el aspecto visual del area de usuario con sidebar mas sobrio, cabecera mas editorial, tarjetas limpias, formularios mas elegantes y QR menos invasivo.
-- 2026-07-10: Corregida la persistencia de fotografia principal y fondo de cabecera del curriculum con guardado automatico al seleccionar imagen.
+- 2026-07-10: Corregida la persistencia de fotografia principal y fondo de cabecera del curriculum con guardado automatico al seleccionar imagen y sincronizacion directa en la tabla de miembros.
 - 2026-07-10: Anadida edicion del nombre de usuario (cuenta) desde el panel y uso de foto principal en el avatar de cabecera.
+- 2026-07-10: Refinada la pagina publica `/artista/{slug}` como microsite del miembro, con assets compatibles con URL limpia, hero cuidado, galeria/contacto y footer propio.
+- 2026-07-11: Reordenada la pagina publica del miembro con menu superior sticky, fotografia de perfil como marca, hero limpio sin datos redundantes ni botones y navegacion adaptable a movil.
+- 2026-07-11: Reforzada la resolucion de imagenes en `/artista/{slug}` para evitar rutas rotas bajo `/artista/assets`, limpiar prefijos antiguos y mantener fondo de reserva.
+- 2026-07-11: Ajustado el menu publico para usar la imagen de cabecera del perfil como marca visual y anadir enlace `Inicio` hacia la pagina principal.
+- 2026-07-13: Modernizada la vista de perfil del area de miembro con sidebar mas ancho, bloques de identidad/datos mas elegantes, botones simplificados y responsive reforzado.
+- 2026-07-13: Reforzado el guardado real de imagenes del perfil: foto principal, fondo e imagenes de articulos se suben al servidor, y las carpetas runtime quedan preparadas con proteccion e ignore.
+- 2026-07-14: Redisenadas las secciones Identidad artistica y Datos de perfil e imagen con cabecera editorial, campos mas limpios y URL publica integrada.
+- 2026-07-14: Convertida Identidad artistica en una composicion con campos y previsualizacion lateral del perfil publico, integrando el guardado dentro del propio bloque.
+- 2026-07-14: Reforzada la persistencia real de la fotografia principal: la columna `miembros.foto_principal_path` pasa a ser la fuente canonica, la subida automatica confirma la ruta en base de datos y la interfaz evita mostrar rutas de imagen inexistentes.
+- 2026-07-14: Cerrada la persistencia de imagenes de entradas del curriculum: cada articulo conserva su `image_path`, se limpia si el archivo no existe y el guardado confirma que las rutas quedan dentro de `miembros.perfil_json`.
+- 2026-07-14: Simplificada la identidad artistica retirando la vista publica redundante, convirtiendo la URL publica en boton de acceso, bloqueando el nombre de cuenta una vez reservado y normalizando espacios del slug a guiones.
+- 2026-07-14: Reforzado el guardado de imagenes de articulos del curriculum con subida AJAX previa, ruta oculta por entrada y guardado posterior del perfil completo; ajustada la pagina publica con banda negra centrada para el nombre artistico.
+- 2026-07-14: Cambiada la gestion de fotografias antiguas con ruta rota para limpiar automaticamente `main_photo_path` en BD y evitar errores rojos persistentes.
+- 2026-07-14: Sustituida la cabecera simple de la pagina publica por un slider configurable de 3 imagenes con titulo, descripcion y CTA opcional desde el apartado Pagina web.
+- 2026-07-14: Movido el almacenamiento de nuevas imagenes de usuario a runtime persistente fuera del repositorio (`../csf-uploads` o `CSF_UPLOADS_DIR`) y servido por `media.php` para que los despliegues Git no borren fotos de perfil, cabeceras, slides o articulos.

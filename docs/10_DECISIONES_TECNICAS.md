@@ -55,7 +55,7 @@ Centralizar criterios tecnicos iniciales para mantener coherencia durante el des
 - La tarjeta de miembro mostrara el nombre y el nivel de membresia; todo registro nuevo empieza como Miembro simpatizante.
 - Los descuentos quedan reservados a Miembro VIP tras pago confirmado de membresia anual de 80 euros.
 - El registro de miembros exigira un perfil artistico minimo con tipo de espacio y fotografia principal.
-- Las fotografias principales se guardaran en `assets/uploads/member-photos` y solo se aceptaran JPG, PNG o WebP.
+- Las fotografias principales y las imagenes de curriculum/pagina web se guardaran como runtime fuera del arbol de codigo por defecto en `../csf-uploads`, configurable con `CSF_UPLOADS_DIR`, y se serviran mediante `media.php`; solo se aceptaran JPG, PNG o WebP.
 - El curriculum artistico usara secciones repetibles y controles de visibilidad; la primera fase lo guarda en JSON local y el modelo SQL queda preparado con `miembros_curriculum_items`.
 - La exportacion inicial a PDF se resolvera mediante impresion del navegador con una plantilla limpia especifica para print.
 - Las secciones repetibles se anadiran bajo demanda desde el panel, tendran fechas cuando proceda y podran ordenarse de forma ascendente o descendente.

@@ -281,8 +281,32 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 
 - Corregido `panel-usuario.php` para soportar guardado de imagenes con accion dedicada `update_profile_images`.
 - Anadido guardado automatico al seleccionar fotografia principal o fondo de cabecera de curriculum.
+- Reforzada la persistencia de imagenes del perfil sincronizando `foto_principal_path` y `perfil_json` directamente en `miembros` tras cada guardado.
 - Anadida edicion del nombre de usuario (cuenta) desde el panel, manteniendo email de acceso en solo lectura.
 - Actualizado `app/layout.php` para mostrar foto de perfil en el avatar de cabecera cuando existe.
+- Corregidas las rutas absolutas de assets para que `/artista/{slug}` cargue CSS, JS e imagenes subidas correctamente.
+- Redisenada la vista publica `artista.php` con estructura de microsite, hero editorial, galeria/contacto mas cuidados y footer propio.
+
+### 2026-07-11 - Fase 6 - Refinamiento de pagina publica de miembro
+
+- Reordenada `artista.php` para usar un menu superior sticky con la fotografia del perfil como logotipo del artista.
+- Simplificado el hero publico retirando marca CSF visible, tipo/titular artistico, ubicacion, botones rojos y tarjeta lateral.
+- Ajustada la navegacion de la pagina publica para escritorio y movil, manteniendo enlaces internos solo a secciones con contenido.
+- Reforzada la normalizacion de rutas de imagenes publicas para resolver correctamente `assets/...` desde `/artista/{slug}`, limpiar prefijos antiguos y usar fondo de reserva si falla la imagen personalizada.
+- Movido el menu publico junto a la identidad del artista, usando la imagen de cabecera como marca en la barra superior e incorporando enlace `Inicio` a la pagina principal.
+
+### 2026-07-13 - Fase 5 - Refinamiento visual del area de miembro
+
+- Eliminados los botones duplicados `Guardar curriculum` e `Imprimir / guardar PDF` del editor principal de perfil.
+- Anadida una barra moderna de guardado como accion unica del formulario de perfil.
+- Ampliado y refinado el sidebar izquierdo del area de usuario, con mejor jerarquia visual y adaptacion responsive.
+- Modernizadas las secciones de Identidad artistica y Datos de perfil e imagen con tarjetas, campos mas limpios y comportamiento movil mejorado.
+- Reforzada la persistencia de imagenes: foto principal y fondo de cabecera se suben con guardado aislado, las imagenes de articulos guardan automaticamente el perfil completo, y las carpetas de uploads quedan protegidas e ignoradas como runtime.
+
+### 2026-07-14 - Fase 5 - Mejora estetica de identidad de miembro
+
+- Redisenadas las tarjetas de Identidad artistica y Datos de perfil e imagen con cabecera editorial oscura, mejor jerarquia tipografica, campos mas ligeros y URL publica integrada.
+- Anadida una previsualizacion lateral del perfil publico dentro de Identidad artistica e integrado el boton Guardar perfil en esa composicion.
 
 ## Reglas y decisiones
 
@@ -326,3 +350,10 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - 2026-06-30: Corregida la visibilidad de la vista general del admin para que el sidebar muestre el bloque completo de KPIs y versionado `admin-sidebar.js` para evitar cache antigua.
 - 2026-06-30: Permitido que usuarios personalicen el nombre de la seccion custom en su curriculum, agregando input editable en lugar de etiqueta hardcodeada, mejorando la flexibilidad del perfil artistico.
 - 2026-07-03: Refinado el area de usuario con una capa visual mas elegante para sidebar, cabecera, tabs, tarjetas, formularios y secciones repetibles.
+- 2026-07-14: Corregida la persistencia de la fotografia principal del miembro usando `miembros.foto_principal_path` como fuente canonica, subida asincrona con confirmacion de base de datos y fallback visual cuando la ruta no existe en disco.
+- 2026-07-14: Corregida la persistencia de imagenes de articulos del curriculum manteniendo `image_path` por entrada, validando existencia del archivo y confirmando su guardado en `miembros.perfil_json`.
+- 2026-07-14: Ajustada Identidad artistica del panel de miembro: eliminada la vista publica duplicada, anadido CTA para abrir la URL publica, bloqueado el nombre de cuenta guardado y normalizado el slug sin espacios.
+- 2026-07-14: Anadida subida AJAX previa para imagenes de entradas del curriculum y redisenada la cabecera del microsite publico con banda negra a ancho completo y nombre artistico centrado.
+- 2026-07-14: Sustituido el error persistente de fotografia principal inexistente por limpieza automatica de ruta rota en el perfil y base de datos.
+- 2026-07-14: Anadido slider de cabecera configurable en la pagina publica del miembro, con tres slides persistidos en `web_page.hero_slides` y CTA opcional por slide.
+- 2026-07-14: Cambiado el almacenamiento de nuevas imagenes de usuario a una carpeta runtime externa al repositorio (`../csf-uploads`, configurable con `CSF_UPLOADS_DIR`) y anadido `media.php` para servirlas sin depender de `assets/uploads` versionado.
