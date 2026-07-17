@@ -1394,8 +1394,8 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                                     <?php foreach ($socialNetworkLabels as $network => $label): ?>
                                         <label class="social-network-field" data-network="<?= e($network) ?>">
                                             <span class="social-network-icon-label">
-                                                <span class="social-network-icon"><?= $socialNetworkIcons[$network] ?? '' ?></span>
                                                 <span class="social-network-label"><?= e($label) ?></span>
+                                                <span class="social-network-icon"><?= $socialNetworkIcons[$network] ?? '' ?></span>
                                             </span>
                                             <input name="web_social_links[<?= e($network) ?>]" type="url" value="<?= e((string) ($webSocialLinks[$network] ?? '')) ?>" placeholder="https://..." class="social-network-input">
                                         </label>
