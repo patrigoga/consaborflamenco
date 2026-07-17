@@ -1392,7 +1392,7 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                                 </div>
                                 <div class="social-networks-grid">
                                     <?php foreach ($socialNetworkLabels as $network => $label): ?>
-                                        <label class="social-network-field">
+                                        <label class="social-network-field" data-network="<?= e($network) ?>">
                                             <span class="social-network-icon-label">
                                                 <span class="social-network-icon"><?= $socialNetworkIcons[$network] ?? '' ?></span>
                                                 <span class="social-network-label"><?= e($label) ?></span>
