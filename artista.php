@@ -184,15 +184,6 @@ $socialIcons = [
 <body class="artist-public-body">
     <header class="artist-web-topbar">
         <div class="container artist-web-topbar-inner">
-            <?php if ($socialLinks): ?>
-                <div class="artist-web-social-links">
-                    <?php foreach ($socialLinks as $network => $url): ?>
-                        <?php if (!empty($socialIcons[$network])): ?>
-                            <a href="<?= e(artist_public_link_url((string) $url)) ?>" target="_blank" rel="noopener" class="artist-web-social-icon" aria-label="<?= e($network) ?>"><?= $socialIcons[$network] ?></a>
-                        <?php endif; ?>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
             <?php if ($menuImage !== ''): ?>
             <a class="artist-web-logo" href="#inicio" aria-label="Ir a la cabecera de <?= e($displayName) ?>">
                 <img src="<?= e($menuImage) ?>" alt="Imagen de cabecera de <?= e($displayName) ?>" loading="eager">
@@ -204,6 +195,15 @@ $socialIcons = [
                     <a href="#<?= e($sectionId) ?>"><?= e($sectionLabel) ?></a>
                 <?php endforeach; ?>
             </nav>
+            <?php if ($socialLinks): ?>
+                <div class="artist-web-social-links">
+                    <?php foreach ($socialLinks as $network => $url): ?>
+                        <?php if (!empty($socialIcons[$network])): ?>
+                            <a href="<?= e(artist_public_link_url((string) $url)) ?>" target="_blank" rel="noopener" class="artist-web-social-icon" aria-label="<?= e($network) ?>"><?= $socialIcons[$network] ?></a>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
         </div>
     </header>
     <main class="artist-web-page">

@@ -6150,7 +6150,7 @@ h3 {
 
 /* Topbar con redes sociales: ajustar grid para 3 columnas */
 .artist-web-topbar-inner:has(.artist-web-social-links) {
-    grid-template-columns: auto auto minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr) auto;
 }
 
 /* === EVENTOS EN PANEL DE USUARIO === */
