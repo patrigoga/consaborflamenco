@@ -267,6 +267,21 @@ function web_slide_uploaded_file(array $files, int $index): ?array
     ];
 }
 
+function web_event_uploaded_file(array $files, int $index): ?array
+{
+    if (!isset($files['error'][$index]['image'])) {
+        return null;
+    }
+
+    return [
+        'name' => $files['name'][$index]['image'] ?? '',
+        'type' => $files['type'][$index]['image'] ?? '',
+        'tmp_name' => $files['tmp_name'][$index]['image'] ?? '',
+        'error' => $files['error'][$index]['image'] ?? UPLOAD_ERR_NO_FILE,
+        'size' => $files['size'][$index]['image'] ?? 0,
+    ];
+}
+
 function member_slug_in_use(string $slug, int $excludeUserId = 0): bool
 {
     $slug = slugify(clean_text($slug));
@@ -705,6 +720,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') ==
             array_map('strval', is_array($_POST['web_contact_fields'] ?? null) ? $_POST['web_contact_fields'] : [])
         ));
 
+        // Procesar eventos
+        $submittedEvents = is_array($_POST['web_events'] ?? null) ? $_POST['web_events'] : [];
+        $existingEvents = is_array($webPage['events'] ?? null) ? $webPage['events'] : [];
+        $eventUploads = is_array($_FILES['web_events'] ?? null) ? $_FILES['web_events'] : [];
+        $maxEvents = $isVipMember ? 20 : 3;
+        $events = [];
+        foreach (array_slice($submittedEvents, 0, $maxEvents) as $evIdx => $evInput) {
+            if (!is_array($evInput)) {
+                continue;
+            }
+
+            $existingEvent = is_array($existingEvents[$evIdx] ?? null) ? $existingEvents[$evIdx] : [];
+            $evImagePath = member_visible_asset_path((string) ($evInput['image_path'] ?? ($existingEvent['image_path'] ?? '')));
+            $uploadedEvImage = $eventUploads ? save_member_cv_image_upload(web_event_uploaded_file($eventUploads, (int) $evIdx), $profileErrors) : null;
+            if ($uploadedEvImage) {
+                $evImagePath = $uploadedEvImage;
+            }
+
+            $evTitle = clean_text((string) ($evInput['title'] ?? ''));
+            $evDate = clean_text((string) ($evInput['date'] ?? ''));
+            if ($evImagePath === '' && $evTitle === '' && $evDate === '') {
+                continue;
+            }
+
+            $events[] = [
+                'title' => $evTitle,
+                'description' => clean_text((string) ($evInput['description'] ?? '')),
+                'image_path' => $evImagePath,
+                'date' => $evDate,
+                'time' => clean_text((string) ($evInput['time'] ?? '')),
+                'url' => trim((string) ($evInput['url'] ?? '')),
+            ];
+        }
+        $webPage['events'] = $events;
+
+        // Procesar redes sociales
+        $allowedNetworks = ['instagram', 'facebook', 'youtube', 'tiktok', 'spotify', 'twitter'];
+        $submittedSocial = is_array($_POST['web_social_links'] ?? null) ? $_POST['web_social_links'] : [];
+        $socialLinks = [];
+        foreach ($allowedNetworks as $network) {
+            $url = trim((string) ($submittedSocial[$network] ?? ''));
+            if ($url !== '') {
+                $socialLinks[$network] = $url;
+            }
+        }
+        $webPage['social_links'] = $socialLinks;
+
         if (!$profileErrors) {
             $memberProfile['web_page'] = default_member_web_page($webPage);
             $user['artistic_profile'] = $memberProfile;
@@ -729,6 +791,10 @@ $webPage = default_member_web_page(is_array($memberProfile['web_page'] ?? null) 
 $webSlides = is_array($webPage['hero_slides'] ?? null) ? array_slice($webPage['hero_slides'], 0, 3) : [];
 $webGallery = array_slice($webPage['gallery'], 0, 9);
 $webContactFields = is_array($webPage['contact_fields'] ?? null) ? $webPage['contact_fields'] : [];
+$webEvents = is_array($webPage['events'] ?? null) ? $webPage['events'] : [];
+$webSocialLinks = is_array($webPage['social_links'] ?? null) ? $webPage['social_links'] : [];
+$maxWebEvents = $isVipMember ? 20 : 3;
+$socialNetworkLabels = ['instagram' => 'Instagram', 'facebook' => 'Facebook', 'youtube' => 'YouTube', 'tiktok' => 'TikTok', 'spotify' => 'Spotify', 'twitter' => 'Twitter / X'];
 $webHeaderImage = clean_text((string) ($webPage['header_image_path'] ?: ($memberProfile['cv_header_image_path'] ?? '')));
 $mainPhotoPath = clean_text((string) ($memberProfile['main_photo_path'] ?? ''));
 $mainPhotoVisiblePath = member_visible_asset_path($mainPhotoPath);
@@ -1229,6 +1295,58 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                                 <label for="web_gallery_images">Anadir imagenes
                                     <input id="web_gallery_images" name="web_gallery_images[]" type="file" accept="image/jpeg,image/png,image/webp" multiple>
                                 </label>
+                            </article>
+
+                            <article class="member-config-card" id="web-eventos">
+                                <h3>Eventos</h3>
+                                <p><?= $isVipMember ? 'Como miembro VIP puedes publicar hasta 20 eventos.' : 'Como miembro simpatizante puedes publicar hasta 3 eventos.' ?> La imagen es necesaria para que el evento aparezca en tu pagina publica.</p>
+                                <div class="member-web-repeat-list" data-web-repeat-list="events" data-web-max="<?= e((string) $maxWebEvents) ?>">
+                                    <?php foreach ($webEvents as $evIdx => $ev): ?>
+                                        <div class="member-web-repeat-row" data-web-repeat-row>
+                                            <input type="hidden" name="web_events[<?= e((string) $evIdx) ?>][image_path]" value="<?= e((string) ($ev['image_path'] ?? '')) ?>">
+                                            <div class="form-grid-three">
+                                                <label>Titulo
+                                                    <input name="web_events[<?= e((string) $evIdx) ?>][title]" type="text" value="<?= e((string) ($ev['title'] ?? '')) ?>" maxlength="140" placeholder="Nombre del evento">
+                                                </label>
+                                                <label>Fecha
+                                                    <input name="web_events[<?= e((string) $evIdx) ?>][date]" type="date" value="<?= e((string) ($ev['date'] ?? '')) ?>">
+                                                </label>
+                                                <label>Hora
+                                                    <input name="web_events[<?= e((string) $evIdx) ?>][time]" type="time" value="<?= e((string) ($ev['time'] ?? '')) ?>">
+                                                </label>
+                                            </div>
+                                            <label>Descripcion
+                                                <textarea name="web_events[<?= e((string) $evIdx) ?>][description]" rows="3" maxlength="700" placeholder="Lugar, programa, artistas invitados..."><?= e((string) ($ev['description'] ?? '')) ?></textarea>
+                                            </label>
+                                            <label>URL del evento (opcional)
+                                                <input name="web_events[<?= e((string) $evIdx) ?>][url]" type="url" value="<?= e((string) ($ev['url'] ?? '')) ?>" placeholder="https://...">
+                                            </label>
+                                            <div class="member-web-image-row">
+                                                <?php if (!empty($ev['image_path'])): ?>
+                                                    <img src="<?= e((string) $ev['image_path']) ?>" alt="Imagen del evento" loading="lazy">
+                                                <?php endif; ?>
+                                                <label>Imagen del evento (obligatoria)
+                                                    <input name="web_events[<?= e((string) $evIdx) ?>][image]" type="file" accept="image/jpeg,image/png,image/webp">
+                                                </label>
+                                            </div>
+                                            <button type="button" class="button button-secondary button-small" data-web-remove-row>Quitar evento</button>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <div class="member-web-repeat-actions">
+                                    <button type="button" class="button button-secondary" data-web-add="events">Anadir evento</button>
+                                    <p class="field-help">Maximo: <?= e((string) $maxWebEvents) ?> eventos.</p>
+                                </div>
+                            </article>
+
+                            <article class="member-config-card" id="web-redes-sociales">
+                                <h3>Redes sociales</h3>
+                                <p>Introduce las URLs de tus redes. Los iconos apareceran en la barra de navegacion de tu pagina publica.</p>
+                                <?php foreach ($socialNetworkLabels as $network => $label): ?>
+                                    <label><?= e($label) ?>
+                                        <input name="web_social_links[<?= e($network) ?>]" type="url" value="<?= e((string) ($webSocialLinks[$network] ?? '')) ?>" placeholder="https://...">
+                                    </label>
+                                <?php endforeach; ?>
                             </article>
 
                             <article class="member-config-card">
@@ -1925,6 +2043,58 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                 activateMemberPanel(initialTarget);
             }
         }
+
+        // Logica de filas repetibles para eventos de pagina web
+        document.querySelectorAll('[data-web-add]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const listKey = button.dataset.webAdd;
+                const list = document.querySelector(`[data-web-repeat-list="${listKey}"]`);
+                if (!list) return;
+                const max = parseInt(list.dataset.webMax || '99', 10);
+                const rows = list.querySelectorAll('[data-web-repeat-row]');
+                if (rows.length >= max) {
+                    alert(`Has alcanzado el limite de ${max} eventos.`);
+                    return;
+                }
+                const nextIndex = rows.length;
+                const template = rows[0];
+                if (!template) {
+                    // Sin filas existentes: crear una fila nueva desde cero
+                    const row = document.createElement('div');
+                    row.className = 'member-web-repeat-row';
+                    row.dataset.webRepeatRow = '';
+                    row.innerHTML = `
+                        <input type="hidden" name="web_events[${nextIndex}][image_path]" value="">
+                        <div class="form-grid-three">
+                            <label>Titulo<input name="web_events[${nextIndex}][title]" type="text" maxlength="140" placeholder="Nombre del evento"></label>
+                            <label>Fecha<input name="web_events[${nextIndex}][date]" type="date"></label>
+                            <label>Hora<input name="web_events[${nextIndex}][time]" type="time"></label>
+                        </div>
+                        <label>Descripcion<textarea name="web_events[${nextIndex}][description]" rows="3" maxlength="700" placeholder="Lugar, programa, artistas invitados..."></textarea></label>
+                        <label>URL del evento (opcional)<input name="web_events[${nextIndex}][url]" type="url" placeholder="https://..."></label>
+                        <div class="member-web-image-row">
+                            <label>Imagen del evento (obligatoria)<input name="web_events[${nextIndex}][image]" type="file" accept="image/jpeg,image/png,image/webp"></label>
+                        </div>
+                        <button type="button" class="button button-secondary button-small" data-web-remove-row>Quitar evento</button>`;
+                    list.appendChild(row);
+                    return;
+                }
+                const newRow = template.cloneNode(true);
+                newRow.querySelectorAll('input, textarea').forEach((input) => {
+                    input.name = input.name.replace(/\[\d+\]/, `[${nextIndex}]`);
+                    if (input.type !== 'hidden') input.value = '';
+                });
+                newRow.querySelectorAll('img').forEach((img) => img.remove());
+                list.appendChild(newRow);
+            });
+        });
+
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-web-remove-row]');
+            if (!btn) return;
+            const row = btn.closest('[data-web-repeat-row]');
+            if (row) row.remove();
+        });
 
     </script>
 </body>

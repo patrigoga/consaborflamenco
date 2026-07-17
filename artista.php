@@ -101,6 +101,8 @@ $gallery = array_values(array_filter(array_map(
     static fn ($path): string => artist_public_media_url(clean_text((string) $path)),
     array_slice(is_array($webPage['gallery'] ?? null) ? $webPage['gallery'] : [], 0, 9)
 ), static fn (string $path): bool => $path !== ''));
+$events = array_values(is_array($webPage['events'] ?? null) ? $webPage['events'] : []);
+$socialLinks = is_array($webPage['social_links'] ?? null) ? $webPage['social_links'] : [];
 $contactFields = is_array($webPage['contact_fields'] ?? null) ? $webPage['contact_fields'] : [];
 $siteBaseUrl = artist_public_base_url();
 $artistsUrl = $siteBaseUrl . '/artistas.php';
@@ -160,9 +162,21 @@ $publicSections = [];
 if ($gallery) {
     $publicSections['galeria'] = 'Galeria';
 }
+if ($events) {
+    $publicSections['eventos'] = 'Eventos';
+}
 if ($contactItems) {
     $publicSections['contacto'] = 'Contacto';
 }
+
+$socialIcons = [
+    'instagram' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>',
+    'facebook'  => '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>',
+    'youtube'   => '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22.54 6.42A2.78 2.78 0 0 0 20.6 4.46C18.88 4 12 4 12 4s-6.88 0-8.6.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.4 19.54C5.12 20 12 20 12 20s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon fill="#fff" points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/></svg>',
+    'tiktok'    => '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.15 8.15 0 0 0 4.77 1.52V6.73a4.86 4.86 0 0 1-1-.04z"/></svg>',
+    'spotify'   => '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path fill="#fff" d="M16.5 16.5a.75.75 0 0 1-.41-.12 8.27 8.27 0 0 0-8.18 0 .75.75 0 0 1-.82-1.26 9.77 9.77 0 0 1 9.82 0 .75.75 0 0 1-.41 1.38zm1.25-2.75a.75.75 0 0 1-.41-.12 10.52 10.52 0 0 0-10.68 0 .75.75 0 0 1-.82-1.26 12 12 0 0 1 12.32 0 .75.75 0 0 1-.41 1.38zm1.25-2.75a.75.75 0 0 1-.41-.12 12.77 12.77 0 0 0-13.18 0 .75.75 0 1 1-.82-1.26 14.27 14.27 0 0 1 14.82 0 .75.75 0 0 1-.41 1.38z"/></svg>',
+    'twitter'   => '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.736-8.849L2.25 2.25h6.883l4.254 5.621zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
+];
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -170,6 +184,15 @@ if ($contactItems) {
 <body class="artist-public-body">
     <header class="artist-web-topbar">
         <div class="container artist-web-topbar-inner">
+            <?php if ($socialLinks): ?>
+                <div class="artist-web-social-links">
+                    <?php foreach ($socialLinks as $network => $url): ?>
+                        <?php if (!empty($socialIcons[$network])): ?>
+                            <a href="<?= e(artist_public_link_url((string) $url)) ?>" target="_blank" rel="noopener" class="artist-web-social-icon" aria-label="<?= e($network) ?>"><?= $socialIcons[$network] ?></a>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
             <?php if ($menuImage !== ''): ?>
             <a class="artist-web-logo" href="#inicio" aria-label="Ir a la cabecera de <?= e($displayName) ?>">
                 <img src="<?= e($menuImage) ?>" alt="Imagen de cabecera de <?= e($displayName) ?>" loading="eager">
@@ -230,6 +253,41 @@ if ($contactItems) {
                     <div class="artist-web-gallery-grid">
                         <?php foreach ($gallery as $galleryImage): ?>
                             <img src="<?= e($galleryImage) ?>" alt="Galeria de <?= e($displayName) ?>" loading="lazy">
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </section>
+        <?php endif; ?>
+
+        <?php if ($events): ?>
+            <section id="eventos" class="artist-web-section artist-web-events">
+                <div class="container">
+                    <div class="section-heading align-left">
+                        <p class="section-kicker">Eventos</p>
+                        <h2>Agenda flamenca</h2>
+                    </div>
+                    <div class="artist-web-events-grid">
+                        <?php foreach ($events as $ev): ?>
+                            <article class="artist-web-event-card">
+                                <?php if (!empty($ev['image_path'])): ?>
+                                    <img src="<?= e(artist_public_media_url((string) $ev['image_path'])) ?>" alt="<?= e((string) ($ev['title'] ?? 'Evento')) ?>" loading="lazy">
+                                <?php endif; ?>
+                                <div class="artist-web-event-info">
+                                    <?php if (!empty($ev['date'])): ?>
+                                        <p class="artist-web-event-meta">
+                                            <?php
+                                            $ts = strtotime((string) $ev['date']);
+                                            echo $ts ? e(date('d/m/Y', $ts)) : e((string) $ev['date']);
+                                            if (!empty($ev['time'])): ?> · <?= e((string) $ev['time']) ?><?php endif; ?>
+                                        </p>
+                                    <?php endif; ?>
+                                    <?php if (!empty($ev['title'])): ?><h3><?= e((string) $ev['title']) ?></h3><?php endif; ?>
+                                    <?php if (!empty($ev['description'])): ?><p><?= nl2br(e((string) $ev['description'])) ?></p><?php endif; ?>
+                                    <?php if (!empty($ev['url'])): ?>
+                                        <a href="<?= e(artist_public_link_url((string) $ev['url'])) ?>" target="_blank" rel="noopener" class="artist-web-event-link">Ver evento</a>
+                                    <?php endif; ?>
+                                </div>
+                            </article>
                         <?php endforeach; ?>
                     </div>
                 </div>

@@ -214,6 +214,8 @@ function default_member_web_page(array $settings = []): array
         'header_image_path' => '',
         'hero_slides' => [],
         'gallery' => [],
+        'events' => [],
+        'social_links' => [],
         'contact_fields' => ['email'],
     ], $settings);
 
@@ -235,6 +237,20 @@ function default_member_web_page(array $settings = []): array
         is_array($merged['gallery'] ?? null) ? $merged['gallery'] : [],
         static fn ($path): bool => clean_text((string) $path) !== ''
     ));
+    $merged['events'] = array_values(array_filter(
+        is_array($merged['events'] ?? null) ? $merged['events'] : [],
+        static fn ($e): bool => is_array($e)
+    ));
+    $allowedNetworks = ['instagram', 'facebook', 'youtube', 'tiktok', 'spotify', 'twitter'];
+    $rawSocial = is_array($merged['social_links'] ?? null) ? $merged['social_links'] : [];
+    $cleanSocial = [];
+    foreach ($allowedNetworks as $network) {
+        $url = trim((string) ($rawSocial[$network] ?? ''));
+        if ($url !== '') {
+            $cleanSocial[$network] = $url;
+        }
+    }
+    $merged['social_links'] = $cleanSocial;
     $merged['contact_fields'] = array_values(array_intersect(
         ['email', 'phone', 'website', 'instagram'],
         array_map('strval', is_array($merged['contact_fields'] ?? null) ? $merged['contact_fields'] : [])

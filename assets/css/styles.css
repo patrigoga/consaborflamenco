@@ -6040,6 +6040,119 @@ h3 {
     border-radius: 18px;
 }
 
+/* === Redes sociales en topbar del artista === */
+.artist-web-social-links {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.artist-web-social-icon {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    color: rgba(255, 250, 242, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    transition: color 0.18s, border-color 0.18s, background 0.18s;
+}
+
+.artist-web-social-icon:hover {
+    color: var(--color-white);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(248, 229, 182, 0.3);
+}
+
+.artist-web-social-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* === Sección Eventos del artista === */
+.artist-web-events {
+    background: #0d0d10;
+    color: var(--color-white);
+}
+
+.artist-web-events-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+    margin-top: 32px;
+}
+
+.artist-web-event-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.artist-web-event-card img {
+    width: 100%;
+    aspect-ratio: 16/9;
+    object-fit: cover;
+    display: block;
+}
+
+.artist-web-event-info {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+}
+
+.artist-web-event-meta {
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgba(201, 79, 92, 0.9);
+    margin: 0;
+}
+
+.artist-web-event-info h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--color-white);
+    line-height: 1.25;
+}
+
+.artist-web-event-info p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: rgba(255, 250, 242, 0.72);
+    line-height: 1.55;
+}
+
+.artist-web-event-link {
+    display: inline-block;
+    margin-top: auto;
+    padding: 8px 16px;
+    color: var(--color-white);
+    background: rgba(201, 79, 92, 0.76);
+    border-radius: 8px;
+    font-size: 0.84rem;
+    font-weight: 800;
+    align-self: flex-start;
+    transition: background 0.18s;
+}
+
+.artist-web-event-link:hover {
+    background: rgba(201, 79, 92, 1);
+}
+
+/* Topbar con redes sociales: ajustar grid para 3 columnas */
+.artist-web-topbar-inner:has(.artist-web-social-links) {
+    grid-template-columns: auto auto minmax(0, 1fr);
+}
+
 .member-sidebar-print {
     min-height: 54px;
     background: linear-gradient(135deg, rgba(201, 79, 92, 0.38), rgba(157, 65, 75, 0.52));
