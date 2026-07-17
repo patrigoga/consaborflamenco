@@ -170,21 +170,17 @@ if ($contactItems) {
 <body class="artist-public-body">
     <header class="artist-web-topbar">
         <div class="container artist-web-topbar-inner">
+            <?php if ($menuImage !== ''): ?>
             <a class="artist-web-logo" href="#inicio" aria-label="Ir a la cabecera de <?= e($displayName) ?>">
-                <?php if ($menuImage !== ''): ?>
-                    <img src="<?= e($menuImage) ?>" alt="Imagen de cabecera de <?= e($displayName) ?>" loading="eager" onerror="this.hidden=true;this.nextElementSibling.hidden=false;">
-                    <span hidden><?= e(strtoupper(substr($displayName, 0, 1))) ?></span>
-                <?php else: ?>
-                    <span><?= e(strtoupper(substr($displayName, 0, 1))) ?></span>
-                <?php endif; ?>
+                <img src="<?= e($menuImage) ?>" alt="Imagen de cabecera de <?= e($displayName) ?>" loading="eager">
             </a>
+            <?php endif; ?>
             <nav class="artist-web-menu" aria-label="Menu de la pagina del artista">
-                <a href="<?= e($homeUrl) ?>">Inicio</a>
+                <a href="#inicio">Inicio</a>
                 <?php foreach ($publicSections as $sectionId => $sectionLabel): ?>
                     <a href="#<?= e($sectionId) ?>"><?= e($sectionLabel) ?></a>
                 <?php endforeach; ?>
             </nav>
-            <a class="artist-web-topbar-action" href="<?= e($registerUrl) ?>">Crear perfil</a>
         </div>
     </header>
     <main class="artist-web-page">
