@@ -156,7 +156,7 @@ if (in_array('instagram', $contactFields, true) && !empty($profile['instagram_ur
     $contactItems[] = ['label' => 'Instagram', 'value' => (string) $profile['instagram_url'], 'href' => artist_public_link_url((string) $profile['instagram_url'])];
 }
 
-$publicSections = ['inicio' => 'Cabecera'];
+$publicSections = [];
 if ($gallery) {
     $publicSections['galeria'] = 'Galeria';
 }
