@@ -6044,30 +6044,86 @@ h3 {
 .artist-web-social-links {
     display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: flex-start;
+    gap: 10px;
     flex-shrink: 0;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 14px;
+    backdrop-filter: blur(8px);
 }
 
 .artist-web-social-icon {
     display: grid;
     place-items: center;
-    width: 34px;
-    height: 34px;
-    color: rgba(255, 250, 242, 0.72);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    transition: color 0.18s, border-color 0.18s, background 0.18s;
+    width: 44px;
+    height: 44px;
+    color: rgba(255, 250, 242, 0.95);
+    border: none;
+    border-radius: 10px;
+    transition: all 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 0;
 }
 
-.artist-web-social-icon:hover {
-    color: var(--color-white);
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(248, 229, 182, 0.3);
+/* Colores específicos por red social */
+.artist-web-social-icon[data-social-network="instagram"] {
+    background: linear-gradient(135deg, #E1306C, #C13584);
+}
+
+.artist-web-social-icon[data-social-network="instagram"]:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(225, 48, 108, 0.35);
+}
+
+.artist-web-social-icon[data-social-network="facebook"] {
+    background: #1877F2;
+}
+
+.artist-web-social-icon[data-social-network="facebook"]:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(24, 119, 242, 0.35);
+}
+
+.artist-web-social-icon[data-social-network="youtube"] {
+    background: #FF0000;
+}
+
+.artist-web-social-icon[data-social-network="youtube"]:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(255, 0, 0, 0.35);
+}
+
+.artist-web-social-icon[data-social-network="tiktok"] {
+    background: linear-gradient(135deg, #25F4EE, #000000);
+}
+
+.artist-web-social-icon[data-social-network="tiktok"]:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(37, 244, 238, 0.35);
+}
+
+.artist-web-social-icon[data-social-network="spotify"] {
+    background: #1DB954;
+}
+
+.artist-web-social-icon[data-social-network="spotify"]:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(29, 185, 84, 0.35);
+}
+
+.artist-web-social-icon[data-social-network="twitter"] {
+    background: #000000;
+}
+
+.artist-web-social-icon[data-social-network="twitter"]:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 .artist-web-social-icon svg {
-    width: 16px;
-    height: 16px;
+    width: 22px;
+    height: 22px;
 }
 
 /* === Sección Eventos del artista === */
