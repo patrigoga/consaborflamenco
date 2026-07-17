@@ -6466,16 +6466,16 @@ h3 {
     flex-direction: column;
     gap: 6px;
     padding: 14px 16px;
-    background: linear-gradient(135deg, rgba(95, 143, 184, 0.04), rgba(201, 79, 92, 0.04));
-    border: 1.5px solid rgba(95, 143, 184, 0.15);
+    background: linear-gradient(135deg, rgba(95, 143, 184, 0.18), rgba(201, 79, 92, 0.14));
+    border: 1.5px solid rgba(201, 79, 92, 0.3);
     border-radius: 10px;
     cursor: pointer;
     transition: all 0.18s;
 }
 
 .social-network-field:hover {
-    background: linear-gradient(135deg, rgba(95, 143, 184, 0.08), rgba(201, 79, 92, 0.08));
-    border-color: rgba(95, 143, 184, 0.3);
+    background: linear-gradient(135deg, rgba(95, 143, 184, 0.28), rgba(201, 79, 92, 0.24));
+    border-color: rgba(201, 79, 92, 0.5);
 }
 
 .social-network-icon-label {
@@ -6491,7 +6491,7 @@ h3 {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: rgba(95, 143, 184, 0.8);
+    color: rgba(201, 79, 92, 0.9);
 }
 
 .social-network-icon svg {
@@ -6502,7 +6502,7 @@ h3 {
 .social-network-label {
     font-size: 0.85rem;
     font-weight: 700;
-    color: rgba(0, 0, 0, 0.82);
+    color: rgba(0, 0, 0, 0.88);
     text-transform: capitalize;
 }
 
