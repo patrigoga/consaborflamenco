@@ -1552,6 +1552,60 @@ h3 {
     background: var(--color-red);
 }
 
+.directory-filters {
+    display: flex;
+    gap: 10px;
+    margin: 0 0 22px;
+    padding: 6px;
+    overflow-x: auto;
+    border: 1px solid rgba(17, 17, 20, 0.1);
+    border-radius: 14px;
+    background: rgba(17, 17, 20, 0.04);
+    scrollbar-width: thin;
+}
+
+.directory-filters a {
+    flex: 0 0 auto;
+    padding: 10px 16px;
+    color: var(--color-ink);
+    border: 1px solid transparent;
+    border-radius: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.directory-filters a:hover,
+.directory-filters a:focus-visible {
+    color: var(--color-red);
+    border-color: rgba(201, 79, 92, 0.28);
+    outline: 0;
+}
+
+.directory-filters a.is-active {
+    color: var(--color-white);
+    background: var(--color-red);
+    box-shadow: 0 12px 24px rgba(201, 79, 92, 0.24);
+}
+
+.directory-grid {
+    align-items: stretch;
+}
+
+.directory-card .editorial-story-content p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.empty-state {
+    margin: 0;
+    padding: 18px 20px;
+    border: 1px solid rgba(17, 17, 20, 0.1);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.62);
+    color: var(--color-muted);
+    font-weight: 700;
+}
+
 .editorial-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.75fr);

@@ -69,6 +69,21 @@
             { position: 2, type: "Festival", source: "Promocionado", title: "Noches de cante", image: images.evento, alt: "Fotografía de un festival flamenco", href: "#fotografia" },
             { position: 3, type: "Comunidad", source: "Más votado", title: "Flamenco cercano", image: images.pena, alt: "Fotografía de una peña flamenca", href: "#fotografia" }
         ],
+        HISTORIA: [
+            { position: 1, type: "OrÃ­genes", source: "MÃ¡s votado", title: "RaÃ­ces del flamenco", description: "Un recorrido por los territorios, reuniones y contextos que dieron forma al arte flamenco.", image: images.pena, alt: "Encuentro tradicional de aficionados al flamenco", href: "historia-flamenco.php" },
+            { position: 2, type: "Figuras", source: "Promocionado", title: "Nombres que abrieron camino", image: images.evento, alt: "Artistas flamencos sobre un escenario", href: "historia-flamenco.php" },
+            { position: 3, type: "EvoluciÃ³n", source: "MÃ¡s votado", title: "Del cafÃ© cantante al presente", image: images.artista, alt: "Bailaora en escena", href: "historia-flamenco.php" }
+        ],
+        PALOS_FLAMENCO: [
+            { position: 1, type: "CompÃ¡s", source: "MÃ¡s votado", title: "GuÃ­a de palos flamencos", description: "SoleÃ¡, seguiriyas, tangos y bulerÃ­as como mapas para escuchar y sentir el flamenco.", image: images.artista, alt: "Bailaora interpretando un palo flamenco", href: "palos-flamenco.php" },
+            { position: 2, type: "Cante", source: "MÃ¡s votado", title: "Familias y estilos", image: images.pena, alt: "Encuentro de cante y guitarra", href: "palos-flamenco.php" },
+            { position: 3, type: "Aprendizaje", source: "Promocionado", title: "Claves para reconocerlos", image: images.academia, alt: "Clase de flamenco", href: "palos-flamenco.php" }
+        ],
+        LLAVES_ORO: [
+            { position: 1, type: "Cante", source: "MÃ¡s votado", title: "Llave de Oro del Cante", description: "Historia, contexto y galardonados de uno de los reconocimientos mÃ¡s simbÃ³licos del flamenco.", image: images.evento, alt: "Cantaora en una actuaciÃ³n flamenca", href: "llaves-de-oro.php" },
+            { position: 2, type: "Legado", source: "MÃ¡s votado", title: "Galardonados y memoria", image: images.pena, alt: "ReuniÃ³n flamenca", href: "llaves-de-oro.php" },
+            { position: 3, type: "Contexto", source: "Promocionado", title: "La excelencia en el cante", image: images.artista, alt: "Artista flamenca en escena", href: "llaves-de-oro.php" }
+        ],
         FLAMENCO: [
             { id: "historia-flamenco", position: 1, type: "Historia", source: "Más votado", title: "Historia del flamenco", description: "Un recorrido por los orígenes, la evolución y las figuras esenciales.", image: images.pena, alt: "Reunión tradicional de aficionados al flamenco", href: "#historia-flamenco" },
             { id: "palos-flamenco", position: 2, type: "Palos", source: "Más votado", title: "Palos del flamenco", image: images.artista, alt: "Bailaora interpretando un palo flamenco", href: "#palos-flamenco" },

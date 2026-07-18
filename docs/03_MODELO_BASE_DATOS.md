@@ -183,6 +183,16 @@ Estados comerciales a definir:
 - Limites de frecuencia y criterios de rotacion de campanas.
 - Ventana temporal y formula definitiva del ranking de comunidad.
 
+## Disciplinas de directorios
+
+Se ha preparado la migracion no destructiva `database/20260718_disciplinas.sql` para normalizar filtros de directorio:
+
+- `disciplinas`: catalogo cerrado inicial (`baile`, `cante`, `toque`, `percusion`).
+- `miembro_disciplinas`: relacion entre miembros/artistas y disciplinas.
+- `academia_disciplinas`: relacion entre academias y disciplinas impartidas.
+
+Mientras esa migracion no este ejecutada o no tenga datos, los filtros publicos de `artistas.php` y `academias.php` funcionan con los campos existentes (`tipos_miembro`, `miembros.perfil_json`, `nombre_publico` y `biografia`) usando consultas preparadas y una lista cerrada de disciplinas.
+
 ## Historial de cambios
 
 - 2026-06-08: Documentado el modelo conceptual inicial de datos.
@@ -197,3 +207,4 @@ Estados comerciales a definir:
 - 2026-06-28: Activada la conexion inicial a MySQL con bootstrap de tablas, migracion desde JSON, admin por defecto y almacenamiento de perfil completo en `miembros.perfil_json`.
 - 2026-07-03: Anadido `miembros.slug` como campo unico para resolver fichas publicas por URL y evitar errores 500 por columnas ausentes en produccion.
 - 2026-06-29: Anadida configuracion especifica para la base de produccion `u311361615_csf` y separacion de credenciales mediante `.env`.
+- 2026-07-18: Preparada migracion no destructiva de disciplinas y filtros compatibles para directorios de artistas y academias.

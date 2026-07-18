@@ -308,6 +308,15 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Redisenadas las tarjetas de Identidad artistica y Datos de perfil e imagen con cabecera editorial oscura, mejor jerarquia tipografica, campos mas ligeros y URL publica integrada.
 - Anadida una previsualizacion lateral del perfil publico dentro de Identidad artistica e integrado el boton Guardar perfil en esa composicion.
 
+### 2026-07-18 - Reorganizacion de menu, paginas y filtros publicos
+
+- Actualizado el navbar principal para que el submenu Flamenco apunte a `historia-flamenco.php`, `palos-flamenco.php` y `llaves-de-oro.php`.
+- Creadas las paginas individuales de Historia, Palos del flamenco y Llaves de Oro reutilizando `page_head()`, `page_header()`, `section_page()`, `page_footer()` y `province_modal()`.
+- Convertidos `artistas.php` y `academias.php` en directorios con pestanas reales por disciplina (`todos`, `baile`, `cante`, `toque`, `percusion`) y filtrado PHP compatible sin JavaScript.
+- Anadido helper compartido `app/directory_helpers.php` para validar disciplinas, renderizar filtros y consultar directorios con parametros preparados.
+- Preparada la migracion no destructiva `database/20260718_disciplinas.sql` para normalizar disciplinas y relaciones de artistas/academias en una fase posterior.
+- Anadidas categorias de publicidad y rankings para Historia, Palos del flamenco y Llaves de Oro.
+
 ## Reglas y decisiones
 
 - Registrar cambios por fecha.

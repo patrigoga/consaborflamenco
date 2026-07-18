@@ -3,33 +3,16 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/app/auth.php';
 require_once __DIR__ . '/app/layout.php';
+require_once __DIR__ . '/app/directory_helpers.php';
 
+$activeDiscipline = csf_active_discipline($_GET);
+$activeDisciplineLabel = csf_discipline_options()[$activeDiscipline] ?? 'Todos';
 $artists = [];
 $pdo = db();
+
 if ($pdo) {
-    $statement = $pdo->query(
-        'SELECT
-            m.slug,
-            m.nombre_publico,
-            m.ciudad,
-            m.provincia_texto,
-            m.foto_principal_path,
-            m.perfil_json,
-            u.nombre
-        FROM miembros m
-        INNER JOIN usuarios u ON u.id = m.usuario_id
-        WHERE m.slug IS NOT NULL AND m.slug <> "" AND u.estado = "ACTIVO"
-        ORDER BY COALESCE(m.perfil_completo_at, m.updated_at) DESC
-        LIMIT 24'
-    );
-
-    foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $row) {
-        $profile = [];
-        if (!empty($row['perfil_json'])) {
-            $decoded = json_decode((string) $row['perfil_json'], true);
-            $profile = is_array($decoded) ? $decoded : [];
-        }
-
+    foreach (csf_fetch_member_directory($pdo, 'artista', $activeDiscipline, 48) as $row) {
+        $profile = csf_decode_profile((string) ($row['perfil_json'] ?? ''));
         $slug = clean_text((string) ($row['slug'] ?? ''));
         if ($slug === '') {
             continue;
@@ -39,21 +22,26 @@ if ($pdo) {
         $city = clean_text((string) ($row['ciudad'] ?? $profile['city'] ?? ''));
         $province = clean_text((string) ($row['provincia_texto'] ?? $profile['province'] ?? ''));
         $headline = clean_text((string) ($profile['artistic_headline'] ?? ''));
+        $description = clean_text((string) ($profile['cv_summary'] ?? $profile['short_description'] ?? $row['biografia'] ?? ''));
         $mainPhoto = clean_text((string) ($row['foto_principal_path'] ?? $profile['main_photo_path'] ?? ''));
+        $haystack = csf_directory_haystack($row, $profile);
+        $disciplines = csf_discipline_labels_from_text($haystack);
 
         $artists[] = [
             'slug' => $slug,
             'name' => $publicName,
             'location' => trim($city . ($city !== '' && $province !== '' ? ', ' : '') . $province),
             'headline' => $headline,
+            'description' => $description,
             'photo' => $mainPhoto,
+            'disciplines' => $disciplines ?: ['Flamenco'],
         ];
     }
 }
 ?>
 <!DOCTYPE html>
 <html lang="es">
-<?php page_head('Artistas | Con Sabor Flamenco', 'Directorio de artistas flamencos destacados.'); ?>
+<?php page_head('Artistas | Con Sabor Flamenco', 'Directorio de artistas flamencos destacados con filtros por baile, cante, toque y percusión.'); ?>
 <body>
     <?php page_header('ARTISTAS'); ?>
     <main>
@@ -93,14 +81,16 @@ if ($pdo) {
                         <div class="section-heading-content">
                             <p class="section-kicker">Perfiles reales</p>
                             <h2>Explorar artistas</h2>
-                            <p>Listado público de miembros con ficha activa. Cada tarjeta abre su landing individual.</p>
+                            <p><?= e($activeDiscipline === 'todos' ? 'Listado público de miembros con ficha activa. Cada tarjeta abre su landing individual.' : 'Artistas filtrados por ' . mb_strtolower($activeDisciplineLabel, 'UTF-8') . '.') ?></p>
                         </div>
                     </div>
 
+                    <?php csf_render_discipline_filters('artistas.php', $activeDiscipline, 'Filtrar artistas por disciplina'); ?>
+
                     <?php if ($artists): ?>
-                        <div class="editorial-grid">
+                        <div class="editorial-grid directory-grid">
                             <?php foreach ($artists as $artist): ?>
-                                <a class="editorial-story" href="artista/<?= e(rawurlencode($artist['slug'])) ?>">
+                                <a class="editorial-story directory-card" href="artista/<?= e(rawurlencode($artist['slug'])) ?>">
                                     <?php if ($artist['photo'] !== ''): ?>
                                         <img src="<?= e($artist['photo']) ?>" alt="Foto de <?= e($artist['name']) ?>" loading="lazy" width="640" height="480">
                                     <?php else: ?>
@@ -109,16 +99,18 @@ if ($pdo) {
                                     <div class="editorial-story-content">
                                         <span class="editorial-meta">
                                             <strong><?= e($artist['name']) ?></strong>
-                                            <span><?= e($artist['location'] !== '' ? $artist['location'] : 'Con Sabor Flamenco') ?></span>
+                                            <span><?= e(implode(' · ', $artist['disciplines'])) ?></span>
                                         </span>
                                         <h3><?= e($artist['headline'] !== '' ? $artist['headline'] : 'Ver perfil artístico') ?></h3>
+                                        <?php if ($artist['location'] !== ''): ?><p><?= e($artist['location']) ?></p><?php endif; ?>
+                                        <?php if ($artist['description'] !== ''): ?><p><?= e($artist['description']) ?></p><?php endif; ?>
                                         <span class="editorial-read">Abrir landing →</span>
                                     </div>
                                 </a>
                             <?php endforeach; ?>
                         </div>
                     <?php else: ?>
-                        <p>No hay perfiles públicos disponibles todavía. Vuelve pronto para ver nuevos artistas.</p>
+                        <p class="empty-state">No hay artistas disponibles para <?= e(mb_strtolower($activeDisciplineLabel, 'UTF-8')) ?> todavía. Prueba con otra disciplina o vuelve pronto.</p>
                     <?php endif; ?>
                 </section>
             </div>

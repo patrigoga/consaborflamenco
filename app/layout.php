@@ -41,7 +41,7 @@ function page_header(string $active = ''): void
     }
     $headerRendered = true;
 
-    $flamencoOpen = $active === 'FLAMENCO';
+    $flamencoOpen = in_array($active, ['FLAMENCO', 'HISTORIA', 'PALOS_FLAMENCO', 'LLAVES_ORO'], true);
     $revistaOpen = in_array($active, ['ARTISTAS', 'ACADEMIAS', 'FOTOGRAFIA', 'MODA', 'PENAS', 'TABLAOS', 'FESTIVALES'], true);
     $revistaActive = $active === 'REVISTA' || $revistaOpen;
     $user = function_exists('current_user') ? current_user() : null;
@@ -51,7 +51,9 @@ function page_header(string $active = ''): void
     $panelHref = ($user['role'] ?? '') === 'admin' ? 'panel-admin.php' : 'panel-usuario.php';
     $userName = $user['name'] ?? 'Miembro';
     $initials = strtoupper(substr($userName, 0, 1));
-    $userProfilePhoto = clean_text((string) ($user['artistic_profile']['main_photo_path'] ?? ''));
+    $userProfilePhoto = function_exists('clean_text')
+        ? clean_text((string) ($user['artistic_profile']['main_photo_path'] ?? ''))
+        : trim((string) ($user['artistic_profile']['main_photo_path'] ?? ''));
     ?>
     <header class="site-header">
         <a class="brand" href="index.php#inicio" aria-label="Con Sabor Flamenco - Inicio">
@@ -71,9 +73,9 @@ function page_header(string $active = ''): void
                     <span>Flamenco</span><span class="nav-chevron" aria-hidden="true">⌄</span>
                 </button>
                 <div id="flamenco-submenu" class="nav-submenu">
-                    <a href="flamenco.php#historia-flamenco">Historia</a>
-                    <a href="flamenco.php#palos-flamenco">Palos del flamenco</a>
-                    <a href="flamenco.php#llaves-oro">Llaves de Oro</a>
+                    <a href="historia-flamenco.php" data-ad-nav="HISTORIA"<?= nav_class($active, 'HISTORIA') ?>>Historia</a>
+                    <a href="palos-flamenco.php" data-ad-nav="PALOS_FLAMENCO"<?= nav_class($active, 'PALOS_FLAMENCO') ?>>Palos del flamenco</a>
+                    <a href="llaves-de-oro.php" data-ad-nav="LLAVES_ORO"<?= nav_class($active, 'LLAVES_ORO') ?>>Llaves de Oro</a>
                 </div>
             </div>
             <div class="nav-accordion<?= $revistaOpen ? ' is-open' : '' ?>">
