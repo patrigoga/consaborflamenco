@@ -42,8 +42,7 @@ function page_header(string $active = ''): void
     $headerRendered = true;
 
     $flamencoOpen = $active === 'FLAMENCO';
-    $academiasOpen = in_array($active, ['ACADEMIAS', 'CURSOS'], true);
-    $modaOpen = $active === 'MODA';
+    $revistaOpen = in_array($active, ['REVISTA', 'ARTISTAS', 'ACADEMIAS', 'FOTOGRAFIA', 'MODA', 'PENAS', 'TABLAOS', 'FESTIVALES'], true);
     $user = function_exists('current_user') ? current_user() : null;
     if ($user && ($user['role'] ?? 'user') !== 'admin' && function_exists('user_email_is_verified') && !user_email_is_verified($user)) {
         $user = null;
@@ -76,35 +75,21 @@ function page_header(string $active = ''): void
                     <a href="flamenco.php#llaves-oro">Llaves de Oro</a>
                 </div>
             </div>
-            <a href="revista.php" data-ad-nav="REVISTA"<?= nav_class($active, 'REVISTA') ?>>Revista</a>
-            <div class="nav-accordion<?= $academiasOpen ? ' is-open' : '' ?>">
-                <button class="nav-accordion-toggle<?= $academiasOpen ? ' is-active' : '' ?>" type="button" data-ad-nav="ACADEMIAS" aria-controls="academias-submenu" aria-expanded="<?= $academiasOpen ? 'true' : 'false' ?>">
-                    <span>Academias</span><span class="nav-chevron" aria-hidden="true">⌄</span>
+            <div class="nav-accordion<?= $revistaOpen ? ' is-open' : '' ?>">
+                <button class="nav-accordion-toggle<?= $revistaOpen ? ' is-active' : '' ?>" type="button" data-ad-nav="REVISTA" aria-controls="revista-submenu" aria-expanded="<?= $revistaOpen ? 'true' : 'false' ?>">
+                    <span>Revista</span><span class="nav-chevron" aria-hidden="true">⌄</span>
                 </button>
-                <div id="academias-submenu" class="nav-submenu">
-                    <a href="academias.php">Academias</a>
-                    <a href="cursos.php#cursos-presenciales" data-ad-nav="CURSOS">Cursos presenciales</a>
-                    <a href="cursos.php#cursos-online">Cursos online</a>
-                    <a href="cursos.php#cursos-intensivos">Talleres intensivos</a>
+                <div id="revista-submenu" class="nav-submenu nav-submenu-wide">
+                    <a href="revista.php" data-ad-nav="REVISTA"<?= nav_class($active, 'REVISTA') ?>>Portada</a>
+                    <a href="artistas.php" data-ad-nav="ARTISTAS"<?= nav_class($active, 'ARTISTAS') ?>>Artistas</a>
+                    <a href="academias.php" data-ad-nav="ACADEMIAS"<?= nav_class($active, 'ACADEMIAS') ?>>Academias</a>
+                    <a href="fotografia.php" data-ad-nav="FOTOGRAFIA"<?= nav_class($active, 'FOTOGRAFIA') ?>>Fotografía</a>
+                    <a href="moda.php" data-ad-nav="MODA"<?= nav_class($active, 'MODA') ?>>Moda</a>
+                    <a href="penas.php" data-ad-nav="PENAS"<?= nav_class($active, 'PENAS') ?>>Peñas</a>
+                    <a href="tablaos.php" data-ad-nav="TABLAOS"<?= nav_class($active, 'TABLAOS') ?>>Tablaos</a>
+                    <a href="festivales.php" data-ad-nav="FESTIVALES"<?= nav_class($active, 'FESTIVALES') ?>>Festivales</a>
                 </div>
             </div>
-            <a href="artistas.php" data-ad-nav="ARTISTAS"<?= nav_class($active, 'ARTISTAS') ?>>Artistas</a>
-            <a href="eventos.php" data-ad-nav="EVENTOS"<?= nav_class($active, 'EVENTOS') ?>>Eventos</a>
-            <a href="festivales.php" data-ad-nav="FESTIVALES"<?= nav_class($active, 'FESTIVALES') ?>>Festivales</a>
-            <a href="fotografia.php" data-ad-nav="FOTOGRAFIA"<?= nav_class($active, 'FOTOGRAFIA') ?>>Fotografía</a>
-            <div class="nav-accordion<?= $modaOpen ? ' is-open' : '' ?>">
-                <button class="nav-accordion-toggle<?= $modaOpen ? ' is-active' : '' ?>" type="button" data-ad-nav="MODA" aria-controls="moda-submenu" aria-expanded="<?= $modaOpen ? 'true' : 'false' ?>">
-                    <span>Moda</span><span class="nav-chevron" aria-hidden="true">⌄</span>
-                </button>
-                <div id="moda-submenu" class="nav-submenu">
-                    <a href="moda.php#moda-ropa">Ropa</a>
-                    <a href="moda.php#moda-calzado">Calzado</a>
-                    <a href="moda.php#moda-complementos">Complementos</a>
-                    <a href="moda.php#moda-infantil">Moda infantil</a>
-                </div>
-            </div>
-            <a href="penas.php" data-ad-nav="PENAS"<?= nav_class($active, 'PENAS') ?>>Peñas</a>
-            <a href="tablaos.php" data-ad-nav="TABLAOS"<?= nav_class($active, 'TABLAOS') ?>>Tablaos</a>
             <a href="servicios.php"<?= nav_class($active, 'SERVICIOS') ?>>Servicios</a>
             <a href="#contacto">Contacto</a>
             <div class="mobile-nav-footer">

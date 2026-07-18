@@ -199,6 +199,11 @@ a {
     transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
 }
 
+.nav-submenu-wide {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, max-content);
+}
+
 .nav-accordion:hover .nav-submenu,
 .nav-accordion:focus-within .nav-submenu,
 .nav-accordion.is-open .nav-submenu {
@@ -381,6 +386,10 @@ a {
         pointer-events: auto;
         transform: none;
         transition: none;
+    }
+
+    .nav-submenu-wide {
+        grid-template-columns: 1fr;
     }
 
     .nav-accordion.is-open .nav-submenu {
