@@ -101,14 +101,15 @@ a {
     grid-column: 2;
     grid-row: 1;
     justify-content: center;
-    gap: 10px;
+    gap: clamp(18px, 2vw, 30px);
     margin: 0;
     padding: 0;
     overflow: visible;
     border-top: 0;
     flex-wrap: nowrap;
     color: rgba(255, 255, 255, 0.82);
-    font-size: 0.76rem;
+    font-size: clamp(1.0625rem, 0.32vw + 0.8rem, 1.1875rem);
+    font-weight: 600;
     scrollbar-width: none;
 }
 
@@ -178,14 +179,16 @@ a {
 .nav-submenu {
     position: absolute;
     top: calc(100% + 14px);
-    left: 0;
+    left: 50%;
     z-index: 20;
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: max-content;
-    gap: 8px;
-    min-width: max-content;
-    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: max-content;
+    max-width: calc(100vw - 40px);
+    padding: 14px 16px;
+    overflow-x: auto;
+    overflow-y: hidden;
     border: 1px solid rgba(201, 164, 90, 0.34);
     border-radius: 18px;
     background:
@@ -195,13 +198,12 @@ a {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transform: translateY(8px);
+    transform: translate(-50%, 8px);
     transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
 }
 
 .nav-submenu-wide {
-    grid-auto-flow: row;
-    grid-template-columns: repeat(2, max-content);
+    gap: 12px;
 }
 
 .nav-accordion:hover .nav-submenu,
@@ -210,7 +212,7 @@ a {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
-    transform: translateY(0);
+    transform: translate(-50%, 0);
 }
 
 .nav-submenu a {
@@ -308,6 +310,7 @@ a {
         overflow-y: auto;
         border-top: 1px solid rgba(255, 255, 255, 0.08);
         flex-direction: column;
+        font-size: 1rem;
     }
 
     .main-nav.is-open {
@@ -372,11 +375,12 @@ a {
     .nav-submenu {
         position: static;
         display: none;
-        grid-auto-flow: row;
-        grid-auto-columns: auto;
-        min-width: 0;
+        flex-wrap: wrap;
+        width: 100%;
+        max-width: 100%;
         margin: 0 0 6px;
         padding: 4px 0 4px 16px;
+        overflow: visible;
         border: 0;
         border-radius: 0;
         background: rgba(255, 255, 255, 0.035);
@@ -389,20 +393,32 @@ a {
     }
 
     .nav-submenu-wide {
-        grid-template-columns: 1fr;
+        gap: 8px;
     }
 
     .nav-accordion.is-open .nav-submenu {
-        display: grid;
+        display: flex;
     }
 
     .nav-submenu a {
+        width: auto;
         padding: 9px 10px;
-        white-space: normal;
+        white-space: nowrap;
     }
 
     .header-actions {
         grid-column: 2;
+    }
+}
+
+@media (max-width: 760px) {
+    .nav-submenu {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .nav-submenu a {
+        width: 100%;
     }
 }
 

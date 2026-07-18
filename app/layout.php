@@ -42,7 +42,8 @@ function page_header(string $active = ''): void
     $headerRendered = true;
 
     $flamencoOpen = $active === 'FLAMENCO';
-    $revistaOpen = in_array($active, ['REVISTA', 'ARTISTAS', 'ACADEMIAS', 'FOTOGRAFIA', 'MODA', 'PENAS', 'TABLAOS', 'FESTIVALES'], true);
+    $revistaOpen = in_array($active, ['ARTISTAS', 'ACADEMIAS', 'FOTOGRAFIA', 'MODA', 'PENAS', 'TABLAOS', 'FESTIVALES'], true);
+    $revistaActive = $active === 'REVISTA' || $revistaOpen;
     $user = function_exists('current_user') ? current_user() : null;
     if ($user && ($user['role'] ?? 'user') !== 'admin' && function_exists('user_email_is_verified') && !user_email_is_verified($user)) {
         $user = null;
@@ -76,11 +77,10 @@ function page_header(string $active = ''): void
                 </div>
             </div>
             <div class="nav-accordion<?= $revistaOpen ? ' is-open' : '' ?>">
-                <button class="nav-accordion-toggle<?= $revistaOpen ? ' is-active' : '' ?>" type="button" data-ad-nav="REVISTA" aria-controls="revista-submenu" aria-expanded="<?= $revistaOpen ? 'true' : 'false' ?>">
+                <button class="nav-accordion-toggle<?= $revistaActive ? ' is-active' : '' ?>" type="button" data-ad-nav="REVISTA" aria-controls="revista-submenu" aria-expanded="<?= $revistaOpen ? 'true' : 'false' ?>">
                     <span>Revista</span><span class="nav-chevron" aria-hidden="true">⌄</span>
                 </button>
                 <div id="revista-submenu" class="nav-submenu nav-submenu-wide">
-                    <a href="revista.php" data-ad-nav="REVISTA"<?= nav_class($active, 'REVISTA') ?>>Portada</a>
                     <a href="artistas.php" data-ad-nav="ARTISTAS"<?= nav_class($active, 'ARTISTAS') ?>>Artistas</a>
                     <a href="academias.php" data-ad-nav="ACADEMIAS"<?= nav_class($active, 'ACADEMIAS') ?>>Academias</a>
                     <a href="fotografia.php" data-ad-nav="FOTOGRAFIA"<?= nav_class($active, 'FOTOGRAFIA') ?>>Fotografía</a>
