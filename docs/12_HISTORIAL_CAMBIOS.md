@@ -317,6 +317,14 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Preparada la migracion no destructiva `database/20260718_disciplinas.sql` para normalizar disciplinas y relaciones de artistas/academias en una fase posterior.
 - Anadidas categorias de publicidad y rankings para Historia, Palos del flamenco y Llaves de Oro.
 
+### 2026-07-18 - Secciones legales y consentimiento de cookies
+
+- Creadas las rutas `terminos.php`, `aviso-legal.php`, `privacidad.php` y `cookies.php` con contenido obtenido desde base de datos.
+- Anadido repositorio `app/legal_repository.php`, endpoint `api/legal-document.php` y modal legal reutilizable con mejora progresiva desde enlaces reales del footer.
+- Anadido panel de administracion "Contenido legal" con edicion protegida por CSRF, rol admin, sanitizacion de HTML y versiones anteriores.
+- Preparada la migracion no destructiva `database/20260718_legal_documents.sql`.
+- Implementado banner/configurador de cookies con categorias necesarias, preferencias, analitica y publicidad, persistido en cookie necesaria versionada.
+
 ## Reglas y decisiones
 
 - Registrar cambios por fecha.

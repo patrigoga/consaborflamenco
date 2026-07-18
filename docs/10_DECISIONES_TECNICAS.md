@@ -81,6 +81,9 @@ Centralizar criterios tecnicos iniciales para mantener coherencia durante el des
 - Separar la estructura visual publica de futuras capas de base de datos, autenticacion, pagos, setters y agente IA.
 - Mostrar siempre la etiqueta Publicidad en cada creatividad y mantener textos alternativos accesibles.
 - Mantener respuestas genericas en recuperacion de contrasena para no revelar si un email existe.
+- Los documentos legales se gestionan desde base de datos mediante `legal_documents` y `legal_document_versions`, con edicion restringida a rol admin, CSRF, consultas preparadas y sanitizacion de HTML permitido.
+- El footer usa URLs reales para terminos, aviso legal, privacidad y cookies; JavaScript solo mejora la experiencia abriendo una modal accesible.
+- El consentimiento de cookies se guarda como cookie necesaria `csf_cookie_consent` con version, fecha y categorias. No hay Analytics, Meta Pixel ni publicidad personalizada de terceros cargada actualmente; los cargadores opcionales quedan centralizados para activarlos solo tras consentimiento.
 
 ## Preparacion para escalabilidad
 
@@ -124,3 +127,4 @@ El proyecto debera separar permisos entre administradores, miembros y setters. E
 - 2026-06-25: Registrado que la configuracion de banners queda oculta hasta contratacion activa, que la tarjeta cambia sin recargar y que el PDF debe ser compacto.
 - 2026-06-25: Registrado que las entradas principales del curriculum requieren titulo y descripcion y admiten imagen.
 - 2026-06-29: Registrada la separacion local/produccion mediante `.env` y el instalador temporal `setup-prod-db.php` para preparar la base Hostinger.
+- 2026-07-18: Registrada la arquitectura de documentos legales administrables, modal legal progresiva y consentimiento de cookies por categorias.

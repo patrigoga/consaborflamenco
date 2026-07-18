@@ -7,6 +7,8 @@ function page_head(string $title, string $description, bool $includeRankings = t
 {
     $stylesVersion = (string) (@filemtime(__DIR__ . '/../assets/css/styles.css') ?: time());
     $adminSidebarVersion = (string) (@filemtime(__DIR__ . '/../assets/js/admin-sidebar.js') ?: time());
+    $legalModalVersion = (string) (@filemtime(__DIR__ . '/../assets/js/legal-modal.js') ?: time());
+    $cookieConsentVersion = (string) (@filemtime(__DIR__ . '/../assets/js/cookie-consent.js') ?: time());
     $isAdmin = strpos($_SERVER['REQUEST_URI'] ?? '', 'panel-admin.php') !== false;
     ?>
     <head>
@@ -21,6 +23,8 @@ function page_head(string $title, string $description, bool $includeRankings = t
         <link rel="stylesheet" href="<?= e(app_url('assets/css/styles.css')) ?>?v=<?= e($stylesVersion) ?>">
         <script src="<?= e(app_url('assets/js/advertising.js')) ?>" defer></script>
         <script src="<?= e(app_url('assets/js/navigation.js')) ?>" defer></script>
+        <script src="<?= e(app_url('assets/js/legal-modal.js')) ?>?v=<?= e($legalModalVersion) ?>" defer></script>
+        <script src="<?= e(app_url('assets/js/cookie-consent.js')) ?>?v=<?= e($cookieConsentVersion) ?>" defer></script>
         <script src="<?= e(app_url('assets/js/password-visibility.js')) ?>" defer></script>
         <?php if ($isAdmin): ?><script src="<?= e(app_url('assets/js/admin-sidebar.js')) ?>?v=<?= e($adminSidebarVersion) ?>" defer></script><?php endif; ?>
         <?php if ($includeRankings): ?><script src="<?= e(app_url('assets/js/section-rankings.js')) ?>" defer></script><?php endif; ?>
@@ -146,10 +150,90 @@ function page_footer(): void
         </div>
         <div class="footer-links">
             <div><h3>Principal</h3><a href="index.php#inicio">Inicio</a><a href="revista.php">Revista</a><a href="artistas.php">Artistas</a><a href="servicios.php">Servicios</a></div>
-            <div><h3>Legal</h3><a href="terminos-condiciones.php">Términos y condiciones</a><a href="#legal">Aviso legal</a><a href="#privacidad">Privacidad</a><a href="#cookies">Cookies</a></div>
+            <div><h3>Legal</h3><a href="terminos.php" data-legal-document="terms">Términos y condiciones</a><a href="aviso-legal.php" data-legal-document="legal_notice">Aviso legal</a><a href="privacidad.php" data-legal-document="privacy">Privacidad</a><a href="cookies.php" data-legal-document="cookies">Cookies</a><button class="footer-action-link" type="button" data-cookie-settings>Configurar cookies</button></div>
             <div><h3>Contacto</h3><a href="mailto:hola@consaborflamenco.com">hola@consaborflamenco.com</a><span>Redes sociales</span><span>Instagram · Facebook · YouTube</span></div>
         </div>
     </footer>
+    <?php legal_document_modal(); ?>
+    <?php cookie_consent_panel(); ?>
+    <?php
+}
+
+function legal_document_modal(): void
+{
+    ?>
+    <div class="legal-modal" data-legal-modal hidden>
+        <div class="legal-modal-backdrop" data-legal-close></div>
+        <section class="legal-dialog" role="dialog" aria-modal="true" aria-labelledby="legal-modal-title" aria-describedby="legal-modal-date" tabindex="-1">
+            <header class="legal-dialog-header">
+                <div>
+                    <p class="section-kicker">Documento legal</p>
+                    <h2 id="legal-modal-title" data-legal-title>Documento legal</h2>
+                    <p id="legal-modal-date" data-legal-date>Última actualización: pendiente</p>
+                </div>
+                <button class="modal-close" type="button" data-legal-close aria-label="Cerrar documento legal">×</button>
+            </header>
+            <div class="legal-dialog-content" data-legal-content tabindex="0"></div>
+            <footer class="legal-dialog-actions">
+                <a class="button button-secondary" href="terminos.php" data-legal-full>Ver página completa</a>
+                <button class="button button-primary" type="button" data-legal-print>Imprimir</button>
+            </footer>
+        </section>
+    </div>
+    <?php
+}
+
+function cookie_consent_panel(): void
+{
+    ?>
+    <section class="cookie-consent" data-cookie-consent hidden aria-label="Preferencias de cookies">
+        <div class="cookie-consent-summary" data-cookie-summary>
+            <div>
+                <p class="section-kicker">Privacidad</p>
+                <h2>Cookies en Con Sabor Flamenco</h2>
+                <p>Usamos cookies necesarias para que la web funcione y, solo si lo autorizas, preferencias, analítica o publicidad.</p>
+                <a href="cookies.php" data-legal-document="cookies">Política de cookies</a>
+            </div>
+            <div class="cookie-consent-actions">
+                <button class="button button-secondary" type="button" data-cookie-accept>Aceptar todas</button>
+                <button class="button button-secondary" type="button" data-cookie-reject>Rechazar no necesarias</button>
+                <button class="button button-primary" type="button" data-cookie-configure>Configurar</button>
+            </div>
+        </div>
+        <div class="cookie-settings" data-cookie-settings-panel hidden>
+            <div class="cookie-settings-heading">
+                <div>
+                    <p class="section-kicker">Configurar cookies</p>
+                    <h2>Elige tus preferencias</h2>
+                </div>
+                <button class="modal-close" type="button" data-cookie-cancel aria-label="Cerrar configuración de cookies">×</button>
+            </div>
+            <form data-cookie-form>
+                <label class="cookie-category">
+                    <span><strong>Necesarias</strong><small>Sesión, seguridad, CSRF y funcionamiento básico. Siempre activas.</small></span>
+                    <input type="checkbox" name="necessary" checked disabled>
+                </label>
+                <label class="cookie-category">
+                    <span><strong>Preferencias</strong><small>Provincia seleccionada y ajustes funcionales guardados en este dispositivo.</small></span>
+                    <input type="checkbox" name="preferences">
+                </label>
+                <label class="cookie-category">
+                    <span><strong>Analítica</strong><small>Sin proveedor configurado actualmente. No se carga antes de tu consentimiento.</small></span>
+                    <input type="checkbox" name="analytics">
+                </label>
+                <label class="cookie-category">
+                    <span><strong>Publicidad</strong><small>Sin proveedor externo configurado actualmente. No se carga antes de tu consentimiento.</small></span>
+                    <input type="checkbox" name="advertising">
+                </label>
+                <div class="cookie-consent-actions">
+                    <button class="button button-secondary" type="button" data-cookie-accept>Aceptar todas</button>
+                    <button class="button button-secondary" type="button" data-cookie-reject>Rechazar no necesarias</button>
+                    <button class="button button-primary" type="submit">Guardar selección</button>
+                    <button class="text-button" type="button" data-cookie-cancel>Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </section>
     <?php
 }
 

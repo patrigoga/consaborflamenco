@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/app/admin_repository.php';
+require_once __DIR__ . '/app/legal_repository.php';
 require_once __DIR__ . '/app/layout.php';
 
 $user = require_login();
@@ -24,6 +25,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($action === 'create_article') {
                 admin_create_article($_POST, $user);
                 $adminMessages[] = 'Articulo guardado.';
+            } elseif ($action === 'update_legal_document') {
+                legal_update_document($_POST, $user);
+                $adminMessages[] = 'Documento legal actualizado.';
             }
         } catch (Throwable $exception) {
             $adminErrors[] = $exception->getMessage();
@@ -38,6 +42,7 @@ $setters = admin_setters();
 $categories = admin_article_categories();
 $articles = admin_articles();
 $banners = admin_banners();
+$legalDocuments = legal_documents_all();
 
 function admin_date(?string $value): string
 {
@@ -197,6 +202,9 @@ $kpiGroups = [
                 </a>
                 <a href="#" class="admin-sidebar-link" data-target="articulos">
                     <span aria-hidden="true">📝</span> Artículos
+                </a>
+                <a href="#" class="admin-sidebar-link" data-target="legal">
+                    <span aria-hidden="true">§</span> Contenido legal
                 </a>
                 <a href="#" class="admin-sidebar-link" data-target="banners">
                     <span aria-hidden="true">🎨</span> Banners
@@ -396,6 +404,76 @@ $kpiGroups = [
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+            </div>
+        </section>
+
+        <section class="content-section admin-shell" id="legal">
+            <div class="section-heading">
+                <div class="section-heading-content">
+                    <p class="section-kicker">Legal</p>
+                    <h2>Contenido legal</h2>
+                    <p>Edicion administrable de terminos, aviso legal, privacidad y cookies.</p>
+                </div>
+            </div>
+
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead><tr><th>Documento</th><th>Slug</th><th>Estado</th><th>Actualizacion</th><th>Ultimo usuario</th><th>Acciones</th></tr></thead>
+                    <tbody>
+                        <?php if (!$legalDocuments): ?><tr><td colspan="6">No hay documentos legales disponibles o la base de datos no esta conectada.</td></tr><?php endif; ?>
+                        <?php foreach ($legalDocuments as $legalDocument): ?>
+                            <?php $definition = legal_document_definitions()[$legalDocument['document_key']] ?? []; ?>
+                            <tr>
+                                <td><strong><?= e((string) $legalDocument['title']) ?></strong><small><?= e((string) $legalDocument['document_key']) ?> · v<?= e((string) $legalDocument['version']) ?></small></td>
+                                <td><?= e((string) $legalDocument['slug']) ?></td>
+                                <td><span class="status-pill <?= $legalDocument['status'] === 'PUBLISHED' ? 'status-pill-active' : 'status-pill-pending' ?>"><?= e((string) $legalDocument['status']) ?></span></td>
+                                <td><?= e(admin_date((string) ($legalDocument['visible_updated_at'] ?? $legalDocument['updated_at'] ?? ''))) ?></td>
+                                <td><?= e((string) ($legalDocument['updated_by_name'] ?? '-')) ?></td>
+                                <td><a href="<?= e((string) ($definition['page'] ?? '')) ?>" target="_blank" rel="noopener">Previsualizar</a></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="legal-admin-grid">
+                <?php foreach ($legalDocuments as $legalDocument): ?>
+                    <?php $versions = legal_versions_for_document((int) $legalDocument['id']); ?>
+                    <article class="admin-editor-card legal-admin-card">
+                        <p class="section-kicker"><?= e((string) $legalDocument['document_key']) ?></p>
+                        <h3><?= e((string) $legalDocument['title']) ?></h3>
+                        <form method="post" action="panel-admin.php#legal" class="admin-form">
+                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                            <input type="hidden" name="admin_action" value="update_legal_document">
+                            <input type="hidden" name="document_key" value="<?= e((string) $legalDocument['document_key']) ?>">
+                            <label for="legal-title-<?= e((string) $legalDocument['document_key']) ?>">Titulo</label>
+                            <input id="legal-title-<?= e((string) $legalDocument['document_key']) ?>" name="title" type="text" value="<?= e((string) $legalDocument['title']) ?>" required>
+                            <label for="legal-status-<?= e((string) $legalDocument['document_key']) ?>">Estado</label>
+                            <select id="legal-status-<?= e((string) $legalDocument['document_key']) ?>" name="status">
+                                <option value="DRAFT" <?= $legalDocument['status'] === 'DRAFT' ? 'selected' : '' ?>>Borrador</option>
+                                <option value="PUBLISHED" <?= $legalDocument['status'] === 'PUBLISHED' ? 'selected' : '' ?>>Publicado</option>
+                            </select>
+                            <label for="legal-date-<?= e((string) $legalDocument['document_key']) ?>">Fecha visible de actualizacion</label>
+                            <input id="legal-date-<?= e((string) $legalDocument['document_key']) ?>" name="visible_updated_at" type="date" value="<?= e((string) ($legalDocument['visible_updated_at'] ?? '')) ?>">
+                            <label for="legal-content-<?= e((string) $legalDocument['document_key']) ?>">Contenido HTML permitido</label>
+                            <textarea id="legal-content-<?= e((string) $legalDocument['document_key']) ?>" name="content" rows="12" required><?= e((string) $legalDocument['content']) ?></textarea>
+                            <p class="field-help">Etiquetas permitidas: h2, h3, h4, p, ul, ol, li, strong, em, a y br. Scripts, iframes y eventos se eliminan al guardar.</p>
+                            <button class="button button-primary" type="submit" <?= !$databaseReady ? 'disabled' : '' ?>>Guardar documento</button>
+                        </form>
+                        <details class="legal-version-list">
+                            <summary>Versiones anteriores</summary>
+                            <?php if (!$versions): ?>
+                                <p>No hay versiones anteriores.</p>
+                            <?php else: ?>
+                                <ul>
+                                    <?php foreach ($versions as $version): ?>
+                                        <li>v<?= e((string) $version['version']) ?> · <?= e(admin_date((string) $version['created_at'])) ?> · <?= e((string) ($version['created_by_name'] ?? '-')) ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
+                        </details>
+                    </article>
+                <?php endforeach; ?>
             </div>
         </section>
 

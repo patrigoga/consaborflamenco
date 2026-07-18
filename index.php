@@ -23,6 +23,8 @@ $stylesVersion = $assetVersion('assets/css/styles.css');
     <link rel="stylesheet" href="assets/css/styles.css?v=<?= e($stylesVersion) ?>">
     <script src="assets/js/advertising.js?v=<?= e($assetVersion('assets/js/advertising.js')) ?>" defer></script>
     <script src="assets/js/navigation.js?v=<?= e($assetVersion('assets/js/navigation.js')) ?>" defer></script>
+    <script src="assets/js/legal-modal.js?v=<?= e($assetVersion('assets/js/legal-modal.js')) ?>" defer></script>
+    <script src="assets/js/cookie-consent.js?v=<?= e($assetVersion('assets/js/cookie-consent.js')) ?>" defer></script>
     <script src="assets/js/landing-home.js?v=<?= e($assetVersion('assets/js/landing-home.js')) ?>" defer></script>
 </head>
 <body>
@@ -62,17 +64,7 @@ $stylesVersion = $assetVersion('assets/css/styles.css');
         </section>
     </main>
 
-    <footer id="contacto" class="site-footer">
-        <div>
-            <h2>Con Sabor Flamenco</h2>
-            <p>Revista, comunidad y servicios digitales para impulsar el arte flamenco.</p>
-        </div>
-        <div class="footer-links">
-            <div><h3>Principal</h3><a href="#inicio">Inicio</a><a href="revista.php">Revista</a><a href="artistas.php">Artistas</a><a href="servicios.php">Servicios</a></div>
-            <div><h3>Legal</h3><a href="terminos-condiciones.php">Términos y condiciones</a><a href="#legal">Aviso legal</a><a id="privacidad" href="#privacidad">Privacidad</a><a href="#cookies">Cookies</a></div>
-            <div><h3>Contacto</h3><a href="mailto:hola@consaborflamenco.com">hola@consaborflamenco.com</a><span>Redes sociales</span><span>Instagram · Facebook · YouTube</span></div>
-        </div>
-    </footer>
+    <?php page_footer(); ?>
 
     <div class="province-modal" data-province-modal hidden>
         <div class="province-modal-backdrop" data-close-province></div>

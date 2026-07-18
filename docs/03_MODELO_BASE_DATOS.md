@@ -193,6 +193,15 @@ Se ha preparado la migracion no destructiva `database/20260718_disciplinas.sql` 
 
 Mientras esa migracion no este ejecutada o no tenga datos, los filtros publicos de `artistas.php` y `academias.php` funcionan con los campos existentes (`tipos_miembro`, `miembros.perfil_json`, `nombre_publico` y `biografia`) usando consultas preparadas y una lista cerrada de disciplinas.
 
+## Documentos legales administrables
+
+Se ha preparado la migracion no destructiva `database/20260718_legal_documents.sql` y el repositorio `app/legal_repository.php` para gestionar:
+
+- `legal_documents`: documentos `terms`, `legal_notice`, `privacy` y `cookies`, con `title`, `slug`, `content`, `status`, `version`, `published_at`, `visible_updated_at`, `updated_by` y marcas temporales.
+- `legal_document_versions`: historial basico de versiones anteriores por documento, version, titulo, contenido, fecha y usuario.
+
+El contenido legal se edita desde el panel admin con CSRF, rol administrador, consultas preparadas y sanitizacion de HTML permitido. Las paginas publicas y la modal legal leen la misma fuente de datos.
+
 ## Historial de cambios
 
 - 2026-06-08: Documentado el modelo conceptual inicial de datos.
@@ -208,3 +217,4 @@ Mientras esa migracion no este ejecutada o no tenga datos, los filtros publicos 
 - 2026-07-03: Anadido `miembros.slug` como campo unico para resolver fichas publicas por URL y evitar errores 500 por columnas ausentes en produccion.
 - 2026-06-29: Anadida configuracion especifica para la base de produccion `u311361615_csf` y separacion de credenciales mediante `.env`.
 - 2026-07-18: Preparada migracion no destructiva de disciplinas y filtros compatibles para directorios de artistas y academias.
+- 2026-07-18: Preparada migracion no destructiva para documentos legales administrables y versionados.
