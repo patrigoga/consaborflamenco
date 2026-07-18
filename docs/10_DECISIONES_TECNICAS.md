@@ -88,6 +88,7 @@ Centralizar criterios tecnicos iniciales para mantener coherencia durante el des
 - El area profesional de contacto de portada se alimenta desde una configuracion unica `contact_settings` para evitar contenido hardcodeado y permitir activar/desactivar datos visibles sin tocar plantillas.
 - Los mensajes del formulario publico se guardan en `contact_messages` con CSRF, honeypot, rate limit basico por sesion, aceptacion de privacidad, hash de IP y notificacion por el sistema de correo/log existente.
 - Las imagenes administrables de servicios y contacto usan el almacenamiento runtime ya existente servido por `media.php`, con validacion de MIME y extension JPG, PNG o WebP.
+- El redisenado del panel admin se abordara por fases. La Fase 1 introduce `app/admin_ui.php`, secciones por URL `section=`, sidebar agrupado, badges reutilizables y una vista general accionable sin alterar todavia los flujos criticos de miembros, banners o comisiones.
 
 ## Preparacion para escalabilidad
 
@@ -133,3 +134,4 @@ El proyecto debera separar permisos entre administradores, miembros y setters. E
 - 2026-06-29: Registrada la separacion local/produccion mediante `.env` y el instalador temporal `setup-prod-db.php` para preparar la base Hostinger.
 - 2026-07-18: Registrada la arquitectura de documentos legales administrables, modal legal progresiva y consentimiento de cookies por categorias.
 - 2026-07-18: Registrada la gestion administrable de servicios, contacto profesional y mensajes recibidos desde la portada.
+- 2026-07-18: Registrada la Fase 1 del redisenado del panel admin con navegacion agrupada, secciones por URL y componentes visuales reutilizables.

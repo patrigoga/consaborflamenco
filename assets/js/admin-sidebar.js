@@ -1,66 +1,96 @@
 document.addEventListener('DOMContentLoaded', function () {
-    const sidebarLinks = document.querySelectorAll('.admin-sidebar-link');
+    const container = document.querySelector('.admin-container');
+    const sidebarLinks = Array.from(document.querySelectorAll('.admin-sidebar-link'));
     const sidebarToggle = document.getElementById('admin-sidebar-toggle');
     const sidebarClose = document.querySelector('.admin-sidebar-close');
     const adminSidebar = document.querySelector('.admin-sidebar');
-    const mainContent = document.querySelector('.admin-main-content');
+    const pageIntro = document.querySelector('.page-intro');
+    const pageTitle = pageIntro ? pageIntro.querySelector('h1') : null;
+    const allAdminShells = Array.from(document.querySelectorAll('.admin-shell'));
 
-    // Toggle sidebar en móvil
-    if (sidebarToggle) {
+    const showSection = function (targetId, title) {
+        const section = targetId ? document.getElementById(targetId) : null;
+
+        sidebarLinks.forEach(function (link) {
+            const isActive = link.getAttribute('data-target') === targetId;
+            link.classList.toggle('is-active', isActive);
+            if (isActive) {
+                link.setAttribute('aria-current', 'page');
+            } else {
+                link.removeAttribute('aria-current');
+            }
+        });
+
+        if (pageIntro) {
+            pageIntro.style.display = 'flex';
+        }
+
+        allAdminShells.forEach(function (adminShell) {
+            adminShell.style.display = 'none';
+        });
+
+        if (section) {
+            section.style.display = 'grid';
+        }
+
+        if (pageTitle && title) {
+            pageTitle.textContent = title;
+        }
+    };
+
+    if (sidebarToggle && adminSidebar) {
         sidebarToggle.addEventListener('click', function () {
-            adminSidebar.classList.toggle('is-open');
+            const isOpen = adminSidebar.classList.toggle('is-open');
+            sidebarToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         });
     }
 
-    // Cerrar sidebar
-    if (sidebarClose) {
+    if (sidebarClose && adminSidebar) {
         sidebarClose.addEventListener('click', function () {
             adminSidebar.classList.remove('is-open');
+            if (sidebarToggle) {
+                sidebarToggle.setAttribute('aria-expanded', 'false');
+                sidebarToggle.focus();
+            }
         });
     }
 
-    // Manejar clicks en opciones del sidebar
-    sidebarLinks.forEach(link => {
-        link.addEventListener('click', function (e) {
-            e.preventDefault();
+    sidebarLinks.forEach(function (link) {
+        link.addEventListener('click', function (event) {
+            const targetId = link.getAttribute('data-target');
+            const href = link.getAttribute('href') || '';
 
-            const targetId = this.getAttribute('data-target');
-            const section = targetId ? document.getElementById(targetId) : null;
-
-            // Actualizar estado activo del link
-            sidebarLinks.forEach(l => l.classList.remove('is-active'));
-            this.classList.add('is-active');
-
-            // Obtener todas las secciones
-            const pageIntro = document.querySelector('.page-intro');
-            const allAdminShells = document.querySelectorAll('.admin-shell');
-            // Ocultar todo por defecto
-            if (pageIntro) pageIntro.style.display = 'none';
-            allAdminShells.forEach(s => {
-                s.style.display = 'none';
-            });
-
-            // Mostrar sección seleccionada
-            if (targetId === 'general') {
-                // Para vista general, mostrar intro y métricas
-                if (pageIntro) pageIntro.style.display = 'block';
-                if (section) section.style.display = 'grid';
-            } else if (section) {
-                // Para otras secciones, mostrar solo esa
-                section.style.display = 'grid';
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || href === '') {
+                return;
             }
 
-            // Cerrar sidebar en móvil después de seleccionar
-            if (window.innerWidth < 1080) {
+            event.preventDefault();
+            showSection(targetId, link.textContent.trim());
+            if (href !== '#') {
+                window.history.pushState({}, '', href);
+            }
+
+            if (adminSidebar && window.innerWidth < 1080) {
                 adminSidebar.classList.remove('is-open');
+                if (sidebarToggle) {
+                    sidebarToggle.setAttribute('aria-expanded', 'false');
+                }
             }
         });
     });
 
-    // Activar primera opción por defecto
-    const firstLink = document.querySelector('.admin-sidebar-link[data-target="general"]');
-    if (firstLink) {
-        firstLink.click();
-    }
-});
+    window.addEventListener('popstate', function () {
+        const params = new URLSearchParams(window.location.search);
+        const sectionKey = params.get('section') || 'general';
+        const matchingLink = sidebarLinks.find(function (link) {
+            return link.getAttribute('href') && link.getAttribute('href').indexOf('section=' + encodeURIComponent(sectionKey)) !== -1;
+        });
+        showSection(matchingLink ? matchingLink.getAttribute('data-target') : 'general', matchingLink ? matchingLink.textContent.trim() : 'Vista general');
+    });
 
+    const initialTarget = container ? container.getAttribute('data-admin-current-section') || 'general' : 'general';
+    const initialLink = sidebarLinks.find(function (link) {
+        return link.getAttribute('data-target') === initialTarget && link.closest('.admin-sidebar-nav-modern');
+    });
+    showSection(initialTarget, initialLink ? initialLink.textContent.trim() : null);
+});

@@ -8331,3 +8331,316 @@ h3 {
         width: 100%;
     }
 }
+
+/* Admin Panel Refresh */
+.admin-container {
+    background: #f4f6f8;
+}
+
+.admin-sidebar {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    min-height: calc(100vh - 110px);
+    background: #111114;
+    color: var(--color-white);
+    padding: 28px 0;
+}
+
+.admin-sidebar-header {
+    border-bottom-color: rgba(255, 255, 255, 0.09);
+}
+
+.admin-sidebar-eyebrow,
+.admin-sidebar-group-label {
+    display: block;
+    color: rgba(255, 255, 255, 0.52);
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.admin-sidebar-header h2 {
+    margin: 6px 0 0;
+    color: var(--color-white);
+    font-size: 1.25rem;
+    font-weight: 800;
+}
+
+.admin-sidebar-nav {
+    gap: 18px;
+    padding: 0 14px;
+}
+
+.admin-sidebar-nav-modern + .admin-sidebar-nav {
+    display: none;
+}
+
+.admin-sidebar-group {
+    display: grid;
+    gap: 6px;
+}
+
+.admin-sidebar-group-label {
+    padding: 0 10px 4px;
+}
+
+.admin-sidebar-link {
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    color: rgba(255, 255, 255, 0.78);
+    font-weight: 700;
+}
+
+.admin-sidebar-link:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.14);
+    color: var(--color-white);
+}
+
+.admin-sidebar-link.is-active {
+    background: linear-gradient(135deg, rgba(201, 79, 92, 0.92), rgba(95, 143, 184, 0.86));
+    color: var(--color-white);
+    border-color: rgba(255, 255, 255, 0.22);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+}
+
+.admin-sidebar-dot {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 8px;
+    border-radius: 999px;
+    background: currentColor;
+    opacity: 0.65;
+}
+
+.admin-main-content {
+    min-width: 0;
+    padding: clamp(18px, 2.6vw, 34px);
+}
+
+.admin-main-content > .page-intro {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    min-height: auto;
+    margin: 0 0 24px;
+    padding: clamp(22px, 3vw, 34px);
+    border: 1px solid rgba(17, 17, 20, 0.08);
+    border-radius: 18px;
+    background: var(--color-white);
+    box-shadow: var(--shadow-soft);
+}
+
+.admin-main-content > .page-intro h1 {
+    margin: 0;
+    font-size: clamp(2rem, 4vw, 3.2rem);
+}
+
+.admin-main-content > .page-intro p:not(.section-kicker) {
+    margin: 8px 0 0;
+    color: var(--color-muted);
+}
+
+.admin-overview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+}
+
+.admin-overview-grid-compact {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.admin-overview-card,
+.admin-recent-card,
+.admin-placeholder-panel,
+.admin-action-panel {
+    border: 1px solid rgba(17, 17, 20, 0.08);
+    border-radius: 16px;
+    background: var(--color-white);
+    box-shadow: var(--shadow-soft);
+}
+
+.admin-overview-card {
+    display: grid;
+    gap: 8px;
+    min-height: 142px;
+    padding: 18px;
+    color: var(--color-black);
+    text-decoration: none;
+}
+
+.admin-overview-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(201, 79, 92, 0.24);
+}
+
+.admin-overview-card span,
+.admin-overview-card small {
+    color: var(--color-muted);
+}
+
+.admin-overview-card span {
+    font-weight: 800;
+}
+
+.admin-overview-card strong {
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1;
+}
+
+.admin-recent-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.admin-recent-card {
+    padding: 18px;
+}
+
+.admin-recent-card header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.admin-recent-card h3 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.admin-recent-card a,
+.admin-muted-action {
+    color: var(--color-red);
+    font-size: 0.86rem;
+    font-weight: 800;
+}
+
+.admin-recent-card ul {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.admin-recent-card li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid rgba(17, 17, 20, 0.08);
+}
+
+.admin-recent-card strong,
+.admin-recent-card small {
+    display: block;
+}
+
+.admin-recent-card small,
+.admin-empty-note {
+    color: var(--color-muted);
+}
+
+.admin-action-panel {
+    padding: 0;
+    overflow: hidden;
+}
+
+.admin-action-panel summary {
+    padding: 16px 18px;
+    color: var(--color-black);
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.admin-action-panel[open] summary {
+    border-bottom: 1px solid rgba(17, 17, 20, 0.08);
+}
+
+.admin-compact-form {
+    max-width: 680px;
+    padding: 18px;
+}
+
+.admin-placeholder-panel {
+    display: grid;
+    gap: 16px;
+    padding: clamp(20px, 3vw, 30px);
+}
+
+.admin-placeholder-panel h3 {
+    margin: 0;
+}
+
+.admin-placeholder-panel p {
+    max-width: 76ch;
+    margin: 0;
+    color: var(--color-muted);
+}
+
+.admin-list-panel {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 18px;
+}
+
+.status-pill-danger {
+    background: rgba(201, 79, 92, 0.14);
+    color: #9f2432;
+}
+
+.status-pill-neutral {
+    background: rgba(17, 17, 20, 0.08);
+    color: #4b4b52;
+}
+
+.status-pill-info {
+    background: rgba(95, 143, 184, 0.14);
+    color: #315f86;
+}
+
+#articulos > .admin-editor-card:first-child {
+    display: none;
+}
+
+.admin-legacy-hidden {
+    display: none !important;
+}
+
+@media (max-width: 1080px) {
+    .admin-sidebar {
+        position: fixed;
+        min-height: 0;
+    }
+
+    .admin-main-content {
+        padding: 76px 16px 22px;
+    }
+}
+
+@media (max-width: 720px) {
+    .admin-main-content > .page-intro {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .admin-main-content > .page-intro .button,
+    .admin-overview-card {
+        width: 100%;
+    }
+
+    .admin-overview-grid,
+    .admin-recent-grid {
+        grid-template-columns: 1fr;
+    }
+}

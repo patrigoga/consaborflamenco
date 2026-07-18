@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/app/admin_repository.php';
+require_once __DIR__ . '/app/admin_ui.php';
 require_once __DIR__ . '/app/legal_repository.php';
 require_once __DIR__ . '/app/site_content_repository.php';
 require_once __DIR__ . '/app/layout.php';
@@ -78,6 +79,16 @@ if (isset($_GET['edit_service'])) {
 $selectedContactMessage = null;
 if (isset($_GET['contact_message'])) {
     $selectedContactMessage = site_contact_message_by_id((int) $_GET['contact_message']);
+}
+$activeSectionKey = admin_active_section_key();
+$activeSectionTargets = admin_section_targets();
+$activeSectionTarget = $activeSectionTargets[$activeSectionKey] ?? 'general';
+$activeSectionLabel = 'Vista general';
+foreach (admin_sections() as $sectionGroup) {
+    if (isset($sectionGroup['items'][$activeSectionKey])) {
+        $activeSectionLabel = (string) $sectionGroup['items'][$activeSectionKey]['label'];
+        break;
+    }
 }
 
 function admin_date(?string $value): string
@@ -204,6 +215,64 @@ $kpiGroups = [
         ],
     ],
 ];
+
+$overviewCards = [
+    ['label' => 'Miembros', 'value' => admin_stat($stats, 'members'), 'detail' => 'Activos/VIP: ' . admin_metric_number(admin_stat($stats, 'members_vip')), 'section' => 'miembros', 'status' => 'ACTIVO'],
+    ['label' => 'Miembros pendientes', 'value' => admin_stat($stats, 'members_pending'), 'detail' => 'Perfiles pendientes: ' . admin_metric_number(admin_stat($stats, 'profiles_pending')), 'section' => 'miembros', 'status' => 'PENDIENTE'],
+    ['label' => 'Articulos', 'value' => admin_stat($stats, 'articles'), 'detail' => 'Publicados: ' . admin_metric_number(admin_stat($stats, 'articles_published')), 'section' => 'articulos', 'status' => 'PUBLICADO'],
+    ['label' => 'Borradores', 'value' => admin_stat($stats, 'articles_draft'), 'detail' => 'Revision: ' . admin_metric_number(admin_stat($stats, 'articles_review')), 'section' => 'articulos', 'status' => 'BORRADOR'],
+    ['label' => 'Banners activos', 'value' => admin_stat($stats, 'banners_active'), 'detail' => 'Pendientes pago: ' . admin_metric_number(admin_stat($stats, 'banners_pending_payment')), 'section' => 'banners', 'status' => 'ACTIVO'],
+    ['label' => 'Setters', 'value' => admin_stat($stats, 'setters'), 'detail' => 'Activos: ' . admin_metric_number(admin_stat($stats, 'setters_active')), 'section' => 'setters', 'status' => 'ACTIVO'],
+    ['label' => 'Comisiones pendientes', 'value' => admin_stat($stats, 'setters_commissions_pending'), 'detail' => 'Estado comercial agregado', 'section' => 'comisiones', 'status' => 'PENDIENTE'],
+    ['label' => 'Mensajes nuevos', 'value' => admin_stat($stats, 'contact_messages_new'), 'detail' => 'Total mensajes: ' . admin_metric_number(admin_stat($stats, 'contact_messages')), 'section' => 'mensajes', 'status' => 'NEW'],
+];
+
+$recentBlocks = [
+    [
+        'title' => 'Ultimos miembros',
+        'section' => 'miembros',
+        'empty' => 'No hay miembros recientes.',
+        'items' => array_map(static fn (array $member): array => [
+            'title' => (string) ($member['nombre_publico'] ?? $member['name'] ?? $member['nombre'] ?? 'Miembro'),
+            'meta' => (string) ($member['email'] ?? ''),
+            'status' => (string) ($member['miembro_estado'] ?? $member['usuario_estado'] ?? 'PENDIENTE'),
+            'date' => $member['created_at'] ?? null,
+        ], admin_recent_items($members)),
+    ],
+    [
+        'title' => 'Ultimos articulos',
+        'section' => 'articulos',
+        'empty' => 'No hay articulos recientes.',
+        'items' => array_map(static fn (array $article): array => [
+            'title' => (string) ($article['titulo'] ?? 'Articulo'),
+            'meta' => (string) ($article['categoria_nombre'] ?? 'Sin categoria'),
+            'status' => (string) ($article['estado'] ?? 'BORRADOR'),
+            'date' => $article['created_at'] ?? null,
+        ], admin_recent_items($articles)),
+    ],
+    [
+        'title' => 'Ultimos banners',
+        'section' => 'banners',
+        'empty' => 'No hay banners recientes.',
+        'items' => array_map(static fn (array $banner): array => [
+            'title' => (string) ($banner['titulo'] ?? 'Banner'),
+            'meta' => (string) ($banner['nombre_publico'] ?? $banner['usuario_email'] ?? ''),
+            'status' => (string) ($banner['estado'] ?? 'BORRADOR'),
+            'date' => $banner['created_at'] ?? null,
+        ], admin_recent_items($banners)),
+    ],
+    [
+        'title' => 'Ultimos mensajes',
+        'section' => 'mensajes',
+        'empty' => 'No hay mensajes recientes.',
+        'items' => array_map(static fn (array $message): array => [
+            'title' => (string) ($message['subject'] ?? 'Mensaje'),
+            'meta' => (string) ($message['email'] ?? ''),
+            'status' => (string) ($message['status'] ?? 'NEW'),
+            'date' => $message['created_at'] ?? null,
+        ], admin_recent_items($contactMessages)),
+    ],
+];
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -212,7 +281,7 @@ $kpiGroups = [
     <?php page_header(); ?>
     
     <!-- Sidebar de Administración -->
-    <div class="admin-container">
+    <div class="admin-container" data-admin-current-section="<?= e($activeSectionTarget) ?>">
         <button id="admin-sidebar-toggle" class="admin-sidebar-toggle" aria-label="Abrir menú de administración">
             <span aria-hidden="true">☰</span>
             <span>Menú</span>
@@ -226,6 +295,21 @@ $kpiGroups = [
                 </button>
             </div>
             
+            <nav class="admin-sidebar-nav admin-sidebar-nav-modern" aria-label="Navegacion del panel">
+                <?php foreach (admin_sections() as $group): ?>
+                    <div class="admin-sidebar-group">
+                        <span class="admin-sidebar-group-label"><?= e((string) $group['label']) ?></span>
+                        <?php foreach ($group['items'] as $sectionKey => $item): ?>
+                            <?php $isActiveSection = $sectionKey === $activeSectionKey; ?>
+                            <a href="<?= e(admin_section_url((string) $sectionKey)) ?>" class="admin-sidebar-link<?= $isActiveSection ? ' is-active' : '' ?>" data-target="<?= e((string) $item['target']) ?>" <?= $isActiveSection ? 'aria-current="page"' : '' ?>>
+                                <span class="admin-sidebar-dot" aria-hidden="true"></span>
+                                <span><?= e((string) $item['label']) ?></span>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endforeach; ?>
+            </nav>
+
             <nav class="admin-sidebar-nav">
                 <a href="#" class="admin-sidebar-link is-active" data-target="general">
                     <span aria-hidden="true">📊</span> Vista General
@@ -259,9 +343,12 @@ $kpiGroups = [
         
         <main class="admin-main-content">
         <section class="page-intro" data-ad-category="GENERAL">
-            <p class="section-kicker">Administracion</p>
-            <h1>Panel de administracion</h1>
-            <p>Control inicial de miembros, setters, articulos, categorias y banners contratados.</p>
+            <div>
+                <p class="section-kicker">Administracion</p>
+                <h1><?= e($activeSectionLabel) ?></h1>
+                <p>Panel operativo para gestionar comunidad, contenido, publicidad, finanzas y contacto.</p>
+            </div>
+            <a class="button button-primary" href="<?= e(admin_section_url('articulos')) ?>">Crear contenido</a>
         </section>
 
         <section class="content-section admin-shell" id="general">
@@ -284,6 +371,42 @@ $kpiGroups = [
                     <?php foreach ($adminErrors as $error): ?><p><?= e($error) ?></p><?php endforeach; ?>
                 </div>
             <?php endif; ?>
+
+            <div class="admin-overview-grid">
+                <?php foreach ($overviewCards as $card): ?>
+                    <a class="admin-overview-card" href="<?= e(admin_section_url((string) $card['section'], ['status' => (string) $card['status']])) ?>">
+                        <span><?= e((string) $card['label']) ?></span>
+                        <strong><?= e(admin_metric_number((int) $card['value'])) ?></strong>
+                        <small><?= e((string) $card['detail']) ?></small>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+
+            <div class="admin-recent-grid">
+                <?php foreach ($recentBlocks as $block): ?>
+                    <article class="admin-recent-card">
+                        <header>
+                            <h3><?= e((string) $block['title']) ?></h3>
+                            <a href="<?= e(admin_section_url((string) $block['section'])) ?>">Ver listado</a>
+                        </header>
+                        <?php if (empty($block['items'])): ?>
+                            <p class="admin-empty-note"><?= e((string) $block['empty']) ?></p>
+                        <?php else: ?>
+                            <ul>
+                                <?php foreach ($block['items'] as $item): ?>
+                                    <li>
+                                        <div>
+                                            <strong><?= e((string) $item['title']) ?></strong>
+                                            <small><?= e((string) $item['meta']) ?> · <?= e(admin_date($item['date'] ?? null)) ?></small>
+                                        </div>
+                                        <?= admin_status_badge((string) $item['status']) ?>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        <?php endif; ?>
+                    </article>
+                <?php endforeach; ?>
+            </div>
 
             <div class="admin-kpi-groups">
                 <?php foreach ($kpiGroups as $group): ?>
@@ -382,11 +505,78 @@ $kpiGroups = [
             </div>
         </section>
 
+        <section class="content-section admin-shell" id="categorias">
+            <div class="section-heading">
+                <div class="section-heading-content">
+                    <p class="section-kicker">Revista</p>
+                    <h2>Categorias de articulos</h2>
+                    <p>Gestion independiente de categorias para no mezclar taxonomia con el editor de articulos.</p>
+                </div>
+            </div>
+
+            <details class="admin-action-panel">
+                <summary>Crear categoria</summary>
+                <form method="post" action="<?= e(admin_section_url('categorias')) ?>" class="admin-form admin-compact-form">
+                    <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                    <input type="hidden" name="admin_action" value="create_category">
+                    <label for="category_name_panel">Nombre de categoria</label>
+                    <input id="category_name_panel" name="category_name" type="text" required>
+                    <button class="button button-primary" type="submit" <?= !$databaseReady ? 'disabled' : '' ?>>Crear categoria</button>
+                </form>
+            </details>
+
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <caption>Categorias de articulos</caption>
+                    <thead><tr><th>Nombre</th><th>Slug</th><th>Estado</th><th>Acciones</th></tr></thead>
+                    <tbody>
+                        <?php if (!$categories): ?><tr><td colspan="4">Todavia no hay categorias.</td></tr><?php endif; ?>
+                        <?php foreach ($categories as $category): ?>
+                            <tr>
+                                <td><strong><?= e((string) $category['nombre']) ?></strong></td>
+                                <td><?= e((string) $category['slug']) ?></td>
+                                <td><?= admin_status_badge(!empty($category['activo']) ? 'ACTIVO' : 'INACTIVO') ?></td>
+                                <td><span class="admin-muted-action">Edicion avanzada pendiente de fase 3</span></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
         <section class="content-section admin-shell admin-editor-grid" id="articulos">
+            <div class="admin-list-panel">
+                <div class="section-heading">
+                    <div class="section-heading-content">
+                        <p class="section-kicker">Revista</p>
+                        <h2>Articulos</h2>
+                        <p>Listado operativo de articulos recientes con estado, autor y categoria.</p>
+                    </div>
+                </div>
+                <div class="admin-table-wrap">
+                    <table class="admin-table">
+                        <caption>Articulos recientes</caption>
+                        <thead><tr><th>Titulo</th><th>Categoria</th><th>Estado</th><th>Autor</th><th>Fecha</th></tr></thead>
+                        <tbody>
+                            <?php if (!$articles): ?><tr><td colspan="5">Todavia no hay articulos.</td></tr><?php endif; ?>
+                            <?php foreach ($articles as $article): ?>
+                                <tr>
+                                    <td><strong><?= e((string) $article['titulo']) ?></strong><small><?= e((string) $article['slug']) ?></small></td>
+                                    <td><?= e((string) ($article['categoria_nombre'] ?? '-')) ?></td>
+                                    <td><?= admin_status_badge((string) $article['estado']) ?></td>
+                                    <td><?= e((string) ($article['autor_nombre'] ?? '-')) ?></td>
+                                    <td><?= e(admin_date($article['created_at'] ?? null)) ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <div class="admin-editor-card">
                 <p class="section-kicker">Revista</p>
                 <h2>Nueva categoria</h2>
-                <form method="post" action="panel-admin.php#articulos" class="admin-form">
+                <form method="post" action="<?= e(admin_section_url('categorias')) ?>" class="admin-form">
                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="admin_action" value="create_category">
                     <label for="category_name">Nombre de categoria</label>
@@ -398,7 +588,7 @@ $kpiGroups = [
             <div class="admin-editor-card">
                 <p class="section-kicker">Contenido</p>
                 <h2>Crear articulo</h2>
-                <form method="post" action="panel-admin.php#articulos" class="admin-form">
+                <form method="post" action="<?= e(admin_section_url('articulos')) ?>" class="admin-form">
                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="admin_action" value="create_article">
                     <label for="title">Titulo</label>
@@ -426,7 +616,7 @@ $kpiGroups = [
             </div>
         </section>
 
-        <section class="content-section admin-shell">
+        <section class="content-section admin-shell admin-legacy-hidden">
             <div class="section-heading">
                 <div class="section-heading-content">
                     <p class="section-kicker">Revista</p>
@@ -487,7 +677,7 @@ $kpiGroups = [
                     <article class="admin-editor-card legal-admin-card">
                         <p class="section-kicker"><?= e((string) $legalDocument['document_key']) ?></p>
                         <h3><?= e((string) $legalDocument['title']) ?></h3>
-                        <form method="post" action="panel-admin.php#legal" class="admin-form">
+                        <form method="post" action="<?= e(admin_section_url('legal')) ?>" class="admin-form">
                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="admin_action" value="update_legal_document">
                             <input type="hidden" name="document_key" value="<?= e((string) $legalDocument['document_key']) ?>">
@@ -547,14 +737,14 @@ $kpiGroups = [
                     <h2>Gestion de servicios</h2>
                     <p>Crea, edita, ordena y publica los servicios visibles en la pagina publica de servicios.</p>
                 </div>
-                <?php if ($editingService): ?><a class="section-enter-link" href="panel-admin.php#servicios-admin">Nuevo servicio</a><?php endif; ?>
+                <?php if ($editingService): ?><a class="section-enter-link" href="<?= e(admin_section_url('servicios')) ?>">Nuevo servicio</a><?php endif; ?>
             </div>
 
             <div class="admin-editor-grid service-admin-grid">
                 <article class="admin-editor-card">
                     <p class="section-kicker"><?= $editingService ? 'Editar' : 'Crear' ?></p>
                     <h3><?= $editingService ? e((string) $editingService['title']) : 'Nuevo servicio' ?></h3>
-                    <form method="post" action="panel-admin.php#servicios-admin" class="admin-form" enctype="multipart/form-data">
+                    <form method="post" action="<?= e(admin_section_url('servicios')) ?>" class="admin-form" enctype="multipart/form-data">
                         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="admin_action" value="save_service">
                         <input type="hidden" name="service_id" value="<?= e((string) ($serviceForm['id'] ?? '')) ?>">
@@ -639,7 +829,7 @@ $kpiGroups = [
                                         </td>
                                         <td><span class="status-pill <?= $service['status'] === 'ACTIVE' ? 'status-pill-active' : 'status-pill-pending' ?>"><?= e((string) $service['status']) ?></span></td>
                                         <td>
-                                            <form method="post" action="panel-admin.php#servicios-admin" class="inline-admin-form">
+                                            <form method="post" action="<?= e(admin_section_url('servicios')) ?>" class="inline-admin-form">
                                                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                                 <input type="hidden" name="admin_action" value="update_service_order">
                                                 <input type="hidden" name="service_id" value="<?= e((string) $service['id']) ?>">
@@ -648,22 +838,22 @@ $kpiGroups = [
                                             </form>
                                         </td>
                                         <td class="admin-actions-cell">
-                                            <a href="panel-admin.php?edit_service=<?= e((string) $service['id']) ?>#servicios-admin">Editar</a>
-                                            <form method="post" action="panel-admin.php#servicios-admin">
+                                            <a href="<?= e(admin_section_url('servicios', ['edit_service' => (string) $service['id']])) ?>">Editar</a>
+                                            <form method="post" action="<?= e(admin_section_url('servicios')) ?>">
                                                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                                 <input type="hidden" name="admin_action" value="toggle_service_status">
                                                 <input type="hidden" name="service_id" value="<?= e((string) $service['id']) ?>">
                                                 <input type="hidden" name="status" value="<?= $service['status'] === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' ?>">
                                                 <button type="submit" <?= !$databaseReady ? 'disabled' : '' ?>><?= $service['status'] === 'ACTIVE' ? 'Desactivar' : 'Activar' ?></button>
                                             </form>
-                                            <form method="post" action="panel-admin.php#servicios-admin">
+                                            <form method="post" action="<?= e(admin_section_url('servicios')) ?>">
                                                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                                 <input type="hidden" name="admin_action" value="toggle_service_featured">
                                                 <input type="hidden" name="service_id" value="<?= e((string) $service['id']) ?>">
                                                 <input type="hidden" name="is_featured" value="<?= empty($service['is_featured']) ? '1' : '0' ?>">
                                                 <button type="submit" <?= !$databaseReady ? 'disabled' : '' ?>><?= empty($service['is_featured']) ? 'Destacar' : 'Quitar destacado' ?></button>
                                             </form>
-                                            <form method="post" action="panel-admin.php#servicios-admin" onsubmit="return confirm('Eliminar este servicio de forma definitiva?');">
+                                            <form method="post" action="<?= e(admin_section_url('servicios')) ?>" onsubmit="return confirm('Eliminar este servicio de forma definitiva?');">
                                                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                                 <input type="hidden" name="admin_action" value="delete_service">
                                                 <input type="hidden" name="service_id" value="<?= e((string) $service['id']) ?>">
@@ -689,7 +879,7 @@ $kpiGroups = [
             </div>
 
             <article class="admin-editor-card">
-                <form method="post" action="panel-admin.php#contacto-admin" class="admin-form" enctype="multipart/form-data">
+                <form method="post" action="<?= e(admin_section_url('contacto')) ?>" class="admin-form" enctype="multipart/form-data">
                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="admin_action" value="save_contact_settings">
                     <div class="form-grid-two">
@@ -835,9 +1025,9 @@ $kpiGroups = [
                                 <td><?= e(admin_date((string) ($message['created_at'] ?? ''))) ?></td>
                                 <td><span class="status-pill <?= $message['status'] === 'NEW' ? 'status-pill-pending' : 'status-pill-active' ?>"><?= e((string) $message['status']) ?></span></td>
                                 <td class="admin-actions-cell">
-                                    <a href="panel-admin.php?contact_message=<?= e((string) $message['id']) ?>#mensajes-contacto">Ver</a>
+                                    <a href="<?= e(admin_section_url('mensajes', ['contact_message' => (string) $message['id']])) ?>">Ver</a>
                                     <?php foreach (['READ' => 'Leido', 'ANSWERED' => 'Respondido', 'ARCHIVED' => 'Archivar', 'SPAM' => 'Spam'] as $status => $label): ?>
-                                        <form method="post" action="panel-admin.php#mensajes-contacto">
+                                        <form method="post" action="<?= e(admin_section_url('mensajes')) ?>">
                                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                             <input type="hidden" name="admin_action" value="update_contact_message_status">
                                             <input type="hidden" name="message_id" value="<?= e((string) $message['id']) ?>">
@@ -845,7 +1035,7 @@ $kpiGroups = [
                                             <button type="submit" <?= !$databaseReady ? 'disabled' : '' ?>><?= e($label) ?></button>
                                         </form>
                                     <?php endforeach; ?>
-                                    <form method="post" action="panel-admin.php#mensajes-contacto" onsubmit="return confirm('Eliminar este mensaje de forma definitiva?');">
+                                    <form method="post" action="<?= e(admin_section_url('mensajes')) ?>" onsubmit="return confirm('Eliminar este mensaje de forma definitiva?');">
                                         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                         <input type="hidden" name="admin_action" value="delete_contact_message">
                                         <input type="hidden" name="message_id" value="<?= e((string) $message['id']) ?>">
@@ -856,6 +1046,33 @@ $kpiGroups = [
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+            </div>
+        </section>
+
+        <section class="content-section admin-shell" id="comisiones">
+            <div class="section-heading">
+                <div class="section-heading-content">
+                    <p class="section-kicker">Finanzas</p>
+                    <h2>Comisiones</h2>
+                    <p>Area preparada para centralizar comisiones de setters, aprobaciones, pagos e historial de estados.</p>
+                </div>
+            </div>
+
+            <div class="admin-placeholder-panel">
+                <h3>Gestion financiera preparada por fases</h3>
+                <p>El modelo actual expone estados agregados de comisiones en appointment setters. La tabla detallada de comisiones y su historial se implementaran en la fase especifica para no inventar transiciones ni romper el flujo comercial existente.</p>
+                <div class="admin-overview-grid admin-overview-grid-compact">
+                    <article class="admin-overview-card">
+                        <span>Pendientes</span>
+                        <strong><?= e(admin_metric_number(admin_stat($stats, 'setters_commissions_pending'))) ?></strong>
+                        <small>Setters con comisiones pendientes</small>
+                    </article>
+                    <article class="admin-overview-card">
+                        <span>Al dia</span>
+                        <strong><?= e(admin_metric_number(admin_stat($stats, 'setters_commissions_paid'))) ?></strong>
+                        <small>Setters sin pagos pendientes</small>
+                    </article>
+                </div>
             </div>
         </section>
 

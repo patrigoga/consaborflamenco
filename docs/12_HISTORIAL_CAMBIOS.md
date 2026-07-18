@@ -334,6 +334,16 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Anadidas en la portada las secciones de servicios destacados y contacto profesional, con formulario publico, privacidad, honeypot, rate limit basico y notificacion por correo/log.
 - Anadidos estilos responsive para tarjetas de servicios, bloque de contacto, formulario publico y controles administrativos.
 
+### 2026-07-18 - Fase 1 redisenado del panel de administracion
+
+- Anadido `app/admin_ui.php` con definicion de secciones, URLs internas, badges de estado e imagen segura para componentes administrativos.
+- Reorganizado el sidebar del panel por grupos visuales: Panel, Usuarios, Contenido, Publicidad, Finanzas y Contacto.
+- Sincronizada la seccion activa del panel mediante parametro `section=` en la URL y actualizado `assets/js/admin-sidebar.js`.
+- Redisenada la vista general con tarjetas accionables y bloques de actividad reciente.
+- Separada la gestion de categorias de articulos en su propia seccion.
+- Anadida seccion independiente de Comisiones como base para la fase financiera sin crear estados ficticios.
+- Anadida una capa visual responsive para sidebar, tarjetas, actividad reciente, paneles compactos y badges de estado.
+
 ## Reglas y decisiones
 
 - Registrar cambios por fecha.
