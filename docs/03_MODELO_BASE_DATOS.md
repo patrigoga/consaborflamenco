@@ -202,6 +202,16 @@ Se ha preparado la migracion no destructiva `database/20260718_legal_documents.s
 
 El contenido legal se edita desde el panel admin con CSRF, rol administrador, consultas preparadas y sanitizacion de HTML permitido. Las paginas publicas y la modal legal leen la misma fuente de datos.
 
+## Servicios y contacto profesional administrables
+
+Se ha preparado la migracion no destructiva `database/20260718_services_contact.sql` y el repositorio `app/site_content_repository.php` para gestionar:
+
+- `services`: servicios publicos con `title`, `slug`, descripciones corta y completa, imagen, icono, precio opcional, CTA, orden, destacado, estado `ACTIVE`/`INACTIVE`, marcas temporales y usuarios de creacion/actualizacion.
+- `contact_settings`: configuracion unica del area profesional de contacto de la portada, con datos visibles, redes sociales, imagen, botones y flags de visibilidad.
+- `contact_messages`: mensajes recibidos desde el formulario publico, con datos de remitente, tipo de consulta, asunto, mensaje, aceptacion de privacidad, estado `NEW`/`READ`/`ANSWERED`/`ARCHIVED`/`SPAM`, `ip_hash`, user agent y fechas de gestion.
+
+El formulario publico guarda solo hash de IP, aplica CSRF, honeypot, limite basico por sesion y validacion en servidor. Las imagenes de servicios/contacto se validan como JPG, PNG o WebP y se guardan en runtime fuera del arbol ejecutable, servidas mediante `media.php`.
+
 ## Historial de cambios
 
 - 2026-06-08: Documentado el modelo conceptual inicial de datos.

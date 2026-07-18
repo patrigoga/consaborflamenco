@@ -8032,3 +8032,302 @@ h3 {
         page-break-inside: avoid;
     }
 }
+.service-public-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: clamp(18px, 2vw, 28px);
+}
+
+.service-public-grid-featured {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.service-public-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius);
+    background: rgba(255, 250, 242, 0.96);
+    box-shadow: var(--shadow-soft);
+}
+
+.service-public-card img {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+}
+
+.service-public-content {
+    display: grid;
+    gap: 14px;
+    padding: clamp(20px, 2.4vw, 30px);
+}
+
+.service-public-content h3,
+.public-contact-form h3 {
+    margin: 0;
+    color: var(--color-black);
+    font-size: clamp(1.35rem, 2vw, 1.8rem);
+}
+
+.service-public-content p,
+.service-public-description,
+.professional-contact-info p {
+    margin: 0;
+    color: var(--color-muted);
+    line-height: 1.7;
+}
+
+.service-public-description h2,
+.service-public-description h3 {
+    margin: 10px 0 0;
+    font-size: 1.08rem;
+}
+
+.service-public-description ul,
+.service-public-description ol {
+    margin: 0;
+    padding-left: 20px;
+    color: var(--color-muted);
+}
+
+.service-public-topline,
+.service-public-footer,
+.professional-contact-actions,
+.professional-social-links,
+.admin-actions-cell,
+.inline-admin-form {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.service-public-topline span {
+    display: inline-flex;
+    width: fit-content;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(95, 143, 184, 0.12);
+    color: var(--color-blue);
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.service-public-footer {
+    justify-content: space-between;
+    margin-top: 6px;
+}
+
+.service-public-footer strong {
+    color: var(--color-red);
+    font-size: 1.05rem;
+}
+
+.professional-contact-section {
+    background:
+        linear-gradient(135deg, rgba(255, 250, 242, 0.98), rgba(232, 240, 244, 0.94)),
+        var(--color-warm);
+}
+
+.professional-contact-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.95fr) minmax(320px, 1.05fr);
+    gap: clamp(24px, 4vw, 56px);
+    align-items: start;
+}
+
+.professional-contact-info,
+.public-contact-form,
+.admin-editor-card {
+    min-width: 0;
+}
+
+.professional-contact-info h2 {
+    margin: 0 0 16px;
+    color: var(--color-black);
+    font-size: clamp(2rem, 4vw, 3.4rem);
+    line-height: 1.08;
+}
+
+.professional-contact-image,
+.admin-image-preview {
+    display: block;
+    width: 100%;
+    border-radius: var(--radius);
+    object-fit: cover;
+}
+
+.professional-contact-image {
+    margin: 22px 0;
+    max-height: 340px;
+}
+
+.admin-image-preview {
+    max-width: 220px;
+    aspect-ratio: 16 / 10;
+    margin-top: 8px;
+}
+
+.professional-contact-list,
+.contact-detail-list {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 8px 16px;
+    margin: 22px 0;
+}
+
+.professional-contact-list dt,
+.contact-detail-list dt {
+    color: var(--color-muted);
+    font-size: 0.78rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.professional-contact-list dd,
+.contact-detail-list dd {
+    margin: 0;
+    color: var(--color-black);
+    overflow-wrap: anywhere;
+}
+
+.professional-contact-list a,
+.professional-social-links a {
+    color: var(--color-red);
+    font-weight: 800;
+}
+
+.public-contact-form {
+    display: grid;
+    gap: 14px;
+    padding: clamp(22px, 3vw, 34px);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius);
+    background: var(--color-white);
+    box-shadow: var(--shadow-soft);
+}
+
+.public-contact-form label,
+.admin-form label {
+    min-width: 0;
+}
+
+.public-contact-form input,
+.public-contact-form select,
+.public-contact-form textarea,
+.inline-admin-form input {
+    width: 100%;
+}
+
+.privacy-check,
+.checkbox-grid label,
+.visibility-toggle {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.privacy-check input,
+.checkbox-grid input,
+.visibility-toggle input {
+    width: auto;
+    margin-top: 4px;
+}
+
+.checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    padding: 16px;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius);
+}
+
+.checkbox-grid legend {
+    padding: 0 6px;
+    color: var(--color-muted);
+    font-weight: 800;
+}
+
+.honeypot-field {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+    white-space: nowrap !important;
+}
+
+.admin-actions-cell form,
+.admin-actions-cell button,
+.inline-admin-form {
+    margin: 0;
+}
+
+.admin-actions-cell button,
+.inline-admin-form button {
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
+    background: var(--color-white);
+    color: var(--color-black);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.admin-actions-cell button {
+    padding: 6px 10px;
+}
+
+.inline-admin-form input {
+    max-width: 76px;
+}
+
+.inline-admin-form button {
+    padding: 8px 10px;
+}
+
+.service-admin-table {
+    min-width: 660px;
+}
+
+.contact-message-detail {
+    margin-bottom: 20px;
+}
+
+@media (max-width: 980px) {
+    .professional-contact-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .professional-contact-info h2 {
+        font-size: clamp(1.8rem, 6vw, 2.6rem);
+    }
+}
+
+@media (max-width: 640px) {
+    .service-public-grid,
+    .service-public-grid-featured {
+        grid-template-columns: 1fr;
+    }
+
+    .professional-contact-list,
+    .contact-detail-list {
+        grid-template-columns: 1fr;
+    }
+
+    .service-public-footer,
+    .professional-contact-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .service-public-footer .button,
+    .professional-contact-actions .button,
+    .public-contact-form .button {
+        width: 100%;
+    }
+}

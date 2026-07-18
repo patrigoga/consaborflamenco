@@ -325,6 +325,15 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Preparada la migracion no destructiva `database/20260718_legal_documents.sql`.
 - Implementado banner/configurador de cookies con categorias necesarias, preferencias, analitica y publicidad, persistido en cookie necesaria versionada.
 
+### 2026-07-18 - Servicios administrables y contacto profesional
+
+- Anadido repositorio `app/site_content_repository.php` para servicios, configuracion de contacto profesional y mensajes de contacto.
+- Preparada la migracion no destructiva `database/20260718_services_contact.sql`.
+- Ampliado `panel-admin.php` con secciones de Gestion de servicios, Area profesional de contacto y Mensajes de contacto, usando CSRF y validaciones de servidor.
+- Convertida `servicios.php` en una pagina publica alimentada por servicios activos, manteniendo la misma ruta.
+- Anadidas en la portada las secciones de servicios destacados y contacto profesional, con formulario publico, privacidad, honeypot, rate limit basico y notificacion por correo/log.
+- Anadidos estilos responsive para tarjetas de servicios, bloque de contacto, formulario publico y controles administrativos.
+
 ## Reglas y decisiones
 
 - Registrar cambios por fecha.

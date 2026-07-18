@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/app/admin_repository.php';
 require_once __DIR__ . '/app/legal_repository.php';
+require_once __DIR__ . '/app/site_content_repository.php';
 require_once __DIR__ . '/app/layout.php';
 
 $user = require_login();
@@ -28,6 +29,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($action === 'update_legal_document') {
                 legal_update_document($_POST, $user);
                 $adminMessages[] = 'Documento legal actualizado.';
+            } elseif ($action === 'save_service') {
+                site_save_service($_POST, $_FILES, $user);
+                $adminMessages[] = !empty($_POST['service_id']) ? 'Servicio actualizado.' : 'Servicio creado.';
+            } elseif ($action === 'toggle_service_status') {
+                site_toggle_service_status((int) ($_POST['service_id'] ?? 0), (string) ($_POST['status'] ?? 'INACTIVE'), $user);
+                $adminMessages[] = 'Estado del servicio actualizado.';
+            } elseif ($action === 'toggle_service_featured') {
+                site_toggle_service_featured((int) ($_POST['service_id'] ?? 0), !empty($_POST['is_featured']), $user);
+                $adminMessages[] = 'Destacado del servicio actualizado.';
+            } elseif ($action === 'update_service_order') {
+                site_update_service_order((int) ($_POST['service_id'] ?? 0), (int) ($_POST['display_order'] ?? 0), $user);
+                $adminMessages[] = 'Orden del servicio actualizado.';
+            } elseif ($action === 'delete_service') {
+                site_delete_service((int) ($_POST['service_id'] ?? 0));
+                $adminMessages[] = 'Servicio eliminado.';
+            } elseif ($action === 'save_contact_settings') {
+                site_save_contact_settings($_POST, $_FILES, $user);
+                $adminMessages[] = 'Area profesional de contacto actualizada.';
+            } elseif ($action === 'update_contact_message_status') {
+                site_update_contact_message_status((int) ($_POST['message_id'] ?? 0), (string) ($_POST['status'] ?? 'READ'));
+                $adminMessages[] = 'Estado del mensaje actualizado.';
+            } elseif ($action === 'delete_contact_message') {
+                site_delete_contact_message((int) ($_POST['message_id'] ?? 0));
+                $adminMessages[] = 'Mensaje eliminado.';
             }
         } catch (Throwable $exception) {
             $adminErrors[] = $exception->getMessage();
@@ -43,6 +68,17 @@ $categories = admin_article_categories();
 $articles = admin_articles();
 $banners = admin_banners();
 $legalDocuments = legal_documents_all();
+$services = site_services_all();
+$contactSettings = site_contact_settings();
+$contactMessages = site_contact_messages();
+$editingService = null;
+if (isset($_GET['edit_service'])) {
+    $editingService = site_service_by_id((int) $_GET['edit_service']);
+}
+$selectedContactMessage = null;
+if (isset($_GET['contact_message'])) {
+    $selectedContactMessage = site_contact_message_by_id((int) $_GET['contact_message']);
+}
 
 function admin_date(?string $value): string
 {
@@ -205,6 +241,15 @@ $kpiGroups = [
                 </a>
                 <a href="#" class="admin-sidebar-link" data-target="legal">
                     <span aria-hidden="true">§</span> Contenido legal
+                </a>
+                <a href="#" class="admin-sidebar-link" data-target="servicios-admin">
+                    <span aria-hidden="true">S</span> Servicios
+                </a>
+                <a href="#" class="admin-sidebar-link" data-target="contacto-admin">
+                    <span aria-hidden="true">@</span> Contacto profesional
+                </a>
+                <a href="#" class="admin-sidebar-link" data-target="mensajes-contacto">
+                    <span aria-hidden="true">M</span> Mensajes contacto
                 </a>
                 <a href="#" class="admin-sidebar-link" data-target="banners">
                     <span aria-hidden="true">🎨</span> Banners
@@ -474,6 +519,343 @@ $kpiGroups = [
                         </details>
                     </article>
                 <?php endforeach; ?>
+            </div>
+        </section>
+
+        <section class="content-section admin-shell" id="servicios-admin">
+            <?php
+            $serviceForm = $editingService ?: [
+                'id' => '',
+                'title' => '',
+                'slug' => '',
+                'short_description' => '',
+                'full_description' => '',
+                'image_path' => '',
+                'icon' => '',
+                'price' => '',
+                'price_suffix' => '',
+                'button_text' => 'Solicitar informacion',
+                'button_url' => 'index.php#contacto-profesional',
+                'display_order' => 0,
+                'is_featured' => 0,
+                'status' => 'ACTIVE',
+            ];
+            ?>
+            <div class="section-heading">
+                <div class="section-heading-content">
+                    <p class="section-kicker">Servicios</p>
+                    <h2>Gestion de servicios</h2>
+                    <p>Crea, edita, ordena y publica los servicios visibles en la pagina publica de servicios.</p>
+                </div>
+                <?php if ($editingService): ?><a class="section-enter-link" href="panel-admin.php#servicios-admin">Nuevo servicio</a><?php endif; ?>
+            </div>
+
+            <div class="admin-editor-grid service-admin-grid">
+                <article class="admin-editor-card">
+                    <p class="section-kicker"><?= $editingService ? 'Editar' : 'Crear' ?></p>
+                    <h3><?= $editingService ? e((string) $editingService['title']) : 'Nuevo servicio' ?></h3>
+                    <form method="post" action="panel-admin.php#servicios-admin" class="admin-form" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                        <input type="hidden" name="admin_action" value="save_service">
+                        <input type="hidden" name="service_id" value="<?= e((string) ($serviceForm['id'] ?? '')) ?>">
+
+                        <div class="form-grid-two">
+                            <label for="service-title">Titulo
+                                <input id="service-title" name="title" type="text" value="<?= e((string) ($serviceForm['title'] ?? '')) ?>" required>
+                            </label>
+                            <label for="service-slug">Slug
+                                <input id="service-slug" name="slug" type="text" value="<?= e((string) ($serviceForm['slug'] ?? '')) ?>" placeholder="se genera si se deja vacio">
+                            </label>
+                        </div>
+
+                        <label for="service-short">Descripcion breve</label>
+                        <input id="service-short" name="short_description" type="text" maxlength="320" value="<?= e((string) ($serviceForm['short_description'] ?? '')) ?>" required>
+
+                        <label for="service-full">Descripcion completa</label>
+                        <textarea id="service-full" name="full_description" rows="8"><?= e((string) ($serviceForm['full_description'] ?? '')) ?></textarea>
+                        <p class="field-help">HTML permitido: p, h2, h3, ul, ol, li, strong, em, a y br. Scripts, iframes y eventos se eliminan al guardar.</p>
+
+                        <div class="form-grid-three">
+                            <label for="service-price">Precio opcional
+                                <input id="service-price" name="price" type="text" inputmode="decimal" value="<?= e((string) ($serviceForm['price'] ?? '')) ?>">
+                            </label>
+                            <label for="service-price-suffix">Sufijo precio
+                                <input id="service-price-suffix" name="price_suffix" type="text" value="<?= e((string) ($serviceForm['price_suffix'] ?? '')) ?>" placeholder="desde / mes / unico">
+                            </label>
+                            <label for="service-order">Orden
+                                <input id="service-order" name="display_order" type="number" value="<?= e((string) ($serviceForm['display_order'] ?? 0)) ?>">
+                            </label>
+                        </div>
+
+                        <div class="form-grid-two">
+                            <label for="service-button-text">Texto del boton
+                                <input id="service-button-text" name="button_text" type="text" value="<?= e((string) ($serviceForm['button_text'] ?? '')) ?>">
+                            </label>
+                            <label for="service-button-url">URL del boton
+                                <input id="service-button-url" name="button_url" type="text" value="<?= e((string) ($serviceForm['button_url'] ?? '')) ?>">
+                            </label>
+                        </div>
+
+                        <div class="form-grid-two">
+                            <label for="service-icon">Icono o etiqueta corta
+                                <input id="service-icon" name="icon" type="text" maxlength="80" value="<?= e((string) ($serviceForm['icon'] ?? '')) ?>">
+                            </label>
+                            <label for="service-status">Estado
+                                <select id="service-status" name="status">
+                                    <option value="ACTIVE" <?= ($serviceForm['status'] ?? '') === 'ACTIVE' ? 'selected' : '' ?>>Activo</option>
+                                    <option value="INACTIVE" <?= ($serviceForm['status'] ?? '') === 'INACTIVE' ? 'selected' : '' ?>>Inactivo</option>
+                                </select>
+                            </label>
+                        </div>
+
+                        <label class="visibility-toggle">
+                            <input type="checkbox" name="is_featured" value="1" <?= !empty($serviceForm['is_featured']) ? 'checked' : '' ?>>
+                            <span>Destacar en la home</span>
+                        </label>
+
+                        <label for="service-image">Imagen</label>
+                        <input id="service-image" name="image" type="file" accept="image/jpeg,image/png,image/webp">
+                        <?php if (!empty($serviceForm['image_path'])): ?>
+                            <img class="admin-image-preview" src="<?= e((string) $serviceForm['image_path']) ?>" alt="">
+                        <?php endif; ?>
+
+                        <button class="button button-primary" type="submit" <?= !$databaseReady ? 'disabled' : '' ?>>Guardar servicio</button>
+                    </form>
+                </article>
+
+                <article class="admin-editor-card service-list-card">
+                    <p class="section-kicker">Listado</p>
+                    <h3>Servicios publicados y borradores</h3>
+                    <div class="admin-table-wrap">
+                        <table class="admin-table service-admin-table">
+                            <thead><tr><th>Servicio</th><th>Estado</th><th>Orden</th><th>Acciones</th></tr></thead>
+                            <tbody>
+                                <?php if (!$services): ?><tr><td colspan="4">Todavia no hay servicios creados.</td></tr><?php endif; ?>
+                                <?php foreach ($services as $service): ?>
+                                    <tr>
+                                        <td>
+                                            <strong><?= e((string) $service['title']) ?></strong>
+                                            <small><?= e((string) $service['slug']) ?><?= !empty($service['is_featured']) ? ' · destacado' : '' ?></small>
+                                        </td>
+                                        <td><span class="status-pill <?= $service['status'] === 'ACTIVE' ? 'status-pill-active' : 'status-pill-pending' ?>"><?= e((string) $service['status']) ?></span></td>
+                                        <td>
+                                            <form method="post" action="panel-admin.php#servicios-admin" class="inline-admin-form">
+                                                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                                <input type="hidden" name="admin_action" value="update_service_order">
+                                                <input type="hidden" name="service_id" value="<?= e((string) $service['id']) ?>">
+                                                <input name="display_order" type="number" value="<?= e((string) $service['display_order']) ?>" aria-label="Orden de <?= e((string) $service['title']) ?>">
+                                                <button type="submit" <?= !$databaseReady ? 'disabled' : '' ?>>OK</button>
+                                            </form>
+                                        </td>
+                                        <td class="admin-actions-cell">
+                                            <a href="panel-admin.php?edit_service=<?= e((string) $service['id']) ?>#servicios-admin">Editar</a>
+                                            <form method="post" action="panel-admin.php#servicios-admin">
+                                                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                                <input type="hidden" name="admin_action" value="toggle_service_status">
+                                                <input type="hidden" name="service_id" value="<?= e((string) $service['id']) ?>">
+                                                <input type="hidden" name="status" value="<?= $service['status'] === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' ?>">
+                                                <button type="submit" <?= !$databaseReady ? 'disabled' : '' ?>><?= $service['status'] === 'ACTIVE' ? 'Desactivar' : 'Activar' ?></button>
+                                            </form>
+                                            <form method="post" action="panel-admin.php#servicios-admin">
+                                                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                                <input type="hidden" name="admin_action" value="toggle_service_featured">
+                                                <input type="hidden" name="service_id" value="<?= e((string) $service['id']) ?>">
+                                                <input type="hidden" name="is_featured" value="<?= empty($service['is_featured']) ? '1' : '0' ?>">
+                                                <button type="submit" <?= !$databaseReady ? 'disabled' : '' ?>><?= empty($service['is_featured']) ? 'Destacar' : 'Quitar destacado' ?></button>
+                                            </form>
+                                            <form method="post" action="panel-admin.php#servicios-admin" onsubmit="return confirm('Eliminar este servicio de forma definitiva?');">
+                                                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                                <input type="hidden" name="admin_action" value="delete_service">
+                                                <input type="hidden" name="service_id" value="<?= e((string) $service['id']) ?>">
+                                                <button type="submit" <?= !$databaseReady ? 'disabled' : '' ?>>Eliminar</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="content-section admin-shell" id="contacto-admin">
+            <div class="section-heading">
+                <div class="section-heading-content">
+                    <p class="section-kicker">Contacto</p>
+                    <h2>Area profesional de contacto</h2>
+                    <p>Configura el bloque publico de la portada y los datos visibles para consultas profesionales.</p>
+                </div>
+            </div>
+
+            <article class="admin-editor-card">
+                <form method="post" action="panel-admin.php#contacto-admin" class="admin-form" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                    <input type="hidden" name="admin_action" value="save_contact_settings">
+                    <div class="form-grid-two">
+                        <label for="contact-title">Titulo de seccion
+                            <input id="contact-title" name="section_title" type="text" value="<?= e((string) ($contactSettings['section_title'] ?? 'Hablemos de tu proyecto flamenco')) ?>" required>
+                        </label>
+                        <label for="contact-image-alt">Texto alternativo de imagen
+                            <input id="contact-image-alt" name="image_alt" type="text" value="<?= e((string) ($contactSettings['image_alt'] ?? '')) ?>">
+                        </label>
+                    </div>
+                    <label for="contact-intro">Introduccion</label>
+                    <textarea id="contact-intro" name="section_intro" rows="4"><?= e((string) ($contactSettings['section_intro'] ?? '')) ?></textarea>
+
+                    <div class="form-grid-three">
+                        <label for="business-name">Nombre comercial
+                            <input id="business-name" name="business_name" type="text" value="<?= e((string) ($contactSettings['business_name'] ?? '')) ?>">
+                        </label>
+                        <label for="contact-person">Persona de contacto
+                            <input id="contact-person" name="contact_person" type="text" value="<?= e((string) ($contactSettings['contact_person'] ?? '')) ?>">
+                        </label>
+                        <label for="contact-email">Email
+                            <input id="contact-email" name="email" type="email" value="<?= e((string) ($contactSettings['email'] ?? '')) ?>">
+                        </label>
+                    </div>
+
+                    <div class="form-grid-three">
+                        <label for="contact-phone">Telefono
+                            <input id="contact-phone" name="phone" type="text" value="<?= e((string) ($contactSettings['phone'] ?? '')) ?>">
+                        </label>
+                        <label for="contact-whatsapp">WhatsApp
+                            <input id="contact-whatsapp" name="whatsapp" type="text" value="<?= e((string) ($contactSettings['whatsapp'] ?? '')) ?>">
+                        </label>
+                        <label for="contact-whatsapp-url">URL WhatsApp
+                            <input id="contact-whatsapp-url" name="whatsapp_url" type="text" value="<?= e((string) ($contactSettings['whatsapp_url'] ?? '')) ?>">
+                        </label>
+                    </div>
+
+                    <div class="form-grid-three">
+                        <label for="contact-address">Direccion
+                            <input id="contact-address" name="address" type="text" value="<?= e((string) ($contactSettings['address'] ?? '')) ?>">
+                        </label>
+                        <label for="contact-city">Ciudad
+                            <input id="contact-city" name="city" type="text" value="<?= e((string) ($contactSettings['city'] ?? '')) ?>">
+                        </label>
+                        <label for="contact-province">Provincia
+                            <input id="contact-province" name="province" type="text" value="<?= e((string) ($contactSettings['province'] ?? '')) ?>">
+                        </label>
+                    </div>
+
+                    <div class="form-grid-three">
+                        <label for="contact-postal-code">Codigo postal
+                            <input id="contact-postal-code" name="postal_code" type="text" value="<?= e((string) ($contactSettings['postal_code'] ?? '')) ?>">
+                        </label>
+                        <label for="phone-button-text">Texto boton telefono
+                            <input id="phone-button-text" name="phone_button_text" type="text" value="<?= e((string) ($contactSettings['phone_button_text'] ?? '')) ?>">
+                        </label>
+                        <label for="whatsapp-button-text">Texto boton WhatsApp
+                            <input id="whatsapp-button-text" name="whatsapp_button_text" type="text" value="<?= e((string) ($contactSettings['whatsapp_button_text'] ?? '')) ?>">
+                        </label>
+                    </div>
+
+                    <label for="opening-hours">Horario</label>
+                    <textarea id="opening-hours" name="opening_hours" rows="3"><?= e((string) ($contactSettings['opening_hours'] ?? '')) ?></textarea>
+
+                    <div class="form-grid-two">
+                        <label for="contact-facebook">Facebook
+                            <input id="contact-facebook" name="facebook_url" type="text" value="<?= e((string) ($contactSettings['facebook_url'] ?? '')) ?>">
+                        </label>
+                        <label for="contact-instagram">Instagram
+                            <input id="contact-instagram" name="instagram_url" type="text" value="<?= e((string) ($contactSettings['instagram_url'] ?? '')) ?>">
+                        </label>
+                        <label for="contact-youtube">YouTube
+                            <input id="contact-youtube" name="youtube_url" type="text" value="<?= e((string) ($contactSettings['youtube_url'] ?? '')) ?>">
+                        </label>
+                        <label for="contact-tiktok">TikTok
+                            <input id="contact-tiktok" name="tiktok_url" type="text" value="<?= e((string) ($contactSettings['tiktok_url'] ?? '')) ?>">
+                        </label>
+                    </div>
+
+                    <fieldset class="checkbox-grid">
+                        <legend>Visibilidad</legend>
+                        <?php
+                        $contactFlags = [
+                            'is_enabled' => 'Mostrar seccion',
+                            'show_email' => 'Mostrar email',
+                            'show_phone' => 'Mostrar telefono',
+                            'show_whatsapp' => 'Mostrar WhatsApp',
+                            'show_address' => 'Mostrar direccion',
+                            'show_opening_hours' => 'Mostrar horario',
+                        ];
+                        ?>
+                        <?php foreach ($contactFlags as $flag => $label): ?>
+                            <label><input type="checkbox" name="<?= e($flag) ?>" value="1" <?= !empty($contactSettings[$flag]) ? 'checked' : '' ?>> <?= e($label) ?></label>
+                        <?php endforeach; ?>
+                    </fieldset>
+
+                    <label for="contact-image">Imagen de la seccion</label>
+                    <input id="contact-image" name="image" type="file" accept="image/jpeg,image/png,image/webp">
+                    <?php if (!empty($contactSettings['image_path'])): ?>
+                        <img class="admin-image-preview" src="<?= e((string) $contactSettings['image_path']) ?>" alt="">
+                    <?php endif; ?>
+
+                    <button class="button button-primary" type="submit" <?= !$databaseReady ? 'disabled' : '' ?>>Guardar contacto</button>
+                </form>
+            </article>
+        </section>
+
+        <section class="content-section admin-shell" id="mensajes-contacto">
+            <div class="section-heading">
+                <div class="section-heading-content">
+                    <p class="section-kicker">Contacto</p>
+                    <h2>Mensajes de contacto</h2>
+                    <p>Consulta y clasifica los mensajes enviados desde la pagina principal.</p>
+                </div>
+            </div>
+
+            <?php if ($selectedContactMessage): ?>
+                <article class="admin-editor-card contact-message-detail">
+                    <p class="section-kicker">Mensaje seleccionado</p>
+                    <h3><?= e((string) $selectedContactMessage['subject']) ?></h3>
+                    <dl class="contact-detail-list">
+                        <dt>Nombre</dt><dd><?= e((string) $selectedContactMessage['name']) ?></dd>
+                        <dt>Email</dt><dd><?= e((string) $selectedContactMessage['email']) ?></dd>
+                        <dt>Telefono</dt><dd><?= e((string) ($selectedContactMessage['phone'] ?? '-')) ?></dd>
+                        <dt>Tipo</dt><dd><?= e((string) $selectedContactMessage['inquiry_type']) ?></dd>
+                        <dt>Estado</dt><dd><?= e((string) $selectedContactMessage['status']) ?></dd>
+                        <dt>Fecha</dt><dd><?= e(admin_date((string) ($selectedContactMessage['created_at'] ?? ''))) ?></dd>
+                    </dl>
+                    <p><?= nl2br(e((string) $selectedContactMessage['message'])) ?></p>
+                </article>
+            <?php endif; ?>
+
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead><tr><th>Remitente</th><th>Tipo</th><th>Asunto</th><th>Fecha</th><th>Estado</th><th>Acciones</th></tr></thead>
+                    <tbody>
+                        <?php if (!$contactMessages): ?><tr><td colspan="6">Todavia no hay mensajes de contacto.</td></tr><?php endif; ?>
+                        <?php foreach ($contactMessages as $message): ?>
+                            <tr>
+                                <td><strong><?= e((string) $message['name']) ?></strong><small><?= e((string) $message['email']) ?></small></td>
+                                <td><?= e((string) $message['inquiry_type']) ?></td>
+                                <td><?= e((string) $message['subject']) ?></td>
+                                <td><?= e(admin_date((string) ($message['created_at'] ?? ''))) ?></td>
+                                <td><span class="status-pill <?= $message['status'] === 'NEW' ? 'status-pill-pending' : 'status-pill-active' ?>"><?= e((string) $message['status']) ?></span></td>
+                                <td class="admin-actions-cell">
+                                    <a href="panel-admin.php?contact_message=<?= e((string) $message['id']) ?>#mensajes-contacto">Ver</a>
+                                    <?php foreach (['READ' => 'Leido', 'ANSWERED' => 'Respondido', 'ARCHIVED' => 'Archivar', 'SPAM' => 'Spam'] as $status => $label): ?>
+                                        <form method="post" action="panel-admin.php#mensajes-contacto">
+                                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                            <input type="hidden" name="admin_action" value="update_contact_message_status">
+                                            <input type="hidden" name="message_id" value="<?= e((string) $message['id']) ?>">
+                                            <input type="hidden" name="status" value="<?= e($status) ?>">
+                                            <button type="submit" <?= !$databaseReady ? 'disabled' : '' ?>><?= e($label) ?></button>
+                                        </form>
+                                    <?php endforeach; ?>
+                                    <form method="post" action="panel-admin.php#mensajes-contacto" onsubmit="return confirm('Eliminar este mensaje de forma definitiva?');">
+                                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                        <input type="hidden" name="admin_action" value="delete_contact_message">
+                                        <input type="hidden" name="message_id" value="<?= e((string) $message['id']) ?>">
+                                        <button type="submit" <?= !$databaseReady ? 'disabled' : '' ?>>Eliminar</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
         </section>
 

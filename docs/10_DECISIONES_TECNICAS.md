@@ -84,6 +84,10 @@ Centralizar criterios tecnicos iniciales para mantener coherencia durante el des
 - Los documentos legales se gestionan desde base de datos mediante `legal_documents` y `legal_document_versions`, con edicion restringida a rol admin, CSRF, consultas preparadas y sanitizacion de HTML permitido.
 - El footer usa URLs reales para terminos, aviso legal, privacidad y cookies; JavaScript solo mejora la experiencia abriendo una modal accesible.
 - El consentimiento de cookies se guarda como cookie necesaria `csf_cookie_consent` con version, fecha y categorias. No hay Analytics, Meta Pixel ni publicidad personalizada de terceros cargada actualmente; los cargadores opcionales quedan centralizados para activarlos solo tras consentimiento.
+- Los servicios publicos se gestionan desde `services` y solo se muestran cuando estan en estado `ACTIVE`; la home puede destacar una seleccion con `is_featured` y la ruta `servicios.php` conserva el listado completo.
+- El area profesional de contacto de portada se alimenta desde una configuracion unica `contact_settings` para evitar contenido hardcodeado y permitir activar/desactivar datos visibles sin tocar plantillas.
+- Los mensajes del formulario publico se guardan en `contact_messages` con CSRF, honeypot, rate limit basico por sesion, aceptacion de privacidad, hash de IP y notificacion por el sistema de correo/log existente.
+- Las imagenes administrables de servicios y contacto usan el almacenamiento runtime ya existente servido por `media.php`, con validacion de MIME y extension JPG, PNG o WebP.
 
 ## Preparacion para escalabilidad
 
@@ -128,3 +132,4 @@ El proyecto debera separar permisos entre administradores, miembros y setters. E
 - 2026-06-25: Registrado que las entradas principales del curriculum requieren titulo y descripcion y admiten imagen.
 - 2026-06-29: Registrada la separacion local/produccion mediante `.env` y el instalador temporal `setup-prod-db.php` para preparar la base Hostinger.
 - 2026-07-18: Registrada la arquitectura de documentos legales administrables, modal legal progresiva y consentimiento de cookies por categorias.
+- 2026-07-18: Registrada la gestion administrable de servicios, contacto profesional y mensajes recibidos desde la portada.
