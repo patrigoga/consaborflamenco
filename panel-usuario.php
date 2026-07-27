@@ -1240,6 +1240,10 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                         </div>
                         <a class="section-enter-link" href="<?= e($publicProfileUrl) ?>" target="_blank" rel="noopener">Ver pagina publica</a>
                     </div>
+                    <a class="public-url-cta member-web-public-url" href="<?= e($publicProfileUrl) ?>" target="_blank" rel="noopener" data-public-url-cta>
+                        <span>URL publica de tu pagina web</span>
+                        <strong data-public-url-text><?= e($publicProfileUrl) ?></strong>
+                    </a>
 
                     <form class="member-profile-form member-web-form" action="panel-usuario.php#pagina-web" method="post" enctype="multipart/form-data">
                         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
@@ -1555,9 +1559,8 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
 
         const syncPublicUrlCta = () => {
             const slugInput = document.querySelector('[data-slug-input]');
-            const publicUrlCta = document.querySelector('[data-public-url-cta]');
-            const publicUrlText = document.querySelector('[data-public-url-text]');
-            if (!(slugInput instanceof HTMLInputElement) || !(publicUrlCta instanceof HTMLAnchorElement) || !(publicUrlText instanceof HTMLElement)) {
+            const publicUrlCtas = document.querySelectorAll('[data-public-url-cta]');
+            if (!(slugInput instanceof HTMLInputElement) || publicUrlCtas.length === 0) {
                 return;
             }
 
@@ -1568,8 +1571,16 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
 
             const baseUrl = slugInput.dataset.publicProfileBase || '';
             const nextUrl = `${baseUrl}${normalizedSlug || 'nombre-artista'}`;
-            publicUrlCta.href = nextUrl;
-            publicUrlText.textContent = nextUrl;
+            publicUrlCtas.forEach((publicUrlCta) => {
+                if (!(publicUrlCta instanceof HTMLAnchorElement)) {
+                    return;
+                }
+                publicUrlCta.href = nextUrl;
+                const publicUrlText = publicUrlCta.querySelector('[data-public-url-text]');
+                if (publicUrlText instanceof HTMLElement) {
+                    publicUrlText.textContent = nextUrl;
+                }
+            });
         };
 
         document.querySelector('[data-slug-input]')?.addEventListener('input', syncPublicUrlCta);
