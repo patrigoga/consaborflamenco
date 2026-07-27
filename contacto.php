@@ -15,11 +15,11 @@ $contactEnabled = !empty($contactSettings) && !empty($contactSettings['is_enable
 <!DOCTYPE html>
 <html lang="es">
 <?php page_head('Contacto | Con Sabor Flamenco', 'Formulario de contacto profesional de Con Sabor Flamenco.', false); ?>
-<body>
+<body class="contact-page">
     <?php page_header('CONTACTO'); ?>
 
     <main>
-        <section class="page-intro" data-ad-category="GENERAL">
+        <section class="page-intro contact-page-intro" data-ad-category="GENERAL">
             <p class="section-kicker">Contacto</p>
             <h1>Hablemos de tu proyecto flamenco</h1>
             <p>Escribenos para servicios digitales, colaboraciones, publicidad, revista o soporte de la comunidad.</p>
