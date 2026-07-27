@@ -141,7 +141,8 @@ if (!$heroSlides) {
         'cta_label' => '',
     ];
 }
-$menuImage = ($heroSlides[0]['image'] ?? '') !== '' ? $heroSlides[0]['image'] : ($legacyHeroImage !== '' ? $legacyHeroImage : $mainPhoto);
+$menuImage = $mainPhoto !== '' ? $mainPhoto : (($heroSlides[0]['image'] ?? '') !== '' ? $heroSlides[0]['image'] : $legacyHeroImage);
+$menuImageIsProfile = $mainPhoto !== '';
 $pageDescription = clean_text((string) ($heroSlides[0]['description'] ?? '')) ?: $displayName;
 
 $contactItems = [];
@@ -185,8 +186,8 @@ $socialIcons = [
     <header class="artist-web-topbar">
         <div class="container artist-web-topbar-inner">
             <?php if ($menuImage !== ''): ?>
-            <a class="artist-web-logo" href="#inicio" aria-label="Ir a la cabecera de <?= e($displayName) ?>">
-                <img src="<?= e($menuImage) ?>" alt="Imagen de cabecera de <?= e($displayName) ?>" loading="eager">
+            <a class="artist-web-logo<?= $menuImageIsProfile ? ' artist-web-logo-profile' : '' ?>" href="#inicio" aria-label="Ir a la cabecera de <?= e($displayName) ?>">
+                <img src="<?= e($menuImage) ?>" alt="<?= e($menuImageIsProfile ? 'Foto de perfil de ' . $displayName : 'Imagen de cabecera de ' . $displayName) ?>" loading="eager">
             </a>
             <?php endif; ?>
             <nav class="artist-web-menu" aria-label="Menu de la pagina del artista">

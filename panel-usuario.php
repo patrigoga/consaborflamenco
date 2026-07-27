@@ -845,7 +845,14 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
         <section class="member-panel">
             <aside class="member-sidebar" aria-label="Menú del panel de miembro">
                 <div class="member-sidebar-card">
-                    <span class="profile-avatar profile-avatar-large"><?= e(strtoupper(substr($displayName, 0, 1))) ?></span>
+                    <span class="profile-avatar profile-avatar-large">
+                        <?php if ($mainPhotoVisiblePath !== ''): ?>
+                            <img src="<?= e($mainPhotoVisiblePath) ?>" alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview>
+                        <?php else: ?>
+                            <img alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview hidden>
+                            <span class="profile-avatar-initial" data-main-photo-placeholder><?= e(strtoupper(substr($displayName, 0, 1))) ?></span>
+                        <?php endif; ?>
+                    </span>
                     <strong><?= e($displayName) ?></strong>
                     <span><?= e($memberStatus) ?> · Nº <?= e($memberNumber) ?></span>
                 </div>

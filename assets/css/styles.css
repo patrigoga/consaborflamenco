@@ -3812,6 +3812,12 @@ h3 {
     object-fit: cover;
 }
 
+.artist-web-logo-profile img {
+    width: 52px;
+    height: 52px;
+    border-radius: 999px;
+}
+
 .artist-web-logo span {
     display: grid;
     place-items: center;
@@ -7340,6 +7346,13 @@ h3 {
     height: 78px;
     border: 1px solid rgba(255, 250, 242, 0.22);
     box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22);
+}
+
+.profile-avatar .profile-avatar-initial {
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: 1;
 }
 
 .member-sidebar-progress {
