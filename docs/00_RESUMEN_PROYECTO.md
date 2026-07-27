@@ -47,7 +47,7 @@ La web tendra un diseno moderno tipo revista, con una combinacion visual elegant
 - Flamenco: pagina propia con Historia, Palos del flamenco y Llaves de Oro.
 - Concursos, reservado y temporalmente oculto en la navegacion y la portada.
 - Servicios para miembros mediante pagina propia.
-- Contacto.
+- Contacto mediante pagina publica propia con formulario profesional separado de la portada.
 
 ## Monetizacion publicitaria
 

@@ -97,7 +97,7 @@ function page_header(string $active = ''): void
                 </div>
             </div>
             <a href="servicios.php"<?= nav_class($active, 'SERVICIOS') ?>>Servicios</a>
-            <a href="#contacto">Contacto</a>
+            <a href="contacto.php"<?= nav_class($active, 'CONTACTO') ?>>Contacto</a>
             <div class="mobile-nav-footer">
                 <button class="location-trigger mobile-location-trigger" type="button" data-open-province aria-label="Cambiar provincia">
                     <span aria-hidden="true">●</span>
@@ -151,7 +151,7 @@ function page_footer(): void
         <div class="footer-links">
             <div><h3>Principal</h3><a href="index.php#inicio">Inicio</a><a href="revista.php">Revista</a><a href="artistas.php">Artistas</a><a href="servicios.php">Servicios</a></div>
             <div><h3>Legal</h3><a href="terminos.php" data-legal-document="terms">Términos y condiciones</a><a href="aviso-legal.php" data-legal-document="legal_notice">Aviso legal</a><a href="privacidad.php" data-legal-document="privacy">Privacidad</a><a href="cookies.php" data-legal-document="cookies">Cookies</a><button class="footer-action-link" type="button" data-cookie-settings>Configurar cookies</button></div>
-            <div><h3>Contacto</h3><a href="mailto:hola@consaborflamenco.com">hola@consaborflamenco.com</a><span>Redes sociales</span><span>Instagram · Facebook · YouTube</span></div>
+            <div><h3>Contacto</h3><a href="contacto.php">Formulario de contacto</a><a href="mailto:hola@consaborflamenco.com">hola@consaborflamenco.com</a><span>Redes sociales</span><span>Instagram · Facebook · YouTube</span></div>
         </div>
     </footer>
     <?php legal_document_modal(); ?>

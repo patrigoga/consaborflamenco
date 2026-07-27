@@ -333,6 +333,7 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Convertida `servicios.php` en una pagina publica alimentada por servicios activos, manteniendo la misma ruta.
 - Anadidas en la portada las secciones de servicios destacados y contacto profesional, con formulario publico, privacidad, honeypot, rate limit basico y notificacion por correo/log.
 - Anadidos estilos responsive para tarjetas de servicios, bloque de contacto, formulario publico y controles administrativos.
+- Movido el formulario publico de contacto desde la portada a `contacto.php`, manteniendo la misma gestion administrativa y de mensajes.
 
 ### 2026-07-18 - Fase 1 redisenado del panel de administracion
 

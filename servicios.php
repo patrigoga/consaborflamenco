@@ -33,7 +33,7 @@ $services = site_services_active();
                 <div class="empty-state">
                     <h3>Estamos preparando nuevos servicios</h3>
                     <p>Vuelve pronto o contacta con el equipo para contar tu necesidad profesional.</p>
-                    <a class="button button-primary" href="index.php#contacto-profesional">Contactar</a>
+                    <a class="button button-primary" href="contacto.php">Contactar</a>
                 </div>
             <?php else: ?>
                 <div class="service-public-grid">
