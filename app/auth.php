@@ -214,7 +214,9 @@ function default_member_web_page(array $settings = []): array
         'header_image_path' => '',
         'hero_slides' => [],
         'gallery' => [],
+        'videos' => [],
         'events' => [],
+        'news' => [],
         'social_links' => [],
         'contact_fields' => ['email'],
     ], $settings);
@@ -237,9 +239,22 @@ function default_member_web_page(array $settings = []): array
         is_array($merged['gallery'] ?? null) ? $merged['gallery'] : [],
         static fn ($path): bool => clean_text((string) $path) !== ''
     ));
+    $merged['videos'] = array_values(array_filter(
+        is_array($merged['videos'] ?? null) ? $merged['videos'] : [],
+        static fn ($video): bool => is_array($video) && trim((string) ($video['url'] ?? '')) !== ''
+    ));
     $merged['events'] = array_values(array_filter(
         is_array($merged['events'] ?? null) ? $merged['events'] : [],
         static fn ($e): bool => is_array($e)
+    ));
+    $merged['news'] = array_values(array_filter(
+        is_array($merged['news'] ?? null) ? $merged['news'] : [],
+        static fn ($item): bool => is_array($item)
+            && (
+                clean_text((string) ($item['title'] ?? '')) !== ''
+                || clean_text((string) ($item['summary'] ?? '')) !== ''
+                || clean_text((string) ($item['image_path'] ?? '')) !== ''
+            )
     ));
     $allowedNetworks = ['instagram', 'facebook', 'youtube', 'tiktok', 'spotify', 'twitter'];
     $rawSocial = is_array($merged['social_links'] ?? null) ? $merged['social_links'] : [];

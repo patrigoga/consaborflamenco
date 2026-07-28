@@ -397,3 +397,4 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - 2026-07-14: Cambiado el almacenamiento de nuevas imagenes de usuario a una carpeta runtime externa al repositorio (`../csf-uploads`, configurable con `CSF_UPLOADS_DIR`) y anadido `media.php` para servirlas sin depender de `assets/uploads` versionado.
 - 2026-07-27: Anadido el enlace completo a la pagina publica tambien en la seccion "Pagina web" del panel de miembro y sincronizado con los cambios de slug.
 - 2026-07-27: Usada la fotografia principal del perfil como imagen superior en la pagina publica del artista y en la tarjeta lateral del panel de miembro.
+- 2026-07-27: Anadidas secciones condicionales Videos y Actualidad en la pagina publica del miembro, con gestion desde el panel para insertar, modificar y eliminar contenidos.

@@ -282,6 +282,21 @@ function web_event_uploaded_file(array $files, int $index): ?array
     ];
 }
 
+function web_news_uploaded_file(array $files, int $index): ?array
+{
+    if (!isset($files['error'][$index]['image'])) {
+        return null;
+    }
+
+    return [
+        'name' => $files['name'][$index]['image'] ?? '',
+        'type' => $files['type'][$index]['image'] ?? '',
+        'tmp_name' => $files['tmp_name'][$index]['image'] ?? '',
+        'error' => $files['error'][$index]['image'] ?? UPLOAD_ERR_NO_FILE,
+        'size' => $files['size'][$index]['image'] ?? 0,
+    ];
+}
+
 function member_slug_in_use(string $slug, int $excludeUserId = 0): bool
 {
     $slug = slugify(clean_text($slug));
@@ -720,6 +735,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') ==
             array_map('strval', is_array($_POST['web_contact_fields'] ?? null) ? $_POST['web_contact_fields'] : [])
         ));
 
+        $submittedVideos = is_array($_POST['web_videos'] ?? null) ? $_POST['web_videos'] : [];
+        $removeVideos = array_map('intval', is_array($_POST['remove_web_videos'] ?? null) ? $_POST['remove_web_videos'] : []);
+        $maxVideos = $isVipMember ? 12 : 3;
+        $videos = [];
+        foreach (array_slice($submittedVideos, 0, $maxVideos) as $videoIdx => $videoInput) {
+            if (!is_array($videoInput) || in_array((int) $videoIdx, $removeVideos, true)) {
+                continue;
+            }
+
+            $videoTitle = clean_text((string) ($videoInput['title'] ?? ''));
+            $videoDescription = clean_text((string) ($videoInput['description'] ?? ''));
+            $videoUrl = trim((string) ($videoInput['url'] ?? ''));
+            if ($videoTitle === '' && $videoDescription === '' && $videoUrl === '') {
+                continue;
+            }
+            if ($videoUrl === '') {
+                $profileErrors[] = 'Cada video con contenido necesita una URL.';
+                continue;
+            }
+
+            $videos[] = [
+                'title' => $videoTitle,
+                'description' => $videoDescription,
+                'url' => $videoUrl,
+            ];
+        }
+        $webPage['videos'] = $videos;
+
         // Procesar eventos
         $submittedEvents = is_array($_POST['web_events'] ?? null) ? $_POST['web_events'] : [];
         $existingEvents = is_array($webPage['events'] ?? null) ? $webPage['events'] : [];
@@ -754,6 +797,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') ==
             ];
         }
         $webPage['events'] = $events;
+
+        $submittedNews = is_array($_POST['web_news'] ?? null) ? $_POST['web_news'] : [];
+        $existingNews = is_array($webPage['news'] ?? null) ? $webPage['news'] : [];
+        $newsUploads = is_array($_FILES['web_news'] ?? null) ? $_FILES['web_news'] : [];
+        $removeNews = array_map('intval', is_array($_POST['remove_web_news'] ?? null) ? $_POST['remove_web_news'] : []);
+        $maxNews = $isVipMember ? 20 : 5;
+        $news = [];
+        foreach (array_slice($submittedNews, 0, $maxNews) as $newsIdx => $newsInput) {
+            if (!is_array($newsInput) || in_array((int) $newsIdx, $removeNews, true)) {
+                continue;
+            }
+
+            $existingNewsItem = is_array($existingNews[$newsIdx] ?? null) ? $existingNews[$newsIdx] : [];
+            $newsImagePath = member_visible_asset_path((string) ($newsInput['image_path'] ?? ($existingNewsItem['image_path'] ?? '')));
+            $uploadedNewsImage = $newsUploads ? save_member_cv_image_upload(web_news_uploaded_file($newsUploads, (int) $newsIdx), $profileErrors) : null;
+            if ($uploadedNewsImage) {
+                $newsImagePath = $uploadedNewsImage;
+            }
+
+            $newsTitle = clean_text((string) ($newsInput['title'] ?? ''));
+            $newsSummary = clean_text((string) ($newsInput['summary'] ?? ''));
+            $newsDate = clean_text((string) ($newsInput['date'] ?? ''));
+            $newsUrl = trim((string) ($newsInput['url'] ?? ''));
+            if ($newsImagePath === '' && $newsTitle === '' && $newsSummary === '' && $newsDate === '' && $newsUrl === '') {
+                continue;
+            }
+
+            $news[] = [
+                'title' => $newsTitle,
+                'summary' => $newsSummary,
+                'image_path' => $newsImagePath,
+                'date' => $newsDate,
+                'url' => $newsUrl,
+            ];
+        }
+        $webPage['news'] = $news;
 
         // Procesar redes sociales
         $allowedNetworks = ['instagram', 'facebook', 'youtube', 'tiktok', 'spotify', 'twitter'];
@@ -791,9 +870,13 @@ $webPage = default_member_web_page(is_array($memberProfile['web_page'] ?? null) 
 $webSlides = is_array($webPage['hero_slides'] ?? null) ? array_slice($webPage['hero_slides'], 0, 3) : [];
 $webGallery = array_slice($webPage['gallery'], 0, 9);
 $webContactFields = is_array($webPage['contact_fields'] ?? null) ? $webPage['contact_fields'] : [];
+$webVideos = is_array($webPage['videos'] ?? null) ? $webPage['videos'] : [];
 $webEvents = is_array($webPage['events'] ?? null) ? $webPage['events'] : [];
+$webNews = is_array($webPage['news'] ?? null) ? $webPage['news'] : [];
 $webSocialLinks = is_array($webPage['social_links'] ?? null) ? $webPage['social_links'] : [];
+$maxWebVideos = $isVipMember ? 12 : 3;
 $maxWebEvents = $isVipMember ? 20 : 3;
+$maxWebNews = $isVipMember ? 20 : 5;
 $socialNetworkLabels = ['instagram' => 'Instagram', 'facebook' => 'Facebook', 'youtube' => 'YouTube', 'tiktok' => 'TikTok', 'spotify' => 'Spotify', 'twitter' => 'Twitter / X'];
 $socialNetworkIcons = [
     'instagram' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>',
@@ -1243,7 +1326,7 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                         <div class="section-heading-content">
                             <p class="section-kicker">Pagina web</p>
                             <h2>Web de una sola pagina</h2>
-                            <p>Configura los bloques que apareceran en tu pagina publica. El menu solo mostrara Galeria o Contacto cuando tengan contenido.</p>
+                            <p>Configura los bloques que apareceran en tu pagina publica. El menu solo mostrara las secciones que tengan contenido guardado.</p>
                         </div>
                         <a class="section-enter-link" href="<?= e($publicProfileUrl) ?>" target="_blank" rel="noopener">Ver pagina publica</a>
                     </div>
@@ -1314,6 +1397,31 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                                 <label for="web_gallery_images">Anadir imagenes
                                     <input id="web_gallery_images" name="web_gallery_images[]" type="file" accept="image/jpeg,image/png,image/webp" multiple>
                                 </label>
+                            </article>
+
+                            <article class="member-config-card">
+                                <h3>Videos</h3>
+                                <p>Anade enlaces de YouTube, Vimeo u otra plataforma. Si no hay videos, la seccion Videos no aparecera en la web publica.</p>
+                                <div class="website-simple-repeat-list">
+                                    <?php for ($videoIdx = 0; $videoIdx < $maxWebVideos; $videoIdx++): ?>
+                                        <?php $video = is_array($webVideos[$videoIdx] ?? null) ? $webVideos[$videoIdx] : []; ?>
+                                        <div class="website-simple-repeat-row">
+                                            <div class="card-header compact-card-header">
+                                                <strong>Video <?= e((string) ($videoIdx + 1)) ?></strong>
+                                                <?php if (!empty($video)): ?><label class="remove-inline"><input type="checkbox" name="remove_web_videos[]" value="<?= e((string) $videoIdx) ?>"> Quitar</label><?php endif; ?>
+                                            </div>
+                                            <label>Titulo
+                                                <input name="web_videos[<?= e((string) $videoIdx) ?>][title]" type="text" value="<?= e((string) ($video['title'] ?? '')) ?>" maxlength="140" placeholder="Ej. Bulerias en directo">
+                                            </label>
+                                            <label>URL del video
+                                                <input name="web_videos[<?= e((string) $videoIdx) ?>][url]" type="url" value="<?= e((string) ($video['url'] ?? '')) ?>" placeholder="https://www.youtube.com/watch?v=...">
+                                            </label>
+                                            <label>Descripcion
+                                                <textarea name="web_videos[<?= e((string) $videoIdx) ?>][description]" rows="3" maxlength="500" placeholder="Contexto, pieza, compania o lugar."><?= e((string) ($video['description'] ?? '')) ?></textarea>
+                                            </label>
+                                        </div>
+                                    <?php endfor; ?>
+                                </div>
                             </article>
 
                             <article class="member-config-card" id="web-eventos">
@@ -1391,6 +1499,52 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                                         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
                                         Los eventos aparecerán en tu página pública con la imagen obligatoria.
                                     </p>
+                                </div>
+                            </article>
+
+                            <article class="member-config-card">
+                                <h3>Actualidad</h3>
+                                <p>Publica noticias, comunicados o novedades. Si no hay elementos, la seccion Actualidad no aparecera en la web publica.</p>
+                                <div class="website-simple-repeat-list">
+                                    <?php for ($newsIdx = 0; $newsIdx < $maxWebNews; $newsIdx++): ?>
+                                        <?php
+                                        $newsItem = is_array($webNews[$newsIdx] ?? null) ? $webNews[$newsIdx] : [];
+                                        $newsImage = member_visible_asset_path((string) ($newsItem['image_path'] ?? ''));
+                                        ?>
+                                        <div class="website-simple-repeat-row">
+                                            <input type="hidden" name="web_news[<?= e((string) $newsIdx) ?>][image_path]" value="<?= e($newsImage) ?>">
+                                            <div class="card-header compact-card-header">
+                                                <strong>Actualidad <?= e((string) ($newsIdx + 1)) ?></strong>
+                                                <?php if (!empty($newsItem)): ?><label class="remove-inline"><input type="checkbox" name="remove_web_news[]" value="<?= e((string) $newsIdx) ?>"> Quitar</label><?php endif; ?>
+                                            </div>
+                                            <div class="website-news-editor-grid">
+                                                <label class="website-news-image-field">
+                                                    <?php if ($newsImage !== ''): ?>
+                                                        <img src="<?= e($newsImage) ?>" alt="Imagen de actualidad <?= e((string) ($newsIdx + 1)) ?>" loading="lazy">
+                                                    <?php else: ?>
+                                                        <span>Sin imagen</span>
+                                                    <?php endif; ?>
+                                                    <input name="web_news[<?= e((string) $newsIdx) ?>][image]" type="file" accept="image/jpeg,image/png,image/webp">
+                                                </label>
+                                                <div class="website-slide-fields">
+                                                    <label>Titulo
+                                                        <input name="web_news[<?= e((string) $newsIdx) ?>][title]" type="text" value="<?= e((string) ($newsItem['title'] ?? '')) ?>" maxlength="160" placeholder="Ej. Nuevo curso intensivo">
+                                                    </label>
+                                                    <div class="form-grid-two">
+                                                        <label>Fecha
+                                                            <input name="web_news[<?= e((string) $newsIdx) ?>][date]" type="date" value="<?= e((string) ($newsItem['date'] ?? '')) ?>">
+                                                        </label>
+                                                        <label>URL relacionada
+                                                            <input name="web_news[<?= e((string) $newsIdx) ?>][url]" type="url" value="<?= e((string) ($newsItem['url'] ?? '')) ?>" placeholder="https://...">
+                                                        </label>
+                                                    </div>
+                                                    <label>Texto
+                                                        <textarea name="web_news[<?= e((string) $newsIdx) ?>][summary]" rows="4" maxlength="900" placeholder="Cuenta la novedad, convocatoria o informacion relevante."><?= e((string) ($newsItem['summary'] ?? '')) ?></textarea>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php endfor; ?>
                                 </div>
                             </article>
 

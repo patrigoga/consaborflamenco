@@ -3100,6 +3100,61 @@ h3 {
     border-radius: 12px;
 }
 
+.website-simple-repeat-list {
+    display: grid;
+    gap: 14px;
+    margin-top: 14px;
+}
+
+.website-simple-repeat-row {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid rgba(17, 17, 20, 0.09);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.62);
+}
+
+.compact-card-header {
+    align-items: center;
+    margin-bottom: 0;
+}
+
+.remove-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #9d414b;
+    font-size: 0.82rem;
+    font-weight: 900;
+}
+
+.website-news-editor-grid {
+    display: grid;
+    grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
+    gap: 16px;
+}
+
+.website-news-image-field {
+    display: grid;
+    gap: 10px;
+    align-content: start;
+}
+
+.website-news-image-field img,
+.website-news-image-field > span {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    display: grid;
+    place-items: center;
+    color: rgba(17, 17, 20, 0.58);
+    border: 1px dashed rgba(17, 17, 20, 0.14);
+    border-radius: 12px;
+    background: rgba(17, 17, 20, 0.04);
+    object-fit: cover;
+    font-weight: 800;
+}
+
 .member-profile-preview,
 .member-profile-form {
     padding: 20px;
@@ -6457,6 +6512,15 @@ h3 {
     color: var(--color-white);
 }
 
+.artist-web-videos {
+    color: var(--color-white);
+    background: linear-gradient(135deg, #111114, #182733);
+}
+
+.artist-web-news {
+    background: var(--color-warm);
+}
+
 .artist-web-events-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -6527,6 +6591,50 @@ h3 {
 
 .artist-web-event-link:hover {
     background: rgba(201, 79, 92, 1);
+}
+
+.artist-web-video-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    margin-top: 32px;
+}
+
+.artist-web-video-card {
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.045);
+}
+
+.artist-web-video-card iframe {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: 0;
+    background: #050506;
+}
+
+.artist-web-video-link {
+    display: grid;
+    place-items: center;
+    min-height: 190px;
+    color: var(--color-white);
+    background: linear-gradient(135deg, rgba(201, 79, 92, 0.78), rgba(95, 143, 184, 0.52));
+    font-weight: 900;
+}
+
+.artist-web-news .artist-web-event-card {
+    background: #ffffff;
+    border-color: rgba(17, 17, 20, 0.08);
+}
+
+.artist-web-news .artist-web-event-info h3 {
+    color: var(--color-black);
+}
+
+.artist-web-news .artist-web-event-info p {
+    color: var(--color-muted);
 }
 
 /* Topbar con redes sociales: ajustar grid para 3 columnas */
@@ -6792,6 +6900,10 @@ h3 {
 
 @media (max-width: 768px) {
     .event-row-content {
+        grid-template-columns: 1fr;
+    }
+
+    .website-news-editor-grid {
         grid-template-columns: 1fr;
     }
     

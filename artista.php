@@ -36,6 +36,33 @@ function artist_public_media_url(string $path): string
     return $baseUrl . '/' . ltrim($path, '/');
 }
 
+function artist_public_video_embed_url(string $url): string
+{
+    $url = trim($url);
+    if ($url === '') {
+        return '';
+    }
+
+    $parts = parse_url($url);
+    $host = strtolower((string) ($parts['host'] ?? ''));
+    $path = (string) ($parts['path'] ?? '');
+    parse_str((string) ($parts['query'] ?? ''), $query);
+
+    if (str_contains($host, 'youtube.com') && !empty($query['v'])) {
+        return 'https://www.youtube.com/embed/' . rawurlencode((string) $query['v']);
+    }
+    if (str_contains($host, 'youtu.be')) {
+        $videoId = trim($path, '/');
+        return $videoId !== '' ? 'https://www.youtube.com/embed/' . rawurlencode($videoId) : '';
+    }
+    if (str_contains($host, 'vimeo.com')) {
+        $videoId = trim($path, '/');
+        return $videoId !== '' ? 'https://player.vimeo.com/video/' . rawurlencode($videoId) : '';
+    }
+
+    return '';
+}
+
 function artist_public_base_url(): string
 {
     $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
@@ -101,7 +128,9 @@ $gallery = array_values(array_filter(array_map(
     static fn ($path): string => artist_public_media_url(clean_text((string) $path)),
     array_slice(is_array($webPage['gallery'] ?? null) ? $webPage['gallery'] : [], 0, 9)
 ), static fn (string $path): bool => $path !== ''));
+$videos = array_values(is_array($webPage['videos'] ?? null) ? $webPage['videos'] : []);
 $events = array_values(is_array($webPage['events'] ?? null) ? $webPage['events'] : []);
+$news = array_values(is_array($webPage['news'] ?? null) ? $webPage['news'] : []);
 $socialLinks = is_array($webPage['social_links'] ?? null) ? $webPage['social_links'] : [];
 $contactFields = is_array($webPage['contact_fields'] ?? null) ? $webPage['contact_fields'] : [];
 $siteBaseUrl = artist_public_base_url();
@@ -163,8 +192,14 @@ $publicSections = [];
 if ($gallery) {
     $publicSections['galeria'] = 'Galeria';
 }
+if ($videos) {
+    $publicSections['videos'] = 'Videos';
+}
 if ($events) {
     $publicSections['eventos'] = 'Eventos';
+}
+if ($news) {
+    $publicSections['actualidad'] = 'Actualidad';
 }
 if ($contactItems) {
     $publicSections['contacto'] = 'Contacto';
@@ -260,6 +295,37 @@ $socialIcons = [
             </section>
         <?php endif; ?>
 
+        <?php if ($videos): ?>
+            <section id="videos" class="artist-web-section artist-web-videos">
+                <div class="container">
+                    <div class="section-heading align-left">
+                        <p class="section-kicker">Videos</p>
+                        <h2>En movimiento</h2>
+                        <p>Una seleccion audiovisual del trabajo artistico de <?= e($displayName) ?>.</p>
+                    </div>
+                    <div class="artist-web-video-grid">
+                        <?php foreach ($videos as $video): ?>
+                            <?php
+                            $videoUrl = trim((string) ($video['url'] ?? ''));
+                            $embedUrl = artist_public_video_embed_url($videoUrl);
+                            ?>
+                            <article class="artist-web-video-card">
+                                <?php if ($embedUrl !== ''): ?>
+                                    <iframe src="<?= e($embedUrl) ?>" title="<?= e((string) (($video['title'] ?? '') ?: 'Video de ' . $displayName)) ?>" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                                <?php else: ?>
+                                    <a class="artist-web-video-link" href="<?= e(artist_public_link_url($videoUrl)) ?>" target="_blank" rel="noopener">Ver video</a>
+                                <?php endif; ?>
+                                <div class="artist-web-event-info">
+                                    <?php if (!empty($video['title'])): ?><h3><?= e((string) $video['title']) ?></h3><?php endif; ?>
+                                    <?php if (!empty($video['description'])): ?><p><?= nl2br(e((string) $video['description'])) ?></p><?php endif; ?>
+                                </div>
+                            </article>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </section>
+        <?php endif; ?>
+
         <?php if ($events): ?>
             <section id="eventos" class="artist-web-section artist-web-events">
                 <div class="container">
@@ -286,6 +352,37 @@ $socialIcons = [
                                     <?php if (!empty($ev['description'])): ?><p><?= nl2br(e((string) $ev['description'])) ?></p><?php endif; ?>
                                     <?php if (!empty($ev['url'])): ?>
                                         <a href="<?= e(artist_public_link_url((string) $ev['url'])) ?>" target="_blank" rel="noopener" class="artist-web-event-link">Ver evento</a>
+                                    <?php endif; ?>
+                                </div>
+                            </article>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </section>
+        <?php endif; ?>
+
+        <?php if ($news): ?>
+            <section id="actualidad" class="artist-web-section artist-web-news">
+                <div class="container">
+                    <div class="section-heading align-left">
+                        <p class="section-kicker">Actualidad</p>
+                        <h2>Novedades y comunicados</h2>
+                        <p>Ultimas noticias, convocatorias y contenidos destacados de <?= e($displayName) ?>.</p>
+                    </div>
+                    <div class="artist-web-events-grid">
+                        <?php foreach ($news as $item): ?>
+                            <article class="artist-web-event-card">
+                                <?php if (!empty($item['image_path'])): ?>
+                                    <img src="<?= e(artist_public_media_url((string) $item['image_path'])) ?>" alt="<?= e((string) ($item['title'] ?? 'Actualidad')) ?>" loading="lazy">
+                                <?php endif; ?>
+                                <div class="artist-web-event-info">
+                                    <?php if (!empty($item['date'])): ?>
+                                        <p class="artist-web-event-meta"><?php $ts = strtotime((string) $item['date']); echo $ts ? e(date('d/m/Y', $ts)) : e((string) $item['date']); ?></p>
+                                    <?php endif; ?>
+                                    <?php if (!empty($item['title'])): ?><h3><?= e((string) $item['title']) ?></h3><?php endif; ?>
+                                    <?php if (!empty($item['summary'])): ?><p><?= nl2br(e((string) $item['summary'])) ?></p><?php endif; ?>
+                                    <?php if (!empty($item['url'])): ?>
+                                        <a href="<?= e(artist_public_link_url((string) $item['url'])) ?>" target="_blank" rel="noopener" class="artist-web-event-link">Leer mas</a>
                                     <?php endif; ?>
                                 </div>
                             </article>

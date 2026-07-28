@@ -71,8 +71,8 @@ El panel de miembro se organiza con:
 - Editor de perfil artistico con tipo de espacio, nombre artistico, titular artistico, ubicacion, contacto, redes y fotografia principal.
 - La URL publica del perfil se guarda con un boton propio y valida duplicados antes de persistir el slug.
 - Editor de curriculum artistico con formacion, experiencia escenica, docencia, actuaciones destacadas, premios, repertorio, disponibilidad y notas privadas.
-- Configuracion de pagina web de una sola pagina con cabecera, galeria de hasta 9 imagenes y contacto.
-- La pagina publica mostrara en su menu interno solo las secciones con contenido, manteniendo la cabecera siempre visible.
+- Configuracion de pagina web de una sola pagina con cabecera, galeria de hasta 9 imagenes, videos, eventos, actualidad y contacto.
+- La pagina publica mostrara en su menu interno solo las secciones con contenido guardado, manteniendo la cabecera siempre visible.
 - Control de visibilidad por bloques para decidir que datos se publican y que datos quedan privados.
 - Bloques repetibles con boton para anadir nuevas entradas sin limite fijo inicial.
 - Fechas en formacion, experiencia, docencia, actuaciones y premios para permitir orden cronologico ascendente o descendente.
@@ -224,3 +224,4 @@ Los miembros podran contratar servicios digitales ofrecidos por la plataforma. E
 - 2026-07-14: Cambiada la gestion de fotografias antiguas con ruta rota para limpiar automaticamente `main_photo_path` en BD y evitar errores rojos persistentes.
 - 2026-07-14: Sustituida la cabecera simple de la pagina publica por un slider configurable de 3 imagenes con titulo, descripcion y CTA opcional desde el apartado Pagina web.
 - 2026-07-14: Movido el almacenamiento de nuevas imagenes de usuario a runtime persistente fuera del repositorio (`../csf-uploads` o `CSF_UPLOADS_DIR`) y servido por `media.php` para que los despliegues Git no borren fotos de perfil, cabeceras, slides o articulos.
+- 2026-07-27: Anadidas las secciones Videos y Actualidad a la pagina publica del miembro, con alta, edicion y eliminacion desde el apartado Pagina web.
