@@ -218,6 +218,80 @@ $socialIcons = [
 <html lang="es">
 <?php page_head($displayName . ' | Con Sabor Flamenco', $pageDescription, false); ?>
 <body class="artist-public-body">
+    <style>
+        body.artist-public-body,
+        body.artist-public-body .artist-web-page,
+        body.artist-public-body .artist-web-section,
+        body.artist-public-body #galeria,
+        body.artist-public-body #videos,
+        body.artist-public-body #eventos,
+        body.artist-public-body #actualidad,
+        body.artist-public-body #contacto {
+            background: #0d1014 !important;
+        }
+
+        body.artist-public-body .artist-web-section {
+            padding: clamp(44px, 5vw, 72px) 0 !important;
+            color: rgba(255, 250, 242, 0.9);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        body.artist-public-body .artist-web-section .container {
+            width: min(calc(100% - 32px), 1180px);
+            margin-inline: auto;
+        }
+
+        body.artist-public-body .artist-web-section .section-heading,
+        body.artist-public-body .artist-web-section .section-heading.align-left {
+            display: grid !important;
+            gap: 8px;
+            margin: 0 0 24px !important;
+            padding: 0 !important;
+            text-align: left;
+            background: transparent !important;
+        }
+
+        body.artist-public-body .artist-web-contact .section-heading,
+        body.artist-public-body .artist-web-contact .section-heading.align-left {
+            justify-items: center;
+            text-align: center;
+        }
+
+        body.artist-public-body .artist-web-section .section-heading h2 {
+            margin: 0;
+            color: #fffaf2;
+            font-size: clamp(1.75rem, 3.2vw, 2.8rem);
+            line-height: 1;
+        }
+
+        body.artist-public-body .artist-web-events .section-heading h2,
+        body.artist-public-body .artist-web-contact .section-heading h2 {
+            font-size: clamp(1.7rem, 2.6vw, 2.35rem);
+        }
+
+        body.artist-public-body .artist-web-events-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 340px));
+            gap: 18px;
+            justify-content: start;
+            margin-top: 0;
+            background: transparent !important;
+        }
+
+        body.artist-public-body .artist-web-event-card {
+            overflow: hidden;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.03)), #15181d !important;
+            border: 1px solid rgba(255, 250, 242, 0.13);
+            border-radius: 8px;
+            box-shadow: 0 16px 34px rgba(0, 0, 0, 0.34);
+        }
+
+        body.artist-public-body .artist-web-gallery-grid,
+        body.artist-public-body .artist-web-video-grid,
+        body.artist-public-body .artist-web-contact-grid {
+            background: transparent !important;
+        }
+    </style>
     <header class="artist-web-topbar">
         <div class="container artist-web-topbar-inner">
             <?php if ($menuImage !== ''): ?>
