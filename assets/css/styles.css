@@ -6529,6 +6529,10 @@ h3 {
     padding: clamp(42px, 5vw, 70px) 0;
 }
 
+.artist-web-events .container {
+    width: min(calc(100% - 32px), 1180px);
+}
+
 .artist-web-videos {
     color: var(--color-white);
     background: #0d1014;
@@ -6540,9 +6544,9 @@ h3 {
 
 .artist-web-events-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 360px));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 340px));
     justify-content: start;
-    gap: 24px;
+    gap: 18px;
     margin-top: 24px;
 }
 
@@ -6551,12 +6555,12 @@ h3 {
         linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.035)),
         rgba(5, 5, 6, 0.72);
     border: 1px solid rgba(255, 250, 242, 0.14);
-    border-radius: 10px;
+    border-radius: 8px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
     min-width: 0;
-    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.32);
+    box-shadow: 0 16px 34px rgba(0, 0, 0, 0.34);
 }
 
 .artist-web-event-card img {
@@ -6669,6 +6673,24 @@ h3 {
 .artist-public-body .artist-web-news,
 .artist-public-body .artist-web-contact {
     background: #0d1014;
+}
+
+body.artist-public-body,
+body.artist-public-body main.artist-web-page,
+body.artist-public-body .artist-web-section,
+body.artist-public-body #galeria,
+body.artist-public-body #videos,
+body.artist-public-body #eventos,
+body.artist-public-body #actualidad,
+body.artist-public-body #contacto {
+    background: #0d1014;
+}
+
+body.artist-public-body .artist-web-gallery-grid,
+body.artist-public-body .artist-web-events-grid,
+body.artist-public-body .artist-web-video-grid,
+body.artist-public-body .artist-web-contact-grid {
+    background: transparent;
 }
 
 /* Topbar con redes sociales: ajustar grid para 3 columnas */
