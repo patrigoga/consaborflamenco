@@ -3823,8 +3823,10 @@ h3 {
 
 .artist-web-page {
     min-height: 100vh;
-    color: var(--color-ink);
-    background: linear-gradient(180deg, #111114 0, #17242d 560px, #f5efe6 561px, #fffaf2 100%);
+    color: rgba(255, 250, 242, 0.9);
+    background:
+        linear-gradient(180deg, #050506 0, #0d1014 42%, #111820 100%),
+        #0d1014;
 }
 
 .artist-web-topbar {
@@ -4065,23 +4067,38 @@ h3 {
 }
 
 .artist-web-section {
-    padding: 84px 0;
+    padding: clamp(64px, 7vw, 96px) 0;
+    color: rgba(255, 250, 242, 0.9);
+    background:
+        linear-gradient(135deg, rgba(255, 250, 242, 0.018), rgba(95, 143, 184, 0.055)),
+        #0d1014;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .artist-web-gallery {
-    background: var(--color-warm);
+    background:
+        linear-gradient(135deg, rgba(201, 79, 92, 0.06), rgba(95, 143, 184, 0.05)),
+        #0d1014;
 }
 
-.artist-web-gallery .section-heading,
-.artist-web-contact .section-heading {
-    margin-bottom: 28px;
+.artist-web-section .section-heading.align-left {
+    display: grid;
+    gap: 8px;
+    margin: 0 0 30px;
+    text-align: left;
 }
 
-.artist-web-gallery .section-heading > p:not(.section-kicker),
-.artist-web-contact .section-heading > p:not(.section-kicker) {
+.artist-web-section .section-heading h2 {
+    margin: 0;
+    color: var(--color-white);
+    font-size: clamp(2.2rem, 4.6vw, 4rem);
+    line-height: 0.98;
+}
+
+.artist-web-section .section-heading > p:not(.section-kicker) {
     max-width: 760px;
-    margin-top: 10px;
-    color: var(--color-muted);
+    margin: 0;
+    color: rgba(255, 250, 242, 0.66);
 }
 
 .artist-web-gallery-grid {
@@ -4095,36 +4112,48 @@ h3 {
     aspect-ratio: 4 / 3;
     object-fit: cover;
     border-radius: 8px;
-    border: 1px solid rgba(17, 17, 20, 0.08);
-    box-shadow: 0 18px 42px rgba(17, 17, 20, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 22px 54px rgba(0, 0, 0, 0.34);
 }
 
 .artist-web-contact {
     background:
-        linear-gradient(135deg, rgba(255, 250, 242, 0.98), rgba(232, 240, 244, 0.94)),
-        var(--color-warm);
+        linear-gradient(135deg, rgba(201, 79, 92, 0.08), rgba(95, 143, 184, 0.09)),
+        #0d1014;
+}
+
+.artist-web-contact .section-heading.align-left {
+    justify-items: center;
+    text-align: center;
 }
 
 .artist-web-contact-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 320px));
+    justify-content: center;
+    gap: 14px;
+    max-width: 1120px;
+    margin: 0 auto;
 }
 
 .artist-web-contact-grid a {
     display: grid;
-    gap: 8px;
-    min-height: 118px;
-    padding: 20px;
-    color: var(--color-ink);
-    background: rgba(255, 250, 242, 0.96);
-    border: 1px solid rgba(201, 164, 90, 0.24);
+    place-items: center;
+    gap: 10px;
+    min-height: 132px;
+    padding: 22px;
+    color: var(--color-white);
+    text-align: center;
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.035)),
+        rgba(17, 17, 20, 0.68);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 8px;
-    box-shadow: 0 14px 36px rgba(17, 17, 20, 0.08);
+    box-shadow: 0 18px 46px rgba(0, 0, 0, 0.26);
 }
 
 .artist-web-contact-grid span {
-    color: var(--color-red);
+    color: #ff8a96;
     font-size: 0.74rem;
     font-weight: 900;
     letter-spacing: 0.08em;
@@ -4132,6 +4161,7 @@ h3 {
 }
 
 .artist-web-contact-grid strong {
+    color: rgba(255, 250, 242, 0.96);
     overflow-wrap: anywhere;
 }
 
@@ -4143,16 +4173,16 @@ h3 {
 }
 
 .artist-web-footer-inner {
-    display: flex;
+    display: grid;
     align-items: center;
-    justify-content: space-between;
-    gap: 28px;
+    justify-items: center;
+    gap: 8px;
+    text-align: center;
 }
 
 .artist-web-footer-brand {
-    display: flex;
-    align-items: center;
-    gap: 14px;
+    display: grid;
+    gap: 4px;
 }
 
 .artist-web-footer-brand img {
@@ -4173,20 +4203,10 @@ h3 {
     font-size: 0.9rem;
 }
 
-.artist-web-footer nav {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 10px;
-}
-
-.artist-web-footer nav a {
-    padding: 8px 12px;
-    color: rgba(255, 250, 242, 0.78);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 999px;
-    font-size: 0.84rem;
-    font-weight: 850;
+.artist-web-footer-copy {
+    margin: 0;
+    color: rgba(255, 250, 242, 0.52);
+    font-size: 0.88rem;
 }
 
 @media (max-width: 980px) {
@@ -6508,7 +6528,9 @@ h3 {
 
 /* === Sección Eventos del artista === */
 .artist-web-events {
-    background: #0d0d10;
+    background:
+        linear-gradient(135deg, rgba(5, 5, 6, 0.98), rgba(24, 39, 51, 0.96)),
+        #0d0d10;
     color: var(--color-white);
 }
 
@@ -6518,23 +6540,28 @@ h3 {
 }
 
 .artist-web-news {
-    background: var(--color-warm);
+    background:
+        linear-gradient(135deg, rgba(95, 143, 184, 0.08), rgba(201, 79, 92, 0.05)),
+        #0d1014;
 }
 
 .artist-web-events-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 24px;
     margin-top: 32px;
 }
 
 .artist-web-event-card {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.035)),
+        rgba(5, 5, 6, 0.72);
+    border: 1px solid rgba(255, 250, 242, 0.14);
+    border-radius: 10px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    box-shadow: 0 26px 70px rgba(0, 0, 0, 0.38);
 }
 
 .artist-web-event-card img {
@@ -6545,7 +6572,7 @@ h3 {
 }
 
 .artist-web-event-info {
-    padding: 20px;
+    padding: 22px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -6554,34 +6581,34 @@ h3 {
 
 .artist-web-event-meta {
     font-size: 0.82rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
+    font-weight: 900;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: rgba(201, 79, 92, 0.9);
+    color: #ff8a96;
     margin: 0;
 }
 
 .artist-web-event-info h3 {
     margin: 0;
-    font-size: 1.1rem;
-    font-weight: 800;
+    font-size: clamp(1.25rem, 2vw, 1.65rem);
+    font-weight: 900;
     color: var(--color-white);
     line-height: 1.25;
 }
 
 .artist-web-event-info p {
     margin: 0;
-    font-size: 0.9rem;
-    color: rgba(255, 250, 242, 0.72);
+    font-size: 0.95rem;
+    color: rgba(255, 250, 242, 0.78);
     line-height: 1.55;
 }
 
 .artist-web-event-link {
     display: inline-block;
     margin-top: auto;
-    padding: 8px 16px;
+    padding: 10px 16px;
     color: var(--color-white);
-    background: rgba(201, 79, 92, 0.76);
+    background: rgba(201, 79, 92, 0.88);
     border-radius: 8px;
     font-size: 0.84rem;
     font-weight: 800;
@@ -6625,16 +6652,18 @@ h3 {
 }
 
 .artist-web-news .artist-web-event-card {
-    background: #ffffff;
-    border-color: rgba(17, 17, 20, 0.08);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035)),
+        rgba(5, 5, 6, 0.72);
+    border-color: rgba(255, 250, 242, 0.13);
 }
 
 .artist-web-news .artist-web-event-info h3 {
-    color: var(--color-black);
+    color: var(--color-white);
 }
 
 .artist-web-news .artist-web-event-info p {
-    color: var(--color-muted);
+    color: rgba(255, 250, 242, 0.76);
 }
 
 /* Topbar con redes sociales: ajustar grid para 3 columnas */

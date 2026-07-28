@@ -282,9 +282,7 @@ $socialIcons = [
             <section id="galeria" class="artist-web-section artist-web-gallery">
                 <div class="container">
                     <div class="section-heading align-left">
-                        <p class="section-kicker">Galeria</p>
-                        <h2>Momentos destacados</h2>
-                        <p>Una seleccion visual del trabajo y presencia artistica de <?= e($displayName) ?>.</p>
+                        <h2>Galeria</h2>
                     </div>
                     <div class="artist-web-gallery-grid">
                         <?php foreach ($gallery as $galleryImage): ?>
@@ -396,9 +394,7 @@ $socialIcons = [
             <section id="contacto" class="artist-web-section artist-web-contact">
                 <div class="container">
                     <div class="section-heading align-left">
-                        <p class="section-kicker">Contacto</p>
-                        <h2>Conecta con <?= e($displayName) ?></h2>
-                        <p>Canales disponibles para propuestas profesionales, contratacion o colaboraciones.</p>
+                        <h2>Contacto</h2>
                     </div>
                     <div class="artist-web-contact-grid">
                         <?php foreach ($contactItems as $contactItem): ?>
@@ -412,23 +408,17 @@ $socialIcons = [
             </section>
         <?php endif; ?>
     </main>
-    <footer class="artist-web-footer">
-        <div class="container artist-web-footer-inner">
-            <div class="artist-web-footer-brand">
-                <div>
-                    <strong><?= e($displayName) ?></strong>
-                    <p>Perfil publico en consaborflamenco.com</p>
-                </div>
-            </div>
-            <nav aria-label="Enlaces del perfil publico">
-                <a href="#inicio">Cabecera</a>
-                <?php if ($gallery): ?><a href="#galeria">Galeria</a><?php endif; ?>
-                <?php if ($contactItems): ?><a href="#contacto">Contacto</a><?php endif; ?>
-                <a href="<?= e($artistsUrl) ?>">Directorio</a>
-                <a href="<?= e($homeUrl) ?>">Inicio</a>
-            </nav>
-        </div>
-    </footer>
+	    <footer class="artist-web-footer">
+	        <div class="container artist-web-footer-inner">
+	            <div class="artist-web-footer-brand">
+	                <div>
+	                    <strong><?= e($displayName) ?></strong>
+	                    <p>Perfil publico en consaborflamenco.com</p>
+	                </div>
+	            </div>
+	            <p class="artist-web-footer-copy">Con Sabor Flamenco · Directorio profesional del arte flamenco</p>
+	        </div>
+	    </footer>
     <script>
         (() => {
             const slider = document.querySelector('[data-artist-slider]');
