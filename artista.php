@@ -328,8 +328,7 @@ $socialIcons = [
             <section id="eventos" class="artist-web-section artist-web-events">
                 <div class="container">
                     <div class="section-heading align-left">
-                        <p class="section-kicker">Eventos</p>
-                        <h2>Agenda flamenca</h2>
+                        <h2>Eventos</h2>
                     </div>
                     <div class="artist-web-events-grid">
                         <?php foreach ($events as $ev): ?>

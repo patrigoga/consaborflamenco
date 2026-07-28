@@ -3818,15 +3818,13 @@ h3 {
 }
 
 .artist-public-body {
-    background: #111114;
+    background: #0d1014;
 }
 
 .artist-web-page {
     min-height: 100vh;
     color: rgba(255, 250, 242, 0.9);
-    background:
-        linear-gradient(180deg, #050506 0, #0d1014 42%, #111820 100%),
-        #0d1014;
+    background: #0d1014;
 }
 
 .artist-web-topbar {
@@ -4069,16 +4067,12 @@ h3 {
 .artist-web-section {
     padding: clamp(64px, 7vw, 96px) 0;
     color: rgba(255, 250, 242, 0.9);
-    background:
-        linear-gradient(135deg, rgba(255, 250, 242, 0.018), rgba(95, 143, 184, 0.055)),
-        #0d1014;
+    background: #0d1014;
     border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .artist-web-gallery {
-    background:
-        linear-gradient(135deg, rgba(201, 79, 92, 0.06), rgba(95, 143, 184, 0.05)),
-        #0d1014;
+    background: #0d1014;
 }
 
 .artist-web-section .section-heading.align-left {
@@ -4093,6 +4087,10 @@ h3 {
     color: var(--color-white);
     font-size: clamp(2.2rem, 4.6vw, 4rem);
     line-height: 0.98;
+}
+
+.artist-web-events .section-heading h2 {
+    font-size: clamp(1.65rem, 3vw, 2.45rem);
 }
 
 .artist-web-section .section-heading > p:not(.section-kicker) {
@@ -4117,9 +4115,7 @@ h3 {
 }
 
 .artist-web-contact {
-    background:
-        linear-gradient(135deg, rgba(201, 79, 92, 0.08), rgba(95, 143, 184, 0.09)),
-        #0d1014;
+    background: #0d1014;
 }
 
 .artist-web-contact .section-heading.align-left {
@@ -6528,28 +6524,26 @@ h3 {
 
 /* === Sección Eventos del artista === */
 .artist-web-events {
-    background:
-        linear-gradient(135deg, rgba(5, 5, 6, 0.98), rgba(24, 39, 51, 0.96)),
-        #0d0d10;
+    background: #0d1014;
     color: var(--color-white);
+    padding: clamp(42px, 5vw, 70px) 0;
 }
 
 .artist-web-videos {
     color: var(--color-white);
-    background: linear-gradient(135deg, #111114, #182733);
+    background: #0d1014;
 }
 
 .artist-web-news {
-    background:
-        linear-gradient(135deg, rgba(95, 143, 184, 0.08), rgba(201, 79, 92, 0.05)),
-        #0d1014;
+    background: #0d1014;
 }
 
 .artist-web-events-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 360px));
+    justify-content: start;
     gap: 24px;
-    margin-top: 32px;
+    margin-top: 24px;
 }
 
 .artist-web-event-card {
@@ -6561,7 +6555,8 @@ h3 {
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 26px 70px rgba(0, 0, 0, 0.38);
+    min-width: 0;
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.32);
 }
 
 .artist-web-event-card img {
@@ -6572,7 +6567,7 @@ h3 {
 }
 
 .artist-web-event-info {
-    padding: 22px;
+    padding: 18px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -6590,7 +6585,7 @@ h3 {
 
 .artist-web-event-info h3 {
     margin: 0;
-    font-size: clamp(1.25rem, 2vw, 1.65rem);
+    font-size: 1.08rem;
     font-weight: 900;
     color: var(--color-white);
     line-height: 1.25;
@@ -6664,6 +6659,16 @@ h3 {
 
 .artist-web-news .artist-web-event-info p {
     color: rgba(255, 250, 242, 0.76);
+}
+
+.artist-public-body .artist-web-page,
+.artist-public-body .artist-web-section,
+.artist-public-body .artist-web-gallery,
+.artist-public-body .artist-web-videos,
+.artist-public-body .artist-web-events,
+.artist-public-body .artist-web-news,
+.artist-public-body .artist-web-contact {
+    background: #0d1014;
 }
 
 /* Topbar con redes sociales: ajustar grid para 3 columnas */

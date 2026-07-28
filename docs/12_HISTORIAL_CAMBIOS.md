@@ -399,3 +399,4 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - 2026-07-27: Usada la fotografia principal del perfil como imagen superior en la pagina publica del artista y en la tarjeta lateral del panel de miembro.
 - 2026-07-27: Anadidas secciones condicionales Videos y Actualidad en la pagina publica del miembro, con gestion desde el panel para insertar, modificar y eliminar contenidos.
 - 2026-07-28: Homogeneizado el fondo oscuro de la pagina publica del artista y refinadas Galeria, Eventos, Contacto y footer para mejorar contraste y elegancia.
+- 2026-07-28: Ajustada la seccion Eventos del microsite publico a formato de tarjeta compacta y reforzado el fondo unico sin cortes claros entre secciones.
