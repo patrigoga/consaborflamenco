@@ -402,3 +402,4 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - 2026-07-28: Ajustada la seccion Eventos del microsite publico a formato de tarjeta compacta y reforzado el fondo unico sin cortes claros entre secciones.
 - 2026-07-28: Corregida la colision del ID eventos con fondos globales claros para mantener el microsite publico con fondo oscuro homogeneo.
 - 2026-07-28: Aislados los estilos visuales del microsite publico desde artista.php para evitar herencias de fondos y cabeceras globales en Galeria, Eventos y Contacto.
+- 2026-07-28: Redisenada la presentacion publica del artista con hero protagonista, secciones proporcionadas, galeria visual, eventos compactos y contacto profesional.

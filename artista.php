@@ -122,6 +122,10 @@ if (!$member) {
 $profile = default_member_profile($member);
 $webPage = default_member_web_page(is_array($profile['web_page'] ?? null) ? $profile['web_page'] : []);
 $displayName = clean_text((string) ($profile['public_name'] ?: ($member['name'] ?? 'Artista')));
+$memberTypeLabel = member_type_options()[$profile['member_type'] ?? 'artista'] ?? 'Artista';
+$artistHeadline = clean_text((string) ($profile['artistic_headline'] ?? ''));
+$artistLocation = trim(clean_text((string) ($profile['city'] ?? '')) . (((string) ($profile['city'] ?? '') !== '' && (string) ($profile['province'] ?? '') !== '') ? ', ' : '') . clean_text((string) ($profile['province'] ?? '')));
+$artistIntro = clean_text((string) (($profile['short_description'] ?? '') ?: ($profile['cv_summary'] ?? '') ?: ($profile['availability'] ?? '')));
 $legacyHeroImage = artist_public_media_url(clean_text((string) (($webPage['header_image_path'] ?? '') ?: ($profile['cv_header_image_path'] ?? '') ?: ($profile['main_photo_path'] ?? ''))));
 $mainPhoto = artist_public_media_url(clean_text((string) ($profile['main_photo_path'] ?? '')));
 $gallery = array_values(array_filter(array_map(
@@ -230,14 +234,134 @@ $socialIcons = [
             background: #0d1014 !important;
         }
 
+        body.artist-public-body {
+            color: #fffaf2;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: geometricPrecision;
+        }
+
+        body.artist-public-body .artist-web-name-band {
+            display: none !important;
+        }
+
+        body.artist-public-body .artist-web-topbar {
+            background: rgba(13, 16, 20, 0.94);
+            border-bottom: 1px solid rgba(255, 250, 242, 0.1);
+        }
+
+        body.artist-public-body .artist-web-topbar-inner {
+            width: min(calc(100% - 28px), 1280px);
+            min-height: 70px;
+            margin-inline: auto;
+        }
+
+        body.artist-public-body .artist-web-menu a {
+            min-height: 40px;
+            display: inline-flex;
+            align-items: center;
+            color: rgba(255, 250, 242, 0.82);
+            background: rgba(255, 255, 255, 0.035);
+            border-color: rgba(255, 250, 242, 0.12);
+        }
+
+        body.artist-public-body .artist-web-menu a:hover {
+            color: #fffaf2;
+            background: rgba(201, 79, 92, 0.18);
+            border-color: rgba(201, 79, 92, 0.42);
+        }
+
+        body.artist-public-body .artist-web-hero-slider {
+            min-height: clamp(520px, 68vh, 760px);
+            background: #07090c !important;
+            border-bottom: 1px solid rgba(255, 250, 242, 0.1);
+        }
+
+        body.artist-public-body .artist-web-hero-slide {
+            align-items: end;
+            padding: clamp(64px, 9vw, 120px) 0 clamp(54px, 7vw, 90px);
+            background-position: center 30%;
+            background-size: cover;
+        }
+
+        body.artist-public-body .artist-web-hero-slide::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(90deg, rgba(7, 9, 12, 0.9), rgba(7, 9, 12, 0.48) 50%, rgba(7, 9, 12, 0.76)),
+                linear-gradient(180deg, rgba(7, 9, 12, 0.16), rgba(7, 9, 12, 0.82));
+            pointer-events: none;
+        }
+
+        body.artist-public-body .artist-web-hero-inner {
+            width: min(calc(100% - 32px), 1180px);
+            margin-inline: auto;
+        }
+
+        body.artist-public-body .artist-web-hero-content {
+            width: min(760px, 100%);
+            padding: 0;
+            background: transparent !important;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+        body.artist-public-body .artist-web-hero-content .section-kicker {
+            margin: 0 0 12px;
+            color: #ff7b8a;
+            font-size: 0.78rem;
+            font-weight: 900;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        body.artist-public-body .artist-web-hero-content h1 {
+            margin: 0;
+            color: #fffaf2;
+            font-family: "Playfair Display", Georgia, serif;
+            font-size: clamp(4rem, 10vw, 8.5rem);
+            line-height: 0.88;
+            text-shadow: 0 18px 54px rgba(0, 0, 0, 0.62);
+        }
+
+        body.artist-public-body .artist-web-hero-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 22px;
+        }
+
+        body.artist-public-body .artist-web-hero-meta span {
+            display: inline-flex;
+            min-height: 36px;
+            align-items: center;
+            padding: 8px 12px;
+            color: rgba(255, 250, 242, 0.88);
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 250, 242, 0.14);
+            border-radius: 999px;
+            font-size: 0.9rem;
+            font-weight: 800;
+        }
+
+        body.artist-public-body .artist-web-hero-summary {
+            max-width: 58ch;
+            margin: 24px 0 0;
+            color: rgba(255, 250, 242, 0.82);
+            font-size: clamp(1rem, 1.5vw, 1.22rem);
+            font-weight: 650;
+            line-height: 1.55;
+        }
+
         body.artist-public-body .artist-web-section {
-            padding: clamp(44px, 5vw, 72px) 0 !important;
+            padding: clamp(58px, 7vw, 96px) 0 !important;
             color: rgba(255, 250, 242, 0.9);
             border-top: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         body.artist-public-body .artist-web-section .container {
-            width: min(calc(100% - 32px), 1180px);
+            width: min(calc(100% - 32px), 1160px);
             margin-inline: auto;
         }
 
@@ -260,19 +384,35 @@ $socialIcons = [
         body.artist-public-body .artist-web-section .section-heading h2 {
             margin: 0;
             color: #fffaf2;
-            font-size: clamp(1.75rem, 3.2vw, 2.8rem);
-            line-height: 1;
+            font-family: "Playfair Display", Georgia, serif;
+            font-size: clamp(2.25rem, 5vw, 4.5rem);
+            line-height: 0.95;
         }
 
         body.artist-public-body .artist-web-events .section-heading h2,
         body.artist-public-body .artist-web-contact .section-heading h2 {
-            font-size: clamp(1.7rem, 2.6vw, 2.35rem);
+            font-size: clamp(2rem, 4vw, 3.2rem);
+        }
+
+        body.artist-public-body .artist-web-gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 14px;
+        }
+
+        body.artist-public-body .artist-web-gallery-grid img {
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 250, 242, 0.12);
+            box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
         }
 
         body.artist-public-body .artist-web-events-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 340px));
-            gap: 18px;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 360px));
+            gap: 22px;
             justify-content: start;
             margin-top: 0;
             background: transparent !important;
@@ -283,13 +423,53 @@ $socialIcons = [
             background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.03)), #15181d !important;
             border: 1px solid rgba(255, 250, 242, 0.13);
             border-radius: 8px;
-            box-shadow: 0 16px 34px rgba(0, 0, 0, 0.34);
+            box-shadow: 0 20px 46px rgba(0, 0, 0, 0.34);
+        }
+
+        body.artist-public-body .artist-web-event-info {
+            padding: 20px;
+        }
+
+        body.artist-public-body .artist-web-event-info h3 {
+            font-size: 1.15rem;
+        }
+
+        body.artist-public-body .artist-web-contact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 14px;
+            width: min(100%, 940px);
+            margin-inline: auto;
+        }
+
+        body.artist-public-body .artist-web-contact-grid a {
+            min-height: 118px;
+            padding: 22px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.03)), #15181d !important;
+            border: 1px solid rgba(255, 250, 242, 0.13);
+            border-radius: 8px;
+            box-shadow: 0 18px 38px rgba(0, 0, 0, 0.28);
         }
 
         body.artist-public-body .artist-web-gallery-grid,
         body.artist-public-body .artist-web-video-grid,
         body.artist-public-body .artist-web-contact-grid {
             background: transparent !important;
+        }
+
+        @media (max-width: 760px) {
+            body.artist-public-body .artist-web-hero-slider {
+                min-height: 520px;
+            }
+
+            body.artist-public-body .artist-web-hero-content h1 {
+                font-size: clamp(3.1rem, 16vw, 5.2rem);
+            }
+
+            body.artist-public-body .artist-web-events-grid,
+            body.artist-public-body .artist-web-contact-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
     <header class="artist-web-topbar">
@@ -317,29 +497,33 @@ $socialIcons = [
         </div>
     </header>
     <main class="artist-web-page">
-        <section class="artist-web-name-band" aria-label="Nombre artistico">
-            <div class="container">
-                <h1><?= e($displayName) ?></h1>
-            </div>
-        </section>
         <section id="inicio" class="artist-web-hero-slider" data-artist-slider>
             <?php foreach ($heroSlides as $slideIndex => $slide): ?>
                 <?php
                 $slideImage = (string) ($slide['image'] ?? $defaultHeroImage);
                 $slideStyle = "background-image: linear-gradient(90deg, rgba(17, 17, 20, 0.86), rgba(17, 17, 20, 0.34) 56%, rgba(32, 56, 71, 0.58)), url('" . str_replace("'", '%27', $slideImage) . "');";
-                $slideHasContent = ($slide['title'] ?? '') !== '' || ($slide['description'] ?? '') !== '' || ($slide['cta_url'] ?? '') !== '';
                 ?>
                 <article class="artist-web-hero-slide <?= $slideIndex === 0 ? 'active' : '' ?>" style="<?= e($slideStyle) ?>" data-artist-slide>
                     <div class="container artist-web-hero-inner">
-                        <?php if ($slideHasContent): ?>
-                            <div class="artist-web-hero-content">
-                                <?php if (($slide['title'] ?? '') !== ''): ?><h2><?= e((string) $slide['title']) ?></h2><?php endif; ?>
-                                <?php if (($slide['description'] ?? '') !== ''): ?><p><?= e((string) $slide['description']) ?></p><?php endif; ?>
-                                <?php if (($slide['cta_url'] ?? '') !== ''): ?>
-                                    <a href="<?= e(artist_public_link_url((string) $slide['cta_url'])) ?>" target="_blank" rel="noopener"><?= e((string) ($slide['cta_label'] ?: 'Ver mas')) ?></a>
-                                <?php endif; ?>
-                            </div>
-                        <?php endif; ?>
+                        <div class="artist-web-hero-content">
+                            <p class="section-kicker"><?= e($artistHeadline !== '' ? $artistHeadline : $memberTypeLabel) ?></p>
+                            <?php if ($slideIndex === 0): ?>
+                                <h1><?= e($displayName) ?></h1>
+                            <?php else: ?>
+                                <h2><?= e($displayName) ?></h2>
+                            <?php endif; ?>
+                            <?php if ($artistLocation !== '' || $memberTypeLabel !== ''): ?>
+                                <div class="artist-web-hero-meta">
+                                    <?php if ($memberTypeLabel !== ''): ?><span><?= e($memberTypeLabel) ?></span><?php endif; ?>
+                                    <?php if ($artistLocation !== ''): ?><span><?= e($artistLocation) ?></span><?php endif; ?>
+                                </div>
+                            <?php endif; ?>
+                            <?php if (($slide['title'] ?? '') !== ''): ?><p class="artist-web-hero-summary"><?= e((string) $slide['title']) ?></p><?php endif; ?>
+                            <?php if (($slide['description'] ?? '') !== ''): ?><p class="artist-web-hero-summary"><?= e((string) $slide['description']) ?></p><?php elseif (($slide['title'] ?? '') === '' && $artistIntro !== ''): ?><p class="artist-web-hero-summary"><?= e($artistIntro) ?></p><?php endif; ?>
+                            <?php if (($slide['cta_url'] ?? '') !== ''): ?>
+                                <a href="<?= e(artist_public_link_url((string) $slide['cta_url'])) ?>" target="_blank" rel="noopener"><?= e((string) ($slide['cta_label'] ?: 'Ver mas')) ?></a>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </article>
             <?php endforeach; ?>
