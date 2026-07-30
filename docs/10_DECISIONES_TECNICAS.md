@@ -135,3 +135,5 @@ El proyecto debera separar permisos entre administradores, miembros y setters. E
 - 2026-07-18: Registrada la arquitectura de documentos legales administrables, modal legal progresiva y consentimiento de cookies por categorias.
 - 2026-07-18: Registrada la gestion administrable de servicios, contacto profesional y mensajes recibidos desde la portada.
 - 2026-07-18: Registrada la Fase 1 del redisenado del panel admin con navegacion agrupada, secciones por URL y componentes visuales reutilizables.
+- 2026-07-30: Registrado que el microsite publico del artista usa hoja propia con namespace `ms-` cargada mediante el cuarto parametro de `page_head()`, en lugar de sobrescribir `styles.css` con `!important` desde un bloque `<style>` en `artista.php`.
+- 2026-07-30: Registrado que la pagina publica del artista nunca imprime URLs crudas: la web se resume a su dominio y los perfiles sociales a `@usuario`.

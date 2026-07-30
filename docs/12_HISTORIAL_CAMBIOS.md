@@ -403,3 +403,4 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - 2026-07-28: Corregida la colision del ID eventos con fondos globales claros para mantener el microsite publico con fondo oscuro homogeneo.
 - 2026-07-28: Aislados los estilos visuales del microsite publico desde artista.php para evitar herencias de fondos y cabeceras globales en Galeria, Eventos y Contacto.
 - 2026-07-28: Redisenada la presentacion publica del artista con hero protagonista, secciones proporcionadas, galeria visual, eventos compactos y contacto profesional.
+- 2026-07-30: Redisenado el microsite publico del artista con lenguaje editorial oscuro: hoja propia `assets/css/artist-microsite.css` con namespace `ms-`, hero a pantalla completa con pie por slide, bloque de perfil, galeria con lightbox, agenda en lista, contacto con etiquetas legibles y aparicion progresiva al hacer scroll.

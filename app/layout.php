@@ -3,7 +3,12 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';
 
-function page_head(string $title, string $description, bool $includeRankings = true): void
+/**
+ * @param string[] $extraStyles Hojas de estilo propias de la pagina, relativas a la raiz
+ *                              (ej. 'assets/css/artist-microsite.css'). Se cargan despues
+ *                              de styles.css para poder sobrescribirla sin `!important`.
+ */
+function page_head(string $title, string $description, bool $includeRankings = true, array $extraStyles = []): void
 {
     $stylesVersion = (string) (@filemtime(__DIR__ . '/../assets/css/styles.css') ?: time());
     $adminSidebarVersion = (string) (@filemtime(__DIR__ . '/../assets/js/admin-sidebar.js') ?: time());
@@ -21,6 +26,10 @@ function page_head(string $title, string $description, bool $includeRankings = t
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="<?= e(app_url('assets/css/styles.css')) ?>?v=<?= e($stylesVersion) ?>">
+        <?php foreach ($extraStyles as $extraStyle): ?>
+            <?php $extraVersion = (string) (@filemtime(__DIR__ . '/../' . ltrim((string) $extraStyle, '/')) ?: time()); ?>
+            <link rel="stylesheet" href="<?= e(app_url((string) $extraStyle)) ?>?v=<?= e($extraVersion) ?>">
+        <?php endforeach; ?>
         <script src="<?= e(app_url('assets/js/advertising.js')) ?>" defer></script>
         <script src="<?= e(app_url('assets/js/navigation.js')) ?>" defer></script>
         <script src="<?= e(app_url('assets/js/legal-modal.js')) ?>?v=<?= e($legalModalVersion) ?>" defer></script>
