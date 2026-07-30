@@ -368,17 +368,70 @@ body.artist-public-body :focus-visible {
     scroll-margin-top: 78px;
 }
 
-/* Cabecera de seccion: banda a todo el ancho, titulo centrado. Marca el ritmo
-   de la pagina sin romper la homogeneidad del fondo. */
+/* Cabecera de seccion — «luz de escenario»: banda a todo el ancho con un cono
+   de luz cenital, grano fino y filetes que se desvanecen hacia los lados, en
+   lugar de un rectangulo de color plano con bordes cortados en seco. */
 .ms-section-band {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
     margin-bottom: clamp(42px, 5.5vw, 82px);
-    padding-block: clamp(52px, 6.5vw, 104px);
+    padding-block: clamp(56px, 7vw, 112px);
     text-align: center;
     background:
-        radial-gradient(120% 140% at 50% 0%, rgba(201, 164, 90, 0.05), transparent 62%),
+        linear-gradient(90deg, transparent, var(--ms-line) 18%, var(--ms-line) 82%, transparent) top / 100% 1px no-repeat,
+        linear-gradient(90deg, transparent, var(--ms-line) 18%, var(--ms-line) 82%, transparent) bottom / 100% 1px no-repeat,
         var(--ms-bg-alt);
-    border-top: 1px solid var(--ms-line);
-    border-bottom: 1px solid var(--ms-line);
+}
+
+/* Cono de luz cenital */
+.ms-section-band::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    background: radial-gradient(ellipse 46% 76% at 50% -6%,
+        rgba(201, 164, 90, 0.13),
+        rgba(201, 164, 90, 0.035) 46%,
+        transparent 72%);
+    pointer-events: none;
+}
+
+/* Grano: rompe la planitud del color sin llegar a leerse como textura */
+.ms-section-band::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+}
+
+.ms-section-band-inner {
+    position: relative;
+    z-index: 1;
+}
+
+/* Numeracion editorial, colgando de un filete que baja de la oscuridad */
+.ms-section-number {
+    margin: 0 0 20px;
+    color: var(--ms-gold);
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.32em;
+    text-indent: 0.32em;
+}
+
+.ms-section-number::before {
+    content: "";
+    display: block;
+    width: 1px;
+    height: clamp(34px, 4.4vw, 60px);
+    margin: 0 auto 18px;
+    background: linear-gradient(180deg, transparent, rgba(201, 164, 90, 0.75));
 }
 
 .ms-section-band h2 {
@@ -390,6 +443,33 @@ body.artist-public-body :focus-visible {
     line-height: 0.96;
     letter-spacing: -0.022em;
     text-wrap: balance;
+}
+
+/* Filete con rombo: el hueco central lo abre el propio degradado */
+.ms-section-ornament {
+    display: block;
+    position: relative;
+    width: min(250px, 64%);
+    height: 1px;
+    margin: clamp(24px, 3vw, 36px) auto 0;
+    background: linear-gradient(90deg,
+        transparent,
+        var(--ms-line-strong) 26%,
+        transparent 44%,
+        transparent 56%,
+        var(--ms-line-strong) 74%,
+        transparent);
+}
+
+.ms-section-ornament::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 6px;
+    height: 6px;
+    background: var(--ms-gold);
+    transform: translate(-50%, -50%) rotate(45deg);
 }
 
 .ms-rule {

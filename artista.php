@@ -275,6 +275,34 @@ if ($contactItems) {
     $publicSections['contacto'] = 'Contacto';
 }
 
+// Numeracion editorial: solo cuentan las secciones que este artista publica, y
+// solo se numera si hay mas de una (un «01» aislado no aporta orientacion).
+$sectionNumbers = [];
+if (count($publicSections) > 1) {
+    foreach (array_keys($publicSections) as $position => $sectionId) {
+        $sectionNumbers[$sectionId] = str_pad((string) ($position + 1), 2, '0', STR_PAD_LEFT);
+    }
+}
+
+/**
+ * Cabecera de seccion: banda a todo el ancho con numero, antetitulo y titulo.
+ */
+function artist_render_section_band(string $number, string $kicker, string $title): void
+{
+    ?>
+    <div class="ms-section-band">
+        <div class="ms-shell ms-section-band-inner" data-reveal>
+            <?php if ($number !== ''): ?>
+                <p class="ms-section-number"><?= e($number) ?></p>
+            <?php endif; ?>
+            <p class="ms-kicker"><?= e($kicker) ?></p>
+            <h2><?= e($title) ?></h2>
+            <span class="ms-section-ornament" aria-hidden="true"></span>
+        </div>
+    </div>
+    <?php
+}
+
 $contactIcons = [
     'mail' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/><path d="m3.5 6.5 8.5 6 8.5-6"/></svg>',
     'phone' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 3h3l1.5 4-2 1.5a12 12 0 0 0 6.5 6.5l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A17.5 17.5 0 0 1 4.5 5.2 2 2 0 0 1 6.5 3z"/></svg>',
@@ -375,12 +403,7 @@ $socialIcons = [
 
     <?php if ($gallery): ?>
         <section id="galeria" class="ms-section">
-            <div class="ms-section-band">
-                <div class="ms-shell" data-reveal>
-                    <p class="ms-kicker">Galería</p>
-                    <h2>En escena</h2>
-                </div>
-            </div>
+            <?php artist_render_section_band($sectionNumbers['galeria'] ?? '', 'Galería', 'En escena'); ?>
             <div class="ms-shell">
                 <div class="ms-gallery-grid" data-gallery>
                     <?php foreach ($gallery as $galleryIndex => $galleryImage): ?>
@@ -397,12 +420,7 @@ $socialIcons = [
 
     <?php if ($videos): ?>
         <section id="videos" class="ms-section">
-            <div class="ms-section-band">
-                <div class="ms-shell" data-reveal>
-                    <p class="ms-kicker">Vídeos</p>
-                    <h2>En movimiento</h2>
-                </div>
-            </div>
+            <?php artist_render_section_band($sectionNumbers['videos'] ?? '', 'Vídeos', 'En movimiento'); ?>
             <div class="ms-shell">
                 <div class="ms-video-grid">
                     <?php foreach ($videos as $video): ?>
@@ -429,12 +447,7 @@ $socialIcons = [
 
     <?php if ($events): ?>
         <section id="eventos" class="ms-section">
-            <div class="ms-section-band">
-                <div class="ms-shell" data-reveal>
-                    <p class="ms-kicker">Agenda</p>
-                    <h2>Próximas citas</h2>
-                </div>
-            </div>
+            <?php artist_render_section_band($sectionNumbers['eventos'] ?? '', 'Agenda', 'Próximas citas'); ?>
             <div class="ms-shell">
                 <div class="ms-agenda">
                     <?php foreach ($events as $ev): ?>
@@ -480,12 +493,7 @@ $socialIcons = [
 
     <?php if ($news): ?>
         <section id="actualidad" class="ms-section">
-            <div class="ms-section-band">
-                <div class="ms-shell" data-reveal>
-                    <p class="ms-kicker">Actualidad</p>
-                    <h2>Novedades</h2>
-                </div>
-            </div>
+            <?php artist_render_section_band($sectionNumbers['actualidad'] ?? '', 'Actualidad', 'Novedades'); ?>
             <div class="ms-shell">
                 <div class="ms-cards">
                     <?php foreach ($news as $item): ?>
@@ -512,12 +520,7 @@ $socialIcons = [
 
     <?php if ($contactItems): ?>
         <section id="contacto" class="ms-section">
-            <div class="ms-section-band">
-                <div class="ms-shell" data-reveal>
-                    <p class="ms-kicker">Contacto</p>
-                    <h2>Hablemos</h2>
-                </div>
-            </div>
+            <?php artist_render_section_band($sectionNumbers['contacto'] ?? '', 'Contacto', 'Hablemos'); ?>
             <div class="ms-shell">
                 <p class="ms-contact-note" data-reveal>Disponible para actuaciones, colaboraciones y clases. Escribe directamente por el canal que prefieras.</p>
 
