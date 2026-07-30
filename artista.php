@@ -259,9 +259,6 @@ if (in_array('instagram', $contactFields, true) && !empty($profile['instagram_ur
 }
 
 $publicSections = [];
-if ($artistIntro !== '') {
-    $publicSections['perfil'] = 'Perfil';
-}
 if ($gallery) {
     $publicSections['galeria'] = 'Galería';
 }
@@ -294,12 +291,6 @@ $socialIcons = [
     'twitter'   => '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.736-8.849L2.25 2.25h6.883l4.254 5.621zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
 ];
 
-$introParagraphs = array_values(array_filter(array_map('trim', preg_split('/\R{2,}/', $artistIntro) ?: [])));
-if (!$introParagraphs && $artistIntro !== '') {
-    $introParagraphs = [$artistIntro];
-}
-// La capitular solo luce con un texto de cierta extension.
-$introHasDropcap = mb_strlen($artistIntro) >= 240;
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -352,17 +343,15 @@ $introHasDropcap = mb_strlen($artistIntro) >= 240;
                 <p class="ms-kicker"><?= e($artistHeadline !== '' ? $artistHeadline : $memberTypeLabel) ?></p>
                 <h1><?= e($displayName) ?></h1>
 
-                <?php if ($memberTypeLabel !== '' || $artistLocation !== ''): ?>
-                    <div class="ms-hero-meta">
-                        <?php if ($memberTypeLabel !== ''): ?><span><?= e($memberTypeLabel) ?></span><?php endif; ?>
-                        <?php if ($artistLocation !== ''): ?><span><?= e($artistLocation) ?></span><?php endif; ?>
-                    </div>
-                <?php endif; ?>
-
                 <div class="ms-hero-captions">
                     <?php foreach ($heroSlides as $slideIndex => $slide): ?>
                         <div class="ms-hero-caption<?= $slideIndex === 0 ? ' is-active' : '' ?>" data-hero-caption>
-                            <?php $slideText = trim((string) ($slide['description'] ?: $slide['title'])); ?>
+                            <?php
+                            $slideText = trim((string) ($slide['description'] ?: $slide['title']));
+                            if ($slideText === '' && $slideIndex === 0) {
+                                $slideText = $artistIntro;
+                            }
+                            ?>
                             <?php if ($slideText !== ''): ?>
                                 <p class="ms-hero-summary"><?= e($slideText) ?></p>
                             <?php endif; ?>
@@ -384,43 +373,15 @@ $introHasDropcap = mb_strlen($artistIntro) >= 240;
         <?php endif; ?>
     </section>
 
-    <?php if ($introParagraphs): ?>
-        <section id="perfil" class="ms-section ms-section-alt">
-            <div class="ms-shell">
-                <div class="ms-heading" data-reveal>
-                    <div class="ms-heading-main">
-                        <p class="ms-kicker">Perfil</p>
-                        <h2>Sobre <?= e($displayName) ?></h2>
-                    </div>
-                </div>
-
-                <div class="ms-bio">
-                    <?php if ($mainPhoto !== ''): ?>
-                        <div class="ms-bio-portrait" data-reveal>
-                            <img src="<?= e($mainPhoto) ?>" alt="Retrato de <?= e($displayName) ?>" loading="lazy">
-                        </div>
-                    <?php endif; ?>
-                    <div class="ms-bio-text<?= $introHasDropcap ? ' has-dropcap' : '' ?>" data-reveal>
-                        <?php foreach ($introParagraphs as $paragraph): ?>
-                            <p><?= nl2br(e($paragraph)) ?></p>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-            </div>
-        </section>
-    <?php endif; ?>
-
     <?php if ($gallery): ?>
         <section id="galeria" class="ms-section">
-            <div class="ms-shell">
-                <div class="ms-heading" data-reveal>
-                    <div class="ms-heading-main">
-                        <p class="ms-kicker">Galería</p>
-                        <h2>En escena</h2>
-                    </div>
-                    <p class="ms-heading-lead">Una selección de imágenes del trabajo de <?= e($displayName) ?>. Pulsa sobre cualquiera para verla a pantalla completa.</p>
+            <div class="ms-section-band">
+                <div class="ms-shell" data-reveal>
+                    <p class="ms-kicker">Galería</p>
+                    <h2>En escena</h2>
                 </div>
-
+            </div>
+            <div class="ms-shell">
                 <div class="ms-gallery-grid" data-gallery>
                     <?php foreach ($gallery as $galleryIndex => $galleryImage): ?>
                         <button type="button" class="ms-gallery-item" data-gallery-item data-full="<?= e($galleryImage) ?>" data-reveal aria-label="Ampliar imagen <?= e((string) ($galleryIndex + 1)) ?> de <?= e($displayName) ?>">
@@ -435,16 +396,14 @@ $introHasDropcap = mb_strlen($artistIntro) >= 240;
     <?php endif; ?>
 
     <?php if ($videos): ?>
-        <section id="videos" class="ms-section ms-section-alt">
-            <div class="ms-shell">
-                <div class="ms-heading" data-reveal>
-                    <div class="ms-heading-main">
-                        <p class="ms-kicker">Vídeos</p>
-                        <h2>En movimiento</h2>
-                    </div>
-                    <p class="ms-heading-lead">Una selección audiovisual del trabajo artístico de <?= e($displayName) ?>.</p>
+        <section id="videos" class="ms-section">
+            <div class="ms-section-band">
+                <div class="ms-shell" data-reveal>
+                    <p class="ms-kicker">Vídeos</p>
+                    <h2>En movimiento</h2>
                 </div>
-
+            </div>
+            <div class="ms-shell">
                 <div class="ms-video-grid">
                     <?php foreach ($videos as $video): ?>
                         <?php
@@ -470,14 +429,13 @@ $introHasDropcap = mb_strlen($artistIntro) >= 240;
 
     <?php if ($events): ?>
         <section id="eventos" class="ms-section">
-            <div class="ms-shell">
-                <div class="ms-heading" data-reveal>
-                    <div class="ms-heading-main">
-                        <p class="ms-kicker">Agenda</p>
-                        <h2>Próximas citas</h2>
-                    </div>
+            <div class="ms-section-band">
+                <div class="ms-shell" data-reveal>
+                    <p class="ms-kicker">Agenda</p>
+                    <h2>Próximas citas</h2>
                 </div>
-
+            </div>
+            <div class="ms-shell">
                 <div class="ms-agenda">
                     <?php foreach ($events as $ev): ?>
                         <?php $eventTimestamp = !empty($ev['date']) ? strtotime((string) $ev['date']) : false; ?>
@@ -521,16 +479,14 @@ $introHasDropcap = mb_strlen($artistIntro) >= 240;
     <?php endif; ?>
 
     <?php if ($news): ?>
-        <section id="actualidad" class="ms-section ms-section-alt">
-            <div class="ms-shell">
-                <div class="ms-heading" data-reveal>
-                    <div class="ms-heading-main">
-                        <p class="ms-kicker">Actualidad</p>
-                        <h2>Novedades</h2>
-                    </div>
-                    <p class="ms-heading-lead">Últimas noticias, convocatorias y contenidos destacados de <?= e($displayName) ?>.</p>
+        <section id="actualidad" class="ms-section">
+            <div class="ms-section-band">
+                <div class="ms-shell" data-reveal>
+                    <p class="ms-kicker">Actualidad</p>
+                    <h2>Novedades</h2>
                 </div>
-
+            </div>
+            <div class="ms-shell">
                 <div class="ms-cards">
                     <?php foreach ($news as $item): ?>
                         <article class="ms-card" data-reveal>
@@ -556,26 +512,26 @@ $introHasDropcap = mb_strlen($artistIntro) >= 240;
 
     <?php if ($contactItems): ?>
         <section id="contacto" class="ms-section">
+            <div class="ms-section-band">
+                <div class="ms-shell" data-reveal>
+                    <p class="ms-kicker">Contacto</p>
+                    <h2>Hablemos</h2>
+                </div>
+            </div>
             <div class="ms-shell">
-                <div class="ms-contact">
-                    <div data-reveal>
-                        <p class="ms-kicker">Contacto</p>
-                        <p class="ms-contact-claim">Hablemos de tu próximo espectáculo</p>
-                        <p class="ms-contact-note">Disponible para actuaciones, colaboraciones y clases. Escribe directamente por el canal que prefieras.</p>
-                    </div>
+                <p class="ms-contact-note" data-reveal>Disponible para actuaciones, colaboraciones y clases. Escribe directamente por el canal que prefieras.</p>
 
-                    <div class="ms-contact-list" data-reveal>
-                        <?php foreach ($contactItems as $contactItem): ?>
-                            <a href="<?= e($contactItem['href']) ?>" <?= str_starts_with((string) $contactItem['href'], 'http') ? 'target="_blank" rel="noopener"' : '' ?>>
-                                <span class="ms-contact-icon"><?= $contactIcons[$contactItem['icon']] ?? '' ?></span>
-                                <span class="ms-contact-text">
-                                    <span><?= e($contactItem['label']) ?></span>
-                                    <strong><?= e($contactItem['value']) ?></strong>
-                                </span>
-                                <span class="ms-contact-arrow" aria-hidden="true">→</span>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
+                <div class="ms-contact-list" data-reveal>
+                    <?php foreach ($contactItems as $contactItem): ?>
+                        <a href="<?= e($contactItem['href']) ?>" <?= str_starts_with((string) $contactItem['href'], 'http') ? 'target="_blank" rel="noopener"' : '' ?>>
+                            <span class="ms-contact-icon"><?= $contactIcons[$contactItem['icon']] ?? '' ?></span>
+                            <span class="ms-contact-text">
+                                <span><?= e($contactItem['label']) ?></span>
+                                <strong><?= e($contactItem['value']) ?></strong>
+                            </span>
+                            <span class="ms-contact-arrow" aria-hidden="true">→</span>
+                        </a>
+                    <?php endforeach; ?>
                 </div>
             </div>
         </section>
@@ -583,12 +539,21 @@ $introHasDropcap = mb_strlen($artistIntro) >= 240;
 </main>
 
 <footer class="ms-footer">
-    <div class="ms-shell ms-footer-inner">
-        <div>
-            <p class="ms-footer-name"><?= e($displayName) ?></p>
-            <p class="ms-footer-note">Perfil público en consaborflamenco.com</p>
+    <div class="ms-shell">
+        <nav class="ms-footer-nav" aria-label="Secciones de <?= e($displayName) ?>">
+            <a href="#inicio">Inicio</a>
+            <?php foreach ($publicSections as $sectionId => $sectionLabel): ?>
+                <a href="#<?= e($sectionId) ?>"><?= e($sectionLabel) ?></a>
+            <?php endforeach; ?>
+        </nav>
+
+        <div class="ms-footer-inner">
+            <div>
+                <p class="ms-footer-name"><?= e($displayName) ?></p>
+                <p class="ms-footer-note">Perfil público en consaborflamenco.com</p>
+            </div>
+            <a class="ms-footer-back" href="<?= e($homeUrl) ?>">Con Sabor Flamenco &nbsp;→</a>
         </div>
-        <a class="ms-footer-back" href="<?= e($homeUrl) ?>">Con Sabor Flamenco &nbsp;→</a>
     </div>
 </footer>
 

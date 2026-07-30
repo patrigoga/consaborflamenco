@@ -291,35 +291,9 @@ body.artist-public-body :focus-visible {
     text-wrap: balance;
 }
 
-.ms-hero-meta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px 18px;
-    margin-top: 26px;
-    color: var(--ms-ink-soft);
-    font-size: 0.82rem;
-    font-weight: 500;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-}
-
-.ms-hero-meta span {
-    display: inline-flex;
-    align-items: center;
-    gap: 18px;
-}
-
-.ms-hero-meta span + span::before {
-    content: "";
-    width: 22px;
-    height: 1px;
-    background: var(--ms-line-strong);
-}
-
 .ms-hero-summary {
     max-width: 52ch;
-    margin: 24px 0 0;
+    margin: 26px 0 0;
     color: rgba(247, 242, 233, 0.78);
     font-size: clamp(1.02rem, 0.98rem + 0.3vw, 1.2rem);
     line-height: 1.65;
@@ -390,109 +364,38 @@ body.artist-public-body :focus-visible {
    -------------------------------------------------------------------------- */
 
 .ms-section {
-    padding-block: clamp(72px, 9vw, 148px);
+    padding-bottom: clamp(72px, 9vw, 148px);
     scroll-margin-top: 78px;
 }
 
-.ms-section-alt {
-    background: var(--ms-bg-alt);
-}
-
-.ms-section + .ms-section:not(.ms-section-alt) {
+/* Cabecera de seccion: banda a todo el ancho, titulo centrado. Marca el ritmo
+   de la pagina sin romper la homogeneidad del fondo. */
+.ms-section-band {
+    margin-bottom: clamp(42px, 5.5vw, 82px);
+    padding-block: clamp(52px, 6.5vw, 104px);
+    text-align: center;
+    background:
+        radial-gradient(120% 140% at 50% 0%, rgba(201, 164, 90, 0.05), transparent 62%),
+        var(--ms-bg-alt);
     border-top: 1px solid var(--ms-line);
+    border-bottom: 1px solid var(--ms-line);
 }
 
-.ms-heading {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 14px;
-    margin-bottom: clamp(38px, 5vw, 68px);
-}
-
-/* Cabecera editorial a dos columnas: titulo a la izquierda, entradilla a la
-   derecha. Rellena el ancho en pantallas grandes en lugar de dejar hueco. */
-@media (min-width: 900px) {
-    .ms-heading:has(.ms-heading-lead) {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr);
-        align-items: end;
-        column-gap: clamp(40px, 6vw, 110px);
-    }
-}
-
-.ms-heading h2 {
-    margin: 10px 0 0;
+.ms-section-band h2 {
+    margin: 14px 0 0;
     color: var(--ms-ink);
     font-family: var(--font-display);
-    font-size: clamp(2.2rem, 5vw, 4.4rem);
+    font-size: clamp(2.7rem, 6.4vw, 6rem);
     font-weight: 700;
-    line-height: 0.98;
-    letter-spacing: -0.02em;
-}
-
-.ms-heading-lead {
-    margin: 0;
-    color: var(--ms-ink-soft);
-    font-size: clamp(1rem, 0.96rem + 0.25vw, 1.14rem);
-    line-height: 1.7;
+    line-height: 0.96;
+    letter-spacing: -0.022em;
+    text-wrap: balance;
 }
 
 .ms-rule {
     height: 1px;
     margin-top: clamp(28px, 4vw, 46px);
-    background: linear-gradient(90deg, var(--ms-line-strong), transparent 62%);
-}
-
-/* --------------------------------------------------------------------------
-   Bloque de biografia
-   -------------------------------------------------------------------------- */
-
-.ms-bio {
-    display: grid;
-    gap: clamp(32px, 5vw, 76px);
-}
-
-@media (min-width: 900px) {
-    .ms-bio {
-        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-        align-items: start;
-    }
-}
-
-.ms-bio-portrait {
-    position: relative;
-    overflow: hidden;
-    border-radius: 3px;
-}
-
-.ms-bio-portrait img {
-    display: block;
-    width: 100%;
-    aspect-ratio: 4 / 5;
-    object-fit: cover;
-    filter: saturate(0.92) contrast(1.04);
-}
-
-.ms-bio-text p {
-    margin: 0 0 1.15em;
-    max-width: 62ch;
-    color: rgba(247, 242, 233, 0.8);
-    font-size: clamp(1.05rem, 1rem + 0.35vw, 1.28rem);
-    line-height: 1.78;
-}
-
-/* La capitular solo se activa desde PHP cuando el texto es lo bastante largo. */
-.ms-bio-text.has-dropcap p:first-of-type::first-letter {
-    float: left;
-    margin: 0.06em 0.12em 0 0;
-    color: var(--ms-gold);
-    font-family: var(--font-display);
-    font-size: 3.6em;
-    font-weight: 700;
-    line-height: 0.78;
-}
-
-.ms-bio-text p:last-child {
-    margin-bottom: 0;
+    background: linear-gradient(90deg, transparent, var(--ms-line-strong), transparent);
 }
 
 /* --------------------------------------------------------------------------
@@ -882,38 +785,18 @@ body.artist-public-body :focus-visible {
    Contacto
    -------------------------------------------------------------------------- */
 
-.ms-contact {
-    display: grid;
-    gap: clamp(34px, 5vw, 72px);
-}
-
-@media (min-width: 900px) {
-    .ms-contact {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        align-items: center;
-    }
-}
-
-.ms-contact-claim {
-    margin: 0;
-    max-width: 22ch;
-    color: var(--ms-ink);
-    font-family: var(--font-display);
-    font-size: clamp(2rem, 1.4rem + 2.4vw, 3.6rem);
-    font-weight: 700;
-    line-height: 1.04;
-    letter-spacing: -0.02em;
-}
-
 .ms-contact-note {
-    margin: 20px 0 0;
-    max-width: 42ch;
+    max-width: 46ch;
+    margin: 0 auto clamp(30px, 4vw, 52px);
     color: var(--ms-ink-soft);
+    text-align: center;
 }
 
 .ms-contact-list {
     display: grid;
     gap: 0;
+    width: min(100%, 760px);
+    margin-inline: auto;
     border-top: 1px solid var(--ms-line);
 }
 
@@ -988,6 +871,46 @@ body.artist-public-body :focus-visible {
     padding-block: clamp(44px, 5vw, 72px);
     background: #07090c;
     border-top: 1px solid var(--ms-line);
+}
+
+.ms-footer-nav {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 14px clamp(22px, 3.4vw, 46px);
+    padding-bottom: clamp(30px, 4vw, 46px);
+    margin-bottom: clamp(30px, 4vw, 46px);
+    border-bottom: 1px solid var(--ms-line);
+}
+
+.ms-footer-nav a {
+    position: relative;
+    color: var(--ms-ink-soft);
+    font-size: 0.79rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    transition: color 260ms var(--ms-ease);
+}
+
+.ms-footer-nav a::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -5px;
+    height: 1px;
+    background: var(--ms-gold);
+    transform: scaleX(0);
+    transition: transform 320ms var(--ms-ease);
+}
+
+.ms-footer-nav a:hover {
+    color: var(--ms-ink);
+}
+
+.ms-footer-nav a:hover::after {
+    transform: scaleX(1);
 }
 
 .ms-footer-inner {
@@ -1088,10 +1011,6 @@ body.artist-public-body.ms-js [data-reveal].is-visible {
     .ms-hero {
         min-height: min(86vh, 720px);
         margin-top: -66px;
-    }
-
-    .ms-hero-meta {
-        gap: 8px 14px;
     }
 
     .ms-lightbox {
