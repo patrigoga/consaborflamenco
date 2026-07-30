@@ -73,6 +73,9 @@ El panel de miembro se organiza con:
 - Editor de curriculum artistico con formacion, experiencia escenica, docencia, actuaciones destacadas, premios, repertorio, disponibilidad y notas privadas.
 - Configuracion de pagina web de una sola pagina con cabecera, galeria de hasta 9 imagenes, videos, eventos, actualidad y contacto.
 - La pagina publica mostrara en su menu interno solo las secciones con contenido guardado, manteniendo la cabecera siempre visible.
+- Las cabeceras de seccion de la pagina publica muestran solo el nombre de la seccion, centrado y en tamano grande, sin numeracion ni antetitulo.
+- La galeria publica muestra hasta 3 fotos en rejilla y pasa a carrusel con flechas, puntos y gesto tactil cuando hay 4 o mas.
+- Cada foto de la galeria y el visor ampliado incluyen botones para compartir en WhatsApp, Facebook, X y Telegram, compartir con el menu nativo del movil y copiar el enlace. El enlace compartido (`?foto=N`) abre esa foto ampliada al entrar.
 - Control de visibilidad por bloques para decidir que datos se publican y que datos quedan privados.
 - Bloques repetibles con boton para anadir nuevas entradas sin limite fijo inicial.
 - Fechas en formacion, experiencia, docencia, actuaciones y premios para permitir orden cronologico ascendente o descendente.
@@ -225,3 +228,4 @@ Los miembros podran contratar servicios digitales ofrecidos por la plataforma. E
 - 2026-07-14: Sustituida la cabecera simple de la pagina publica por un slider configurable de 3 imagenes con titulo, descripcion y CTA opcional desde el apartado Pagina web.
 - 2026-07-14: Movido el almacenamiento de nuevas imagenes de usuario a runtime persistente fuera del repositorio (`../csf-uploads` o `CSF_UPLOADS_DIR`) y servido por `media.php` para que los despliegues Git no borren fotos de perfil, cabeceras, slides o articulos.
 - 2026-07-27: Anadidas las secciones Videos y Actualidad a la pagina publica del miembro, con alta, edicion y eliminacion desde el apartado Pagina web.
+- 2026-07-30: Simplificadas las cabeceras de seccion de la pagina publica (solo el rotulo, centrado y mayor), convertida la galeria en carrusel a partir de 4 fotos, anadidos botones de compartir por foto y en el visor, y revisada la vista completa para movil.

@@ -183,6 +183,7 @@ $news = array_values(is_array($webPage['news'] ?? null) ? $webPage['news'] : [])
 $socialLinks = is_array($webPage['social_links'] ?? null) ? $webPage['social_links'] : [];
 $contactFields = is_array($webPage['contact_fields'] ?? null) ? $webPage['contact_fields'] : [];
 $siteBaseUrl = artist_public_base_url();
+$artistPageUrl = $siteBaseUrl . '/artista/' . rawurlencode($slug);
 $artistsUrl = $siteBaseUrl . '/artistas.php';
 $registerUrl = $siteBaseUrl . '/registro.php';
 $defaultHeroImage = artist_public_media_url('assets/images/flamenco-header-art.png');
@@ -275,30 +276,63 @@ if ($contactItems) {
     $publicSections['contacto'] = 'Contacto';
 }
 
-// Numeracion editorial: solo cuentan las secciones que este artista publica, y
-// solo se numera si hay mas de una (un «01» aislado no aporta orientacion).
-$sectionNumbers = [];
-if (count($publicSections) > 1) {
-    foreach (array_keys($publicSections) as $position => $sectionId) {
-        $sectionNumbers[$sectionId] = str_pad((string) ($position + 1), 2, '0', STR_PAD_LEFT);
-    }
-}
-
 /**
- * Cabecera de seccion: banda a todo el ancho con numero, antetitulo y titulo.
+ * Cabecera de seccion: banda a todo el ancho con el nombre de la seccion
+ * centrado y a gran tamano. Sin numeracion ni antetitulo: el rotulo manda.
  */
-function artist_render_section_band(string $number, string $kicker, string $title): void
+function artist_render_section_band(string $title): void
 {
     ?>
     <div class="ms-section-band">
         <div class="ms-shell ms-section-band-inner" data-reveal>
-            <?php if ($number !== ''): ?>
-                <p class="ms-section-number"><?= e($number) ?></p>
-            <?php endif; ?>
-            <p class="ms-kicker"><?= e($kicker) ?></p>
             <h2><?= e($title) ?></h2>
             <span class="ms-section-ornament" aria-hidden="true"></span>
         </div>
+    </div>
+    <?php
+}
+
+/**
+ * Destinos de compartir para una URL concreta (una foto de la galeria).
+ */
+function artist_share_targets(string $url, string $text): array
+{
+    $encodedUrl = rawurlencode($url);
+    $encodedText = rawurlencode($text);
+
+    return [
+        ['key' => 'whatsapp', 'label' => 'WhatsApp', 'href' => 'https://wa.me/?text=' . rawurlencode($text . ' ' . $url)],
+        ['key' => 'facebook', 'label' => 'Facebook', 'href' => 'https://www.facebook.com/sharer/sharer.php?u=' . $encodedUrl],
+        ['key' => 'twitter', 'label' => 'X', 'href' => 'https://twitter.com/intent/tweet?url=' . $encodedUrl . '&text=' . $encodedText],
+        ['key' => 'telegram', 'label' => 'Telegram', 'href' => 'https://t.me/share/url?url=' . $encodedUrl . '&text=' . $encodedText],
+    ];
+}
+
+/**
+ * Barra de compartir: redes, compartir nativo del movil y copiar enlace.
+ */
+function artist_render_share_bar(string $url, string $text, string $groupLabel, array $icons, string $extraClass = ''): void
+{
+    ?>
+    <div class="ms-share<?= $extraClass !== '' ? ' ' . e($extraClass) : '' ?>"
+         role="group"
+         aria-label="<?= e($groupLabel) ?>"
+         data-share
+         data-share-url="<?= e($url) ?>"
+         data-share-text="<?= e($text) ?>">
+        <button type="button" class="ms-share-btn" data-share-native hidden aria-label="Compartir"><?= $icons['share'] ?? '' ?></button>
+        <?php foreach (artist_share_targets($url, $text) as $target): ?>
+            <a class="ms-share-btn"
+               href="<?= e($target['href']) ?>"
+               target="_blank"
+               rel="noopener"
+               data-share-key="<?= e($target['key']) ?>"
+               aria-label="Compartir en <?= e($target['label']) ?>"><?= $icons[$target['key']] ?? '' ?></a>
+        <?php endforeach; ?>
+        <button type="button" class="ms-share-btn" data-share-copy aria-label="Copiar enlace">
+            <?= $icons['link'] ?? '' ?>
+            <span class="ms-share-toast" aria-hidden="true">Copiado</span>
+        </button>
     </div>
     <?php
 }
@@ -318,6 +352,19 @@ $socialIcons = [
     'spotify'   => '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path fill="#0b0d10" d="M16.5 16.5a.75.75 0 0 1-.41-.12 8.27 8.27 0 0 0-8.18 0 .75.75 0 0 1-.82-1.26 9.77 9.77 0 0 1 9.82 0 .75.75 0 0 1-.41 1.38zm1.25-2.75a.75.75 0 0 1-.41-.12 10.52 10.52 0 0 0-10.68 0 .75.75 0 0 1-.82-1.26 12 12 0 0 1 12.32 0 .75.75 0 0 1-.41 1.38zm1.25-2.75a.75.75 0 0 1-.41-.12 12.77 12.77 0 0 0-13.18 0 .75.75 0 1 1-.82-1.26 14.27 14.27 0 0 1 14.82 0 .75.75 0 0 1-.41 1.38z"/></svg>',
     'twitter'   => '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.736-8.849L2.25 2.25h6.883l4.254 5.621zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
 ];
+
+// Iconos de la barra de compartir: reutiliza los sociales y anade los canales
+// que solo se usan para compartir (mensajeria, enlace, compartir nativo).
+$shareIcons = [
+    'facebook' => $socialIcons['facebook'],
+    'twitter'  => $socialIcons['twitter'],
+    'whatsapp' => '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.04 2.01a9.9 9.9 0 0 0-8.5 14.96L2 22.5l5.66-1.48a9.9 9.9 0 1 0 4.38-19.01zm0 1.68a8.22 8.22 0 0 1 6.99 12.55l-.2.31.83 3.03-3.12-.82-.3.18a8.2 8.2 0 0 1-4.2 1.16 8.22 8.22 0 0 1-4.19-15.28 8.2 8.2 0 0 1 4.19-1.13zm4.52 10.3c-.25-.13-1.47-.72-1.69-.81-.23-.09-.4-.13-.56.12-.17.25-.64.8-.79.97-.14.16-.29.18-.54.06-.25-.13-1.06-.4-2.02-1.25-.75-.68-1.25-1.5-1.4-1.75-.14-.25-.01-.38.11-.5.11-.11.25-.29.37-.43.12-.15.17-.25.25-.42.08-.16.04-.31-.02-.43-.06-.13-.56-1.35-.76-1.84-.2-.49-.4-.42-.56-.43h-.48c-.16 0-.42.06-.64.31-.22.25-.83.81-.83 1.98s.85 2.3.97 2.46c.12.16 1.67 2.55 4.04 3.57.56.25 1 .39 1.35.5.56.18 1.07.16 1.47.09.45-.07 1.39-.57 1.58-1.11.2-.55.2-1.02.14-1.12-.06-.1-.22-.16-.47-.28z"/></svg>',
+    'telegram' => '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22.05 3.06 2.6 10.55c-1.05.4-1.04 1.9.02 2.29l4.3 1.55 1.62 5.2c.3.96 1.5 1.2 2.13.42l2.28-2.83 4.2 3.1c.75.55 1.82.14 2.01-.78l3.2-15.2c.2-.98-.77-1.79-1.71-1.44zM9.4 14.36l8.02-5.63-6.36 6.83-.16 3.03-1.5-4.23z"/></svg>',
+    'link'     => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.6 13.4a4 4 0 0 1 0-5.66l2.83-2.83a4 4 0 0 1 5.66 5.66l-1.42 1.41"/><path d="M13.4 10.6a4 4 0 0 1 0 5.66l-2.83 2.83a4 4 0 0 1-5.66-5.66l1.42-1.41"/></svg>',
+    'share'    => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5.2" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="18.8" r="2.6"/><path d="m8.3 10.8 7.4-4.3m-7.4 6.7 7.4 4.3"/></svg>',
+];
+
+$shareText = $displayName . ' — Galería';
 
 ?>
 <!DOCTYPE html>
@@ -402,16 +449,35 @@ $socialIcons = [
     </section>
 
     <?php if ($gallery): ?>
+        <?php $galleryIsSlider = count($gallery) > 3; ?>
         <section id="galeria" class="ms-section">
-            <?php artist_render_section_band($sectionNumbers['galeria'] ?? '', 'Galería', 'En escena'); ?>
+            <?php artist_render_section_band('Galería'); ?>
             <div class="ms-shell">
-                <div class="ms-gallery-grid" data-gallery>
-                    <?php foreach ($gallery as $galleryIndex => $galleryImage): ?>
-                        <button type="button" class="ms-gallery-item" data-gallery-item data-full="<?= e($galleryImage) ?>" data-reveal aria-label="Ampliar imagen <?= e((string) ($galleryIndex + 1)) ?> de <?= e($displayName) ?>">
-                            <img src="<?= e($galleryImage) ?>" alt="Fotografía de <?= e($displayName) ?>" loading="lazy">
-                        </button>
-                    <?php endforeach; ?>
+                <div class="ms-gallery<?= $galleryIsSlider ? ' is-slider' : '' ?>" data-gallery>
+                    <div class="ms-gallery-viewport" data-gallery-viewport<?= $galleryIsSlider ? ' tabindex="0" role="group" aria-label="Galería de ' . e($displayName) . ', desliza para ver más fotos"' : '' ?>>
+                        <div class="ms-gallery-track">
+                            <?php foreach ($gallery as $galleryIndex => $galleryImage): ?>
+                                <?php $photoShareUrl = $artistPageUrl . '?foto=' . ($galleryIndex + 1); ?>
+                                <figure class="ms-gallery-item"<?= $galleryIsSlider ? '' : ' data-reveal' ?>>
+                                    <button type="button" class="ms-gallery-open" data-gallery-item data-full="<?= e($galleryImage) ?>" data-share-url="<?= e($photoShareUrl) ?>" aria-label="Ampliar imagen <?= e((string) ($galleryIndex + 1)) ?> de <?= e($displayName) ?>">
+                                        <img src="<?= e($galleryImage) ?>" alt="Fotografía de <?= e($displayName) ?>" loading="lazy">
+                                    </button>
+                                    <?php artist_render_share_bar($photoShareUrl, $shareText, 'Compartir imagen ' . ($galleryIndex + 1), $shareIcons, 'ms-gallery-share'); ?>
+                                </figure>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+
+                    <?php if ($galleryIsSlider): ?>
+                        <button type="button" class="ms-gallery-nav ms-gallery-prev" data-gallery-prev aria-label="Ver fotos anteriores">&lsaquo;</button>
+                        <button type="button" class="ms-gallery-nav ms-gallery-next" data-gallery-next aria-label="Ver fotos siguientes">&rsaquo;</button>
+                    <?php endif; ?>
                 </div>
+
+                <?php if ($galleryIsSlider): ?>
+                    <!-- Fuera de .ms-gallery: asi las flechas quedan centradas sobre las fotos -->
+                    <div class="ms-gallery-dots" data-gallery-dots role="group" aria-label="Grupos de fotos"></div>
+                <?php endif; ?>
 
                 <div class="ms-rule"></div>
             </div>
@@ -420,7 +486,7 @@ $socialIcons = [
 
     <?php if ($videos): ?>
         <section id="videos" class="ms-section">
-            <?php artist_render_section_band($sectionNumbers['videos'] ?? '', 'Vídeos', 'En movimiento'); ?>
+            <?php artist_render_section_band('Vídeos'); ?>
             <div class="ms-shell">
                 <div class="ms-video-grid">
                     <?php foreach ($videos as $video): ?>
@@ -447,7 +513,7 @@ $socialIcons = [
 
     <?php if ($events): ?>
         <section id="eventos" class="ms-section">
-            <?php artist_render_section_band($sectionNumbers['eventos'] ?? '', 'Agenda', 'Próximas citas'); ?>
+            <?php artist_render_section_band('Agenda'); ?>
             <div class="ms-shell">
                 <div class="ms-agenda">
                     <?php foreach ($events as $ev): ?>
@@ -493,7 +559,7 @@ $socialIcons = [
 
     <?php if ($news): ?>
         <section id="actualidad" class="ms-section">
-            <?php artist_render_section_band($sectionNumbers['actualidad'] ?? '', 'Actualidad', 'Novedades'); ?>
+            <?php artist_render_section_band('Actualidad'); ?>
             <div class="ms-shell">
                 <div class="ms-cards">
                     <?php foreach ($news as $item): ?>
@@ -520,7 +586,7 @@ $socialIcons = [
 
     <?php if ($contactItems): ?>
         <section id="contacto" class="ms-section">
-            <?php artist_render_section_band($sectionNumbers['contacto'] ?? '', 'Contacto', 'Hablemos'); ?>
+            <?php artist_render_section_band('Contacto'); ?>
             <div class="ms-shell">
                 <p class="ms-contact-note" data-reveal>Disponible para actuaciones, colaboraciones y clases. Escribe directamente por el canal que prefieras.</p>
 
@@ -563,9 +629,12 @@ $socialIcons = [
 <?php if ($gallery): ?>
     <div class="ms-lightbox" data-lightbox hidden role="dialog" aria-modal="true" aria-label="Imagen ampliada">
         <button type="button" class="ms-lightbox-btn ms-lightbox-close" data-lightbox-close aria-label="Cerrar">&times;</button>
-        <button type="button" class="ms-lightbox-btn ms-lightbox-prev" data-lightbox-prev aria-label="Imagen anterior">&lsaquo;</button>
-        <img data-lightbox-image src="" alt="">
-        <button type="button" class="ms-lightbox-btn ms-lightbox-next" data-lightbox-next aria-label="Imagen siguiente">&rsaquo;</button>
+        <div class="ms-lightbox-stage">
+            <button type="button" class="ms-lightbox-btn ms-lightbox-prev" data-lightbox-prev aria-label="Imagen anterior">&lsaquo;</button>
+            <img data-lightbox-image src="" alt="">
+            <button type="button" class="ms-lightbox-btn ms-lightbox-next" data-lightbox-next aria-label="Imagen siguiente">&rsaquo;</button>
+        </div>
+        <?php artist_render_share_bar($artistPageUrl, $shareText, 'Compartir esta imagen', $shareIcons, 'ms-lightbox-share'); ?>
     </div>
 <?php endif; ?>
 
@@ -638,6 +707,116 @@ $socialIcons = [
         sections.forEach((section) => spy.observe(section));
     }
 
+    /* --- Compartir: nativo del movil, redes y copiar enlace --------------- */
+    const copyToClipboard = async (text) => {
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(text);
+                return true;
+            }
+        } catch (error) { /* se prueba el metodo antiguo */ }
+
+        const helper = document.createElement('textarea');
+        helper.value = text;
+        helper.setAttribute('readonly', '');
+        helper.style.position = 'fixed';
+        helper.style.top = '-1000px';
+        helper.style.opacity = '0';
+        document.body.appendChild(helper);
+        helper.select();
+        let copied = false;
+        try { copied = document.execCommand('copy'); } catch (error) { copied = false; }
+        helper.remove();
+
+        return copied;
+    };
+
+    Array.from(document.querySelectorAll('[data-share]')).forEach((group) => {
+        const nativeButton = group.querySelector('[data-share-native]');
+        if (nativeButton && typeof navigator.share === 'function') {
+            nativeButton.hidden = false;
+            nativeButton.addEventListener('click', () => {
+                navigator.share({
+                    title: group.dataset.shareText || document.title,
+                    text: group.dataset.shareText || '',
+                    url: group.dataset.shareUrl || window.location.href,
+                }).catch(() => {});
+            });
+        }
+
+        const copyButton = group.querySelector('[data-share-copy]');
+        if (copyButton) {
+            copyButton.addEventListener('click', async () => {
+                await copyToClipboard(group.dataset.shareUrl || window.location.href);
+                copyButton.classList.add('is-copied');
+                window.setTimeout(() => copyButton.classList.remove('is-copied'), 1800);
+            });
+        }
+    });
+
+    /* --- Galeria: con mas de tres fotos, carrusel por paginas ------------- */
+    const galleryBox = document.querySelector('[data-gallery].is-slider');
+    if (galleryBox) {
+        const viewport = galleryBox.querySelector('[data-gallery-viewport]');
+        const track = galleryBox.querySelector('.ms-gallery-track');
+        const figures = Array.from(galleryBox.querySelectorAll('.ms-gallery-item'));
+        const prevButton = galleryBox.querySelector('[data-gallery-prev]');
+        const nextButton = galleryBox.querySelector('[data-gallery-next]');
+        const dotsBox = galleryBox.parentElement
+            ? galleryBox.parentElement.querySelector('[data-gallery-dots]')
+            : null;
+        const behavior = reduceMotion ? 'auto' : 'smooth';
+        let dots = [];
+
+        const metrics = () => {
+            const itemWidth = figures[0].getBoundingClientRect().width;
+            const gap = parseFloat(window.getComputedStyle(track).columnGap) || 0;
+            const perView = itemWidth > 0
+                ? Math.max(1, Math.round((viewport.clientWidth + gap) / (itemWidth + gap)))
+                : 1;
+
+            return {
+                pageWidth: (itemWidth + gap) * perView,
+                pages: Math.max(1, Math.ceil(figures.length / perView)),
+            };
+        };
+
+        const buildDots = (pages) => {
+            if (!dotsBox || dots.length === pages) { return; }
+            dotsBox.textContent = '';
+            dots = Array.from({ length: pages }, (unused, position) => {
+                const dot = document.createElement('button');
+                dot.type = 'button';
+                dot.setAttribute('aria-label', 'Ver grupo de fotos ' + (position + 1));
+                dot.addEventListener('click', () => viewport.scrollTo({ left: position * metrics().pageWidth, behavior }));
+                dotsBox.appendChild(dot);
+                return dot;
+            });
+            dotsBox.hidden = pages < 2;
+        };
+
+        const sync = () => {
+            const { pageWidth, pages } = metrics();
+            buildDots(pages);
+            const atEnd = viewport.scrollLeft >= viewport.scrollWidth - viewport.clientWidth - 2;
+            prevButton.disabled = viewport.scrollLeft <= 2;
+            nextButton.disabled = atEnd;
+            // En la ultima pagina el scroll queda recortado por el maximo, asi que
+            // se fuerza el punto final en lugar de calcularlo por division.
+            const current = atEnd
+                ? pages - 1
+                : Math.min(pages - 1, pageWidth > 0 ? Math.round(viewport.scrollLeft / pageWidth) : 0);
+            dots.forEach((dot, position) => dot.classList.toggle('is-active', position === current));
+        };
+
+        const step = (delta) => viewport.scrollBy({ left: delta * metrics().pageWidth, behavior });
+        prevButton.addEventListener('click', () => step(-1));
+        nextButton.addEventListener('click', () => step(1));
+        viewport.addEventListener('scroll', sync, { passive: true });
+        window.addEventListener('resize', sync);
+        sync();
+    }
+
     /* --- Galeria a pantalla completa -------------------------------------- */
     const lightbox = document.querySelector('[data-lightbox]');
     const items = Array.from(document.querySelectorAll('[data-gallery-item]'));
@@ -645,13 +824,34 @@ $socialIcons = [
         const image = lightbox.querySelector('[data-lightbox-image]');
         const prev = lightbox.querySelector('[data-lightbox-prev]');
         const next = lightbox.querySelector('[data-lightbox-next]');
+        const shareBar = lightbox.querySelector('[data-share]');
+        const shareLinks = shareBar ? Array.from(shareBar.querySelectorAll('[data-share-key]')) : [];
         const sources = items.map((item) => item.dataset.full || '');
         let index = 0;
         let opener = null;
 
+        // Los enlaces de compartir del visor se copian de la propia foto: asi no
+        // se duplican las plantillas de URL de cada red en el JavaScript.
+        const syncShare = () => {
+            if (!shareBar) { return; }
+            const itemShare = items[index].parentElement
+                ? items[index].parentElement.querySelector('[data-share]')
+                : null;
+            if (items[index].dataset.shareUrl) {
+                shareBar.dataset.shareUrl = items[index].dataset.shareUrl;
+            }
+            shareLinks.forEach((link) => {
+                const origin = itemShare
+                    ? itemShare.querySelector('[data-share-key="' + link.dataset.shareKey + '"]')
+                    : null;
+                if (origin) { link.href = origin.href; }
+            });
+        };
+
         const render = () => {
             image.src = sources[index];
             image.alt = items[index].querySelector('img')?.alt || '';
+            syncShare();
         };
         const open = (at) => {
             index = at;
@@ -689,6 +889,12 @@ $socialIcons = [
         if (sources.length < 2) {
             prev.hidden = true;
             next.hidden = true;
+        }
+
+        // Enlace compartido del tipo ?foto=3: abre directamente esa imagen.
+        const requestedPhoto = parseInt(new URLSearchParams(window.location.search).get('foto') || '', 10);
+        if (!Number.isNaN(requestedPhoto) && requestedPhoto >= 1 && requestedPhoto <= items.length) {
+            window.requestAnimationFrame(() => open(requestedPhoto - 1));
         }
     }
 })();
