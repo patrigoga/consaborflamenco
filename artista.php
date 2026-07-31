@@ -178,8 +178,24 @@ $gallery = array_values(array_filter(array_map(
     array_slice(is_array($webPage['gallery'] ?? null) ? $webPage['gallery'] : [], 0, 9)
 ), static fn (string $path): bool => $path !== ''));
 $videos = array_values(is_array($webPage['videos'] ?? null) ? $webPage['videos'] : []);
+
 $events = array_values(is_array($webPage['events'] ?? null) ? $webPage['events'] : []);
+usort($events, static function (array $a, array $b): int {
+    $timeA = !empty($a['date']) ? strtotime((string) $a['date']) : false;
+    $timeB = !empty($b['date']) ? strtotime((string) $b['date']) : false;
+
+    // Sin fecha, al final: no sabemos cuando es, no se puede ordenar.
+    return ($timeA !== false ? $timeA : PHP_INT_MAX) <=> ($timeB !== false ? $timeB : PHP_INT_MAX);
+});
+
 $news = array_values(is_array($webPage['news'] ?? null) ? $webPage['news'] : []);
+usort($news, static function (array $a, array $b): int {
+    $timeA = !empty($a['date']) ? strtotime((string) $a['date']) : false;
+    $timeB = !empty($b['date']) ? strtotime((string) $b['date']) : false;
+
+    // Actualidad: la mas reciente primero; sin fecha, al final.
+    return ($timeB !== false ? $timeB : -1) <=> ($timeA !== false ? $timeA : -1);
+});
 $socialLinks = is_array($webPage['social_links'] ?? null) ? $webPage['social_links'] : [];
 $contactFields = is_array($webPage['contact_fields'] ?? null) ? $webPage['contact_fields'] : [];
 $siteBaseUrl = artist_public_base_url();
@@ -280,13 +296,16 @@ if ($contactItems) {
  * Cabecera de seccion: banda a todo el ancho con el nombre de la seccion
  * centrado y a gran tamano. Sin numeracion ni antetitulo: el rotulo manda.
  */
-function artist_render_section_band(string $title): void
+function artist_render_section_band(string $title, string $meta = ''): void
 {
     ?>
     <div class="ms-section-band">
         <div class="ms-shell ms-section-band-inner" data-reveal>
             <h2><?= e($title) ?></h2>
             <span class="ms-section-ornament" aria-hidden="true"></span>
+            <?php if ($meta !== ''): ?>
+                <p class="ms-section-meta"><?= e($meta) ?></p>
+            <?php endif; ?>
         </div>
     </div>
     <?php
@@ -449,9 +468,14 @@ $shareText = $displayName . ' — Galería';
     </section>
 
     <?php if ($gallery): ?>
-        <?php $galleryIsSlider = count($gallery) > 3; ?>
+        <?php
+        $galleryIsSlider = count($gallery) > 3;
+        $galleryCount = count($gallery);
+        $galleryCountLabel = $galleryCount . ' ' . ($galleryCount === 1 ? 'fotografía' : 'fotografías');
+        $galleryZoomIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.2 15.2 20 20M10.5 7.5v6M7.5 10.5h6"/></svg>';
+        ?>
         <section id="galeria" class="ms-section">
-            <?php artist_render_section_band('Galería'); ?>
+            <?php artist_render_section_band('Galería', $galleryCountLabel); ?>
             <div class="ms-shell">
                 <div class="ms-gallery<?= $galleryIsSlider ? ' is-slider' : '' ?>" data-gallery>
                     <div class="ms-gallery-viewport" data-gallery-viewport<?= $galleryIsSlider ? ' tabindex="0" role="group" aria-label="Galería de ' . e($displayName) . ', desliza para ver más fotos"' : '' ?>>
@@ -461,6 +485,8 @@ $shareText = $displayName . ' — Galería';
                                 <figure class="ms-gallery-item"<?= $galleryIsSlider ? '' : ' data-reveal' ?>>
                                     <button type="button" class="ms-gallery-open" data-gallery-item data-full="<?= e($galleryImage) ?>" data-share-url="<?= e($photoShareUrl) ?>" aria-label="Ampliar imagen <?= e((string) ($galleryIndex + 1)) ?> de <?= e($displayName) ?>">
                                         <img src="<?= e($galleryImage) ?>" alt="Fotografía de <?= e($displayName) ?>" loading="lazy">
+                                        <span class="ms-gallery-index" aria-hidden="true"><?= e(sprintf('%02d', $galleryIndex + 1)) ?></span>
+                                        <span class="ms-gallery-zoom" aria-hidden="true"><?= $galleryZoomIcon ?></span>
                                     </button>
                                     <?php artist_render_share_bar($photoShareUrl, $shareText, 'Compartir imagen ' . ($galleryIndex + 1), $shareIcons, 'ms-gallery-share'); ?>
                                 </figure>
@@ -512,74 +538,117 @@ $shareText = $displayName . ' — Galería';
     <?php endif; ?>
 
     <?php if ($events): ?>
+        <?php $eventsHaveList = count($events) > 1; ?>
         <section id="eventos" class="ms-section">
             <?php artist_render_section_band('Agenda'); ?>
             <div class="ms-shell">
-                <div class="ms-agenda">
-                    <?php foreach ($events as $ev): ?>
-                        <?php $eventTimestamp = !empty($ev['date']) ? strtotime((string) $ev['date']) : false; ?>
-                        <article class="ms-agenda-row" data-reveal>
-                            <?php if (!empty($ev['date'])): ?>
-                                <div class="ms-agenda-date">
-                                    <?php if ($eventTimestamp): ?>
-                                        <strong><?= e(date('d', $eventTimestamp)) ?></strong>
-                                        <span><?= e(artist_public_month_label((int) date('n', $eventTimestamp))) ?></span>
-                                    <?php else: ?>
-                                        <span><?= e((string) $ev['date']) ?></span>
+                <div class="ms-agenda-layout<?= $eventsHaveList ? ' has-list' : '' ?>">
+                    <div class="ms-agenda">
+                        <?php foreach ($events as $eventIndex => $ev): ?>
+                            <?php $eventTimestamp = !empty($ev['date']) ? strtotime((string) $ev['date']) : false; ?>
+                            <article class="ms-agenda-row" id="ms-evento-<?= e((string) $eventIndex) ?>" data-agenda-row="<?= e((string) $eventIndex) ?>" data-reveal>
+                                <?php if (!empty($ev['date'])): ?>
+                                    <div class="ms-agenda-date">
+                                        <?php if ($eventTimestamp): ?>
+                                            <strong><?= e(date('d', $eventTimestamp)) ?></strong>
+                                            <span><?= e(artist_public_month_label((int) date('n', $eventTimestamp))) ?></span>
+                                        <?php else: ?>
+                                            <span><?= e((string) $ev['date']) ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
+
+                                <div class="ms-agenda-body">
+                                    <?php if ($eventTimestamp || !empty($ev['time'])): ?>
+                                        <p class="ms-agenda-time">
+                                            <?php if ($eventTimestamp): ?><?= e(date('Y', $eventTimestamp)) ?><?php endif; ?>
+                                            <?php if ($eventTimestamp && !empty($ev['time'])): ?> · <?php endif; ?>
+                                            <?php if (!empty($ev['time'])): ?><?= e((string) $ev['time']) ?> h<?php endif; ?>
+                                        </p>
+                                    <?php endif; ?>
+                                    <?php if (!empty($ev['title'])): ?><h3><?= e((string) $ev['title']) ?></h3><?php endif; ?>
+                                    <?php if (!empty($ev['description'])): ?><p><?= nl2br(e((string) $ev['description'])) ?></p><?php endif; ?>
+                                    <?php if (!empty($ev['url'])): ?>
+                                        <a class="ms-agenda-link" href="<?= e(artist_public_link_url((string) $ev['url'])) ?>" target="_blank" rel="noopener">Ver evento</a>
                                     <?php endif; ?>
                                 </div>
-                            <?php endif; ?>
 
-                            <div class="ms-agenda-body">
-                                <?php if ($eventTimestamp || !empty($ev['time'])): ?>
-                                    <p class="ms-agenda-time">
-                                        <?php if ($eventTimestamp): ?><?= e(date('Y', $eventTimestamp)) ?><?php endif; ?>
-                                        <?php if ($eventTimestamp && !empty($ev['time'])): ?> · <?php endif; ?>
-                                        <?php if (!empty($ev['time'])): ?><?= e((string) $ev['time']) ?> h<?php endif; ?>
-                                    </p>
+                                <?php if (!empty($ev['image_path'])): ?>
+                                    <div class="ms-agenda-thumb">
+                                        <img src="<?= e(artist_public_media_url((string) $ev['image_path'])) ?>" alt="<?= e((string) ($ev['title'] ?? 'Evento')) ?>" loading="lazy">
+                                    </div>
                                 <?php endif; ?>
-                                <?php if (!empty($ev['title'])): ?><h3><?= e((string) $ev['title']) ?></h3><?php endif; ?>
-                                <?php if (!empty($ev['description'])): ?><p><?= nl2br(e((string) $ev['description'])) ?></p><?php endif; ?>
-                                <?php if (!empty($ev['url'])): ?>
-                                    <a class="ms-agenda-link" href="<?= e(artist_public_link_url((string) $ev['url'])) ?>" target="_blank" rel="noopener">Ver evento</a>
-                                <?php endif; ?>
-                            </div>
+                            </article>
+                        <?php endforeach; ?>
+                    </div>
 
-                            <?php if (!empty($ev['image_path'])): ?>
-                                <div class="ms-agenda-thumb">
-                                    <img src="<?= e(artist_public_media_url((string) $ev['image_path'])) ?>" alt="<?= e((string) ($ev['title'] ?? 'Evento')) ?>" loading="lazy">
-                                </div>
-                            <?php endif; ?>
-                        </article>
-                    <?php endforeach; ?>
+                    <?php if ($eventsHaveList): ?>
+                        <aside class="ms-agenda-aside" data-reveal aria-label="Todas las fechas de <?= e($displayName) ?>">
+                            <p class="ms-agenda-aside-title">Todas las fechas</p>
+                            <nav class="ms-agenda-list" data-agenda-nav>
+                                <?php foreach ($events as $eventIndex => $ev): ?>
+                                    <?php $listTimestamp = !empty($ev['date']) ? strtotime((string) $ev['date']) : false; ?>
+                                    <a class="ms-agenda-list-item" href="#ms-evento-<?= e((string) $eventIndex) ?>" data-agenda-link="<?= e((string) $eventIndex) ?>">
+                                        <span class="ms-agenda-list-date"><?= $listTimestamp ? e(date('d', $listTimestamp) . ' ' . artist_public_month_label((int) date('n', $listTimestamp))) : '—' ?></span>
+                                        <span class="ms-agenda-list-title"><?= e((string) ($ev['title'] ?? 'Evento')) ?></span>
+                                    </a>
+                                <?php endforeach; ?>
+                            </nav>
+                        </aside>
+                    <?php endif; ?>
                 </div>
             </div>
         </section>
     <?php endif; ?>
 
     <?php if ($news): ?>
+        <?php
+        $featuredNews = $news[0];
+        $restNews = array_slice($news, 1);
+        ?>
         <section id="actualidad" class="ms-section">
             <?php artist_render_section_band('Actualidad'); ?>
             <div class="ms-shell">
-                <div class="ms-cards">
-                    <?php foreach ($news as $item): ?>
-                        <article class="ms-card" data-reveal>
-                            <?php if (!empty($item['image_path'])): ?>
-                                <img src="<?= e(artist_public_media_url((string) $item['image_path'])) ?>" alt="<?= e((string) ($item['title'] ?? 'Actualidad')) ?>" loading="lazy">
-                            <?php endif; ?>
-                            <div class="ms-card-body">
-                                <?php if (!empty($item['date'])): ?>
-                                    <p class="ms-card-meta"><?php $ts = strtotime((string) $item['date']); echo $ts ? e(date('d/m/Y', $ts)) : e((string) $item['date']); ?></p>
+                <article class="ms-news-featured" data-reveal>
+                    <?php if (!empty($featuredNews['image_path'])): ?>
+                        <div class="ms-news-featured-media">
+                            <img src="<?= e(artist_public_media_url((string) $featuredNews['image_path'])) ?>" alt="<?= e((string) ($featuredNews['title'] ?? 'Actualidad')) ?>" loading="lazy">
+                        </div>
+                    <?php endif; ?>
+                    <div class="ms-news-featured-body">
+                        <p class="ms-news-featured-kicker">Última actualidad</p>
+                        <?php if (!empty($featuredNews['date'])): ?>
+                            <p class="ms-card-meta"><?php $ts = strtotime((string) $featuredNews['date']); echo $ts ? e(date('d/m/Y', $ts)) : e((string) $featuredNews['date']); ?></p>
+                        <?php endif; ?>
+                        <?php if (!empty($featuredNews['title'])): ?><h3><?= e((string) $featuredNews['title']) ?></h3><?php endif; ?>
+                        <?php if (!empty($featuredNews['summary'])): ?><p><?= nl2br(e((string) $featuredNews['summary'])) ?></p><?php endif; ?>
+                        <?php if (!empty($featuredNews['url'])): ?>
+                            <a class="ms-agenda-link" href="<?= e(artist_public_link_url((string) $featuredNews['url'])) ?>" target="_blank" rel="noopener">Leer más</a>
+                        <?php endif; ?>
+                    </div>
+                </article>
+
+                <?php if ($restNews): ?>
+                    <div class="ms-cards">
+                        <?php foreach ($restNews as $item): ?>
+                            <article class="ms-card" data-reveal>
+                                <?php if (!empty($item['image_path'])): ?>
+                                    <img src="<?= e(artist_public_media_url((string) $item['image_path'])) ?>" alt="<?= e((string) ($item['title'] ?? 'Actualidad')) ?>" loading="lazy">
                                 <?php endif; ?>
-                                <?php if (!empty($item['title'])): ?><h3><?= e((string) $item['title']) ?></h3><?php endif; ?>
-                                <?php if (!empty($item['summary'])): ?><p><?= nl2br(e((string) $item['summary'])) ?></p><?php endif; ?>
-                                <?php if (!empty($item['url'])): ?>
-                                    <a class="ms-agenda-link" href="<?= e(artist_public_link_url((string) $item['url'])) ?>" target="_blank" rel="noopener">Leer más</a>
-                                <?php endif; ?>
-                            </div>
-                        </article>
-                    <?php endforeach; ?>
-                </div>
+                                <div class="ms-card-body">
+                                    <?php if (!empty($item['date'])): ?>
+                                        <p class="ms-card-meta"><?php $ts = strtotime((string) $item['date']); echo $ts ? e(date('d/m/Y', $ts)) : e((string) $item['date']); ?></p>
+                                    <?php endif; ?>
+                                    <?php if (!empty($item['title'])): ?><h3><?= e((string) $item['title']) ?></h3><?php endif; ?>
+                                    <?php if (!empty($item['summary'])): ?><p><?= nl2br(e((string) $item['summary'])) ?></p><?php endif; ?>
+                                    <?php if (!empty($item['url'])): ?>
+                                        <a class="ms-agenda-link" href="<?= e(artist_public_link_url((string) $item['url'])) ?>" target="_blank" rel="noopener">Leer más</a>
+                                    <?php endif; ?>
+                                </div>
+                            </article>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
             </div>
         </section>
     <?php endif; ?>
@@ -705,6 +774,25 @@ $shareText = $displayName . ' — Galería';
             });
         }, { rootMargin: '-45% 0px -50% 0px' });
         sections.forEach((section) => spy.observe(section));
+    }
+
+    /* --- Agenda: el listado lateral marca la fila visible ------------------ */
+    const agendaLinks = Array.from(document.querySelectorAll('[data-agenda-link]'));
+    const agendaRows = Array.from(document.querySelectorAll('[data-agenda-row]'));
+    if (agendaLinks.length && agendaRows.length) {
+        const setCurrent = (index) => {
+            agendaLinks.forEach((link) => link.classList.toggle('is-current', link.dataset.agendaLink === index));
+        };
+        agendaLinks.forEach((link) => link.addEventListener('click', () => setCurrent(link.dataset.agendaLink || '')));
+        if ('IntersectionObserver' in window) {
+            const agendaSpy = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) { return; }
+                    setCurrent(entry.target.dataset.agendaRow || '');
+                });
+            }, { rootMargin: '-45% 0px -50% 0px' });
+            agendaRows.forEach((row) => agendaSpy.observe(row));
+        }
     }
 
     /* --- Compartir: nativo del movil, redes y copiar enlace --------------- */

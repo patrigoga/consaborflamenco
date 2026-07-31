@@ -227,7 +227,8 @@ body.artist-public-body :focus-visible {
 .ms-hero {
     position: relative;
     display: grid;
-    min-height: min(94vh, 940px);
+    min-height: 100vh;
+    min-height: 100dvh;
     margin-top: calc(var(--ms-topbar-h) * -1);
     isolation: isolate;
     overflow: hidden;
@@ -419,6 +420,16 @@ body.artist-public-body :focus-visible {
     z-index: 1;
 }
 
+/* Subtitulo opcional bajo el filete: p.ej. el numero de fotos de la galeria */
+.ms-section-meta {
+    margin: clamp(16px, 2vw, 22px) 0 0;
+    color: var(--ms-ink-faint);
+    font-size: 0.76rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
 /* Rotulo de la seccion: unico texto de la banda, centrado y a gran tamano */
 .ms-section-band h2 {
     margin: 0;
@@ -528,6 +539,13 @@ body.artist-public-body :focus-visible {
     border-radius: 3px;
     background: var(--ms-panel);
     cursor: zoom-in;
+    box-shadow: 0 0 0 1px transparent;
+    transition: box-shadow 460ms var(--ms-ease);
+}
+
+.ms-gallery-item:hover .ms-gallery-open,
+.ms-gallery-open:focus-visible {
+    box-shadow: 0 0 0 1px rgba(201, 164, 90, 0.55), 0 26px 46px -22px rgba(0, 0, 0, 0.7);
 }
 
 .ms-gallery-open img {
@@ -560,6 +578,56 @@ body.artist-public-body :focus-visible {
 .ms-gallery-item:hover .ms-gallery-open::after,
 .ms-gallery-item:focus-within .ms-gallery-open::after {
     opacity: 1;
+}
+
+/* Numero de catalogo: siempre visible, discreto, como en una lamina editorial */
+.ms-gallery-index {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 1;
+    padding: 4px 10px;
+    color: rgba(247, 242, 233, 0.86);
+    background: rgba(7, 9, 12, 0.42);
+    border: 1px solid rgba(247, 242, 233, 0.2);
+    border-radius: 999px;
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+/* Icono de lupa: aparece centrado como pista de que la foto se puede ampliar */
+.ms-gallery-zoom {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    color: var(--ms-ink);
+    background: rgba(7, 9, 12, 0.5);
+    border: 1px solid rgba(247, 242, 233, 0.3);
+    border-radius: 999px;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.82);
+    transition: opacity 320ms var(--ms-ease), transform 320ms var(--ms-ease);
+    pointer-events: none;
+}
+
+.ms-gallery-zoom svg {
+    width: 20px;
+    height: 20px;
+}
+
+.ms-gallery-item:hover .ms-gallery-zoom,
+.ms-gallery-open:focus-visible .ms-gallery-zoom {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
 }
 
 /* Flechas del carrusel */
@@ -898,8 +966,21 @@ body.artist-public-body :focus-visible {
    se ve equilibrada, que era el problema del diseno anterior)
    -------------------------------------------------------------------------- */
 
+.ms-agenda-layout {
+    display: grid;
+    gap: clamp(34px, 4vw, 56px);
+}
+
+@media (min-width: 1000px) {
+    .ms-agenda-layout.has-list {
+        grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+        align-items: start;
+    }
+}
+
 .ms-agenda {
     display: grid;
+    min-width: 0;
     border-top: 1px solid var(--ms-line);
 }
 
@@ -910,7 +991,84 @@ body.artist-public-body :focus-visible {
     gap: clamp(20px, 3.5vw, 56px);
     padding-block: clamp(24px, 3vw, 38px);
     border-bottom: 1px solid var(--ms-line);
+    scroll-margin-top: var(--ms-topbar-h);
     transition: background 400ms var(--ms-ease);
+}
+
+/* --------------------------------------------------------------------------
+   Agenda: listado lateral con todas las fechas
+   -------------------------------------------------------------------------- */
+
+.ms-agenda-aside {
+    display: grid;
+    gap: 14px;
+    padding: clamp(18px, 2vw, 24px);
+    border: 1px solid var(--ms-line);
+    border-radius: 3px;
+    background: var(--ms-panel);
+}
+
+@media (min-width: 1000px) {
+    .ms-agenda-aside {
+        position: sticky;
+        top: calc(var(--ms-topbar-h) + 24px);
+    }
+}
+
+.ms-agenda-aside-title {
+    margin: 0;
+    color: var(--ms-ink-faint);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.ms-agenda-list {
+    display: grid;
+    gap: 2px;
+    max-height: min(58vh, 480px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+.ms-agenda-list-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: baseline;
+    gap: 12px;
+    padding: 10px;
+    border-radius: 3px;
+    transition: background 260ms var(--ms-ease);
+}
+
+.ms-agenda-list-item:hover,
+.ms-agenda-list-item.is-current {
+    background: rgba(247, 242, 233, 0.05);
+}
+
+.ms-agenda-list-date {
+    color: var(--ms-gold);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.ms-agenda-list-title {
+    overflow: hidden;
+    color: var(--ms-ink-soft);
+    font-size: 0.86rem;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: color 260ms var(--ms-ease);
+}
+
+.ms-agenda-list-item:hover .ms-agenda-list-title,
+.ms-agenda-list-item.is-current .ms-agenda-list-title {
+    color: var(--ms-ink);
 }
 
 @media (min-width: 860px) {
@@ -1025,6 +1183,77 @@ body.artist-public-body :focus-visible {
    Actualidad
    -------------------------------------------------------------------------- */
 
+/* Destacada: la entrada mas reciente, a todo lo ancho y con foto grande */
+.ms-news-featured {
+    display: grid;
+    overflow: hidden;
+    margin-bottom: clamp(30px, 3.6vw, 48px);
+    background: var(--ms-panel);
+    border: 1px solid var(--ms-line);
+    border-radius: 3px;
+    transition: border-color 400ms var(--ms-ease);
+}
+
+.ms-news-featured:hover {
+    border-color: var(--ms-line-strong);
+}
+
+@media (min-width: 760px) {
+    .ms-news-featured {
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    }
+}
+
+.ms-news-featured-media {
+    overflow: hidden;
+}
+
+.ms-news-featured-media img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 16 / 11;
+    object-fit: cover;
+    filter: saturate(0.92);
+    transition: transform 900ms var(--ms-ease);
+}
+
+.ms-news-featured:hover .ms-news-featured-media img {
+    transform: scale(1.035);
+}
+
+.ms-news-featured-body {
+    display: grid;
+    align-content: center;
+    gap: 4px;
+    padding: clamp(26px, 3vw, 46px);
+}
+
+.ms-news-featured-kicker {
+    margin: 0 0 4px;
+    color: var(--ms-gold);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+}
+
+.ms-news-featured-body h3 {
+    margin: 6px 0 0;
+    color: var(--ms-ink);
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 1.2rem + 1.4vw, 2.4rem);
+    font-weight: 700;
+    line-height: 1.18;
+}
+
+.ms-news-featured-body p {
+    margin: 14px 0 0;
+    color: var(--ms-ink-soft);
+    font-size: 1rem;
+    line-height: 1.7;
+}
+
 .ms-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
@@ -1055,6 +1284,11 @@ body.artist-public-body :focus-visible {
     width: 100%;
     aspect-ratio: 3 / 2;
     object-fit: cover;
+    transition: transform 700ms var(--ms-ease);
+}
+
+.ms-card:hover > img {
+    transform: scale(1.045);
 }
 
 .ms-card-body {
@@ -1364,10 +1598,6 @@ body.artist-public-body.ms-js [data-reveal].is-visible {
         -webkit-overflow-scrolling: touch;
     }
 
-    .ms-hero {
-        min-height: min(84vh, 720px);
-    }
-
     .ms-hero-content h1 {
         font-size: clamp(2.9rem, 13vw, 4.8rem);
         overflow-wrap: break-word;
@@ -1409,6 +1639,10 @@ body.artist-public-body.ms-js [data-reveal].is-visible {
 
     .ms-agenda-date {
         justify-self: start;
+    }
+
+    .ms-agenda-list-title {
+        white-space: normal;
     }
 
     /* Correos y webs largos: mejor partir la linea que recortarla */
