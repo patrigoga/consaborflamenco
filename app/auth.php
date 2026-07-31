@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/database.php';
-require_once __DIR__ . '/artist_claim.php';
 
 function read_json_file(string $path, array $fallback): array
 {
@@ -1162,13 +1161,6 @@ function db_upsert_member_for_user(PDO $pdo, int $userId, array $user): void
     $resolvedSlug = db_unique_member_slug($pdo, $requestedSlug, $userId);
     $profile['slug'] = $resolvedSlug;
 
-    $existingMember = $pdo->prepare('SELECT slug, nombre_publico FROM miembros WHERE usuario_id = :usuario_id LIMIT 1');
-    $existingMember->execute(['usuario_id' => $userId]);
-    $existingRow = $existingMember->fetch(PDO::FETCH_ASSOC) ?: null;
-    $shouldSyncMicrosite = !$existingRow
-        || clean_text((string) ($existingRow['slug'] ?? '')) !== $resolvedSlug
-        || clean_text((string) ($existingRow['nombre_publico'] ?? '')) !== $publicName;
-
     $statement = $pdo->prepare(
         'INSERT INTO miembros (
             usuario_id, tipo_miembro_id, nombre_publico, slug, numero_miembro, codigo_descuento, estado, biografia,
@@ -1211,10 +1203,6 @@ function db_upsert_member_for_user(PDO $pdo, int $userId, array $user): void
         'perfil_json' => json_encode($profile, JSON_UNESCAPED_UNICODE),
         'perfil_completo_at' => db_nullable_datetime($profile['completed_at'] ?? null),
     ]);
-
-    if ($shouldSyncMicrosite) {
-        db_sync_member_to_artist_microsite($user, $profile);
-    }
 }
 
 function db_unique_member_slug(PDO $pdo, string $slug, int $userId): string
@@ -1233,34 +1221,6 @@ function db_unique_member_slug(PDO $pdo, string $slug, int $userId): string
 
         $candidate = $base . '-' . $i;
         $i++;
-    }
-}
-
-function db_sync_member_to_artist_microsite(array $user, array $profile): void
-{
-    $externalUserId = clean_text((string) ($user['id'] ?? ''));
-    $slug = clean_text((string) ($profile['slug'] ?? ''));
-    $name = clean_text((string) ($profile['public_name'] ?? $user['name'] ?? ''));
-    $email = clean_text((string) ($user['email'] ?? ''));
-
-    if ($externalUserId === '' || $slug === '' || $name === '') {
-        return;
-    }
-
-    $apiSecret = clean_text((string) (csf_env('ARTIST_API_SECRET') ?? ''));
-    $baseUrl = clean_text((string) (csf_env('PUBLIC_ARTIST_URL') ?: csf_env('ARTIST_MICROSITE_URL') ?: ''));
-    if ($apiSecret === '' || $baseUrl === '') {
-        return;
-    }
-
-    try {
-        $result = csf_claim_artist($externalUserId, $name, $slug, $email !== '' ? $email : null);
-        if (empty($result['ok'])) {
-            $status = (string) ($result['status'] ?? 'n/a');
-            error_log('Artist microsite claim failed for user ' . $externalUserId . ' (status ' . $status . ')');
-        }
-    } catch (Throwable $exception) {
-        error_log('Artist microsite claim exception for user ' . $externalUserId . ': ' . $exception->getMessage());
     }
 }
 

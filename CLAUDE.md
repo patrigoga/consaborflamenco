@@ -10,8 +10,6 @@ Plataforma web "Con Sabor Flamenco": revista + comunidad + área de miembros + p
 
 Nota: `docs/10_DECISIONES_TECNICAS.md` todavía lista "lenguaje / framework / motor de BD" como *pendiente de definir*. Eso está desactualizado: el stack de facto es el de arriba.
 
-Hay un subproyecto aparte, [artist-microsite/](artist-microsite/): Next.js 13 + Prisma + Tailwind + TypeScript, con su propio `package.json`, `Dockerfile` y base de datos. **No comparte código con el PHP** — solo se sincroniza mediante llamadas HTTP desde `db_sync_member_to_artist_microsite()` en [app/auth.php](app/auth.php).
-
 ## Arquitectura
 
 ### Convención central: "una página = un `.php` en la raíz"
@@ -119,15 +117,7 @@ php tools/run_migration.php database/migrations/001_add_slug_to_miembros.sql
 php tools/populate_slugs.php
 ```
 
-Microsite de artistas:
-
-```powershell
-cd artist-microsite
-npm install
-npm run dev
-npm run prisma:generate
-npm run seed
-```
+El microsite público de artista (`/artista/{slug}`) es PHP puro (`artista.php` + `assets/css/artist-microsite.css`), sin build ni dependencias aparte.
 
 ## Entorno
 
