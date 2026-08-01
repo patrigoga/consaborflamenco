@@ -1995,20 +1995,6 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
             });
         }
 
-        document.querySelectorAll('.profile-tab-button').forEach((button) => {
-            button.addEventListener('click', () => {
-                const target = button.dataset.profileTab;
-                if (!target) {
-                    return;
-                }
-
-                document.querySelectorAll('.profile-tab-button').forEach((tab) => tab.classList.toggle('active', tab === button));
-                document.querySelectorAll('.profile-tab-panel').forEach((panel) => {
-                    panel.classList.toggle('active', panel.dataset.profileTab === target);
-                });
-            });
-        });
-
         function initializeRichTextEditors(scope = document) {
             scope.querySelectorAll('[data-editor-toolbar]').forEach((toolbar) => {
                 if (toolbar.dataset.editorReady === '1') {
