@@ -60,6 +60,12 @@ function admin_dashboard_default_stats(array $overrides = []): array
         'member_cards_active' => 0,
         'curriculum_items' => 0,
         'curriculum_items_visible' => 0,
+        'academias' => 0,
+        'academias_activas' => 0,
+        'academias_pendientes' => 0,
+        'academia_alumnos' => 0,
+        'academia_profesores' => 0,
+        'academia_cursos' => 0,
         'setters' => 0,
         'setters_active' => 0,
         'setters_pending' => 0,
@@ -199,6 +205,12 @@ function admin_dashboard_stats(): array
         'password_reset_tokens' => admin_safe_count($pdo, 'SELECT COUNT(*) FROM password_reset_tokens'),
         'password_reset_tokens_active' => admin_safe_count($pdo, 'SELECT COUNT(*) FROM password_reset_tokens WHERE used_at IS NULL AND expires_at > UTC_TIMESTAMP()'),
         'password_reset_tokens_used' => admin_safe_count($pdo, 'SELECT COUNT(*) FROM password_reset_tokens WHERE used_at IS NOT NULL'),
+        'academias' => admin_safe_count($pdo, 'SELECT COUNT(*) FROM academias'),
+        'academias_activas' => admin_safe_count($pdo, "SELECT COUNT(*) FROM academias WHERE estado = 'ACTIVA'"),
+        'academias_pendientes' => admin_safe_count($pdo, "SELECT COUNT(*) FROM academias WHERE estado = 'PENDIENTE'"),
+        'academia_alumnos' => admin_safe_count($pdo, "SELECT COUNT(*) FROM academia_alumnos WHERE estado = 'ACTIVO'"),
+        'academia_profesores' => admin_safe_count($pdo, "SELECT COUNT(*) FROM academia_miembros WHERE rol = 'PROFESOR' AND estado = 'ACTIVO'"),
+        'academia_cursos' => admin_safe_count($pdo, 'SELECT COUNT(*) FROM academia_cursos'),
     ]);
 }
 

@@ -5,6 +5,23 @@ require_once __DIR__ . '/app/auth.php';
 require_once __DIR__ . '/app/layout.php';
 
 $user = require_login();
+
+// Degrada en silencio si el modulo de academias aun no esta migrado en este entorno.
+$academiaPanelLink = false;
+$alumnoPanelLink = false;
+$panelPdo = db();
+if ($panelPdo) {
+    try {
+        $academiaPanelLink = academia_memberships_for_user($panelPdo, (int) $user['id'], ['RESPONSABLE', 'PROFESOR']) !== [];
+
+        $alumnoCheck = $panelPdo->prepare('SELECT id FROM academia_alumnos WHERE usuario_id = :usuario_id AND estado = "ACTIVO" LIMIT 1');
+        $alumnoCheck->execute(['usuario_id' => (int) $user['id']]);
+        $alumnoPanelLink = $alumnoCheck->fetchColumn() !== false;
+    } catch (Throwable $exception) {
+        error_log('[panel-usuario] Academia links skipped: ' . $exception->getMessage());
+    }
+}
+
 $userName = $user['name'] ?? 'Miembro';
 $memberNumber = member_number_for_user($user);
 $memberCode = member_code_for_user($user);
@@ -953,6 +970,8 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                     <a href="#tarjeta-miembro" data-panel-link="tarjeta-miembro">Tarjeta de miembro</a>
                     <a href="#banners" data-panel-link="banners">Banners</a>
                     <a href="#seguridad" data-panel-link="seguridad">Seguridad</a>
+                    <?php if ($academiaPanelLink): ?><a href="panel-academia.php">Mi academia</a><?php endif; ?>
+                    <?php if ($alumnoPanelLink): ?><a href="panel-alumno.php">Mis clases</a><?php endif; ?>
                 </nav>
             </aside>
 

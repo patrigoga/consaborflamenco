@@ -90,7 +90,7 @@ if ($pdo) {
                     <?php if ($academies): ?>
                         <div class="editorial-grid directory-grid">
                             <?php foreach ($academies as $academy): ?>
-                                <a class="editorial-story directory-card" href="artista/<?= e(rawurlencode($academy['slug'])) ?>">
+                                <a class="editorial-story directory-card" href="academia/<?= e(rawurlencode($academy['slug'])) ?>">
                                     <?php if ($academy['photo'] !== ''): ?>
                                         <img src="<?= e($academy['photo']) ?>" alt="Imagen de <?= e($academy['name']) ?>" loading="lazy" width="640" height="480">
                                     <?php else: ?>

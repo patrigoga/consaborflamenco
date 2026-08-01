@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/database.php';
+require_once __DIR__ . '/academia_repository.php';
 
 function read_json_file(string $path, array $fallback): array
 {
@@ -1139,6 +1140,7 @@ function db_update_legacy_user(PDO $pdo, array $updatedUser): void
     if (($updatedUser['role'] ?? 'user') !== 'admin') {
         try {
             db_upsert_member_for_user($pdo, $userId, $updatedUser);
+            academia_sync_membership($pdo, $userId);
         } catch (Throwable $exception) {
             // Keep auth flow alive if production DB is pending member-table migrations.
             error_log('Member upsert skipped for user ' . $uuid . ': ' . $exception->getMessage());

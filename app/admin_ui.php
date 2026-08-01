@@ -14,6 +14,7 @@ function admin_sections(): array
             'label' => 'Usuarios',
             'items' => [
                 'miembros' => ['label' => 'Miembros', 'target' => 'miembros'],
+                'academias' => ['label' => 'Academias', 'target' => 'academias'],
                 'setters' => ['label' => 'Setters', 'target' => 'setters'],
             ],
         ],
@@ -75,16 +76,16 @@ function admin_section_url(string $section, array $params = []): string
 function admin_badge_class(string $status): string
 {
     $status = strtoupper(trim($status));
-    if (in_array($status, ['ACTIVO', 'ACTIVE', 'PUBLICADO', 'PUBLISHED', 'APROBADO', 'APPROVED', 'PAGADO', 'PAID', 'VALIDADA', 'AL_DIA', 'VIP', 'COMPLETO'], true)) {
+    if (in_array($status, ['ACTIVO', 'ACTIVE', 'ACTIVA', 'PUBLICADO', 'PUBLISHED', 'APROBADO', 'APPROVED', 'PAGADO', 'PAID', 'VALIDADA', 'AL_DIA', 'VIP', 'COMPLETO', 'MATRICULA_ABIERTA', 'EN_CURSO', 'CONVERTIDA'], true)) {
         return 'status-pill-active';
     }
-    if (in_array($status, ['PENDIENTE', 'PENDING', 'REVISION', 'VALIDATING', 'PENDIENTE_PAGO', 'PENDIENTE_COBRO', 'NEW', 'NUEVO', 'SIMPATIZANTE'], true)) {
+    if (in_array($status, ['PENDIENTE', 'PENDING', 'REVISION', 'VALIDATING', 'PENDIENTE_PAGO', 'PENDIENTE_COBRO', 'NEW', 'NUEVO', 'SIMPATIZANTE', 'SOLICITADA', 'PENDIENTE_DOCUMENTACION', 'PAUSADA', 'EN_PROCESO'], true)) {
         return 'status-pill-pending';
     }
-    if (in_array($status, ['SUSPENDIDO', 'RECHAZADO', 'REJECTED', 'SPAM', 'FALLIDO', 'BLOQUEADAS'], true)) {
+    if (in_array($status, ['SUSPENDIDO', 'SUSPENDIDA', 'RECHAZADO', 'RECHAZADA', 'REJECTED', 'SPAM', 'FALLIDO', 'BLOQUEADAS'], true)) {
         return 'status-pill-danger';
     }
-    if (in_array($status, ['ARCHIVADO', 'ARCHIVED', 'BORRADOR', 'DRAFT', 'INACTIVO', 'INACTIVE', 'CADUCADO', 'CANCELADO'], true)) {
+    if (in_array($status, ['ARCHIVADO', 'ARCHIVED', 'BORRADOR', 'DRAFT', 'INACTIVO', 'INACTIVE', 'CADUCADO', 'CANCELADO', 'CANCELADA', 'FINALIZADA', 'FINALIZADO', 'BAJA', 'CERRADO', 'DESCARTADA'], true)) {
         return 'status-pill-neutral';
     }
 
