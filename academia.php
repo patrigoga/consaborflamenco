@@ -91,8 +91,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?php if ($mainPhoto !== ''): ?>
                         <img src="<?= e($mainPhoto) ?>" alt="Imagen de <?= e($displayName) ?>" loading="lazy" style="width:100%;border-radius:var(--radius);margin-bottom:24px;">
                     <?php endif; ?>
-                    <?php if ($academia['biografia'] !== ''): ?>
-                        <p><?= e((string) $academia['biografia']) ?></p>
+                    <?php $descripcion = academia_descripcion($academia); ?>
+                    <?php if ($descripcion !== ''): ?>
+                        <p><?= e($descripcion) ?></p>
                     <?php endif; ?>
 
                     <div class="editorial-story-content" style="margin-top:16px;">

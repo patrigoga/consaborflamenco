@@ -1,9 +1,20 @@
 <?php
 declare(strict_types=1);
 
+/**
+ * Id numerico del usuario en la tabla `usuarios`.
+ *
+ * Ojo: `$user['id']` NO es ese numero, es el uuid (ver db_user_from_row()).
+ * El id numerico, que es al que apuntan todas las claves foraneas, va en `db_id`.
+ */
+function academia_user_id(array $user): int
+{
+    return (int) ($user['db_id'] ?? 0);
+}
+
 function academia_require_role(PDO $pdo, array $user, array $roles): array
 {
-    $userId = (int) ($user['id'] ?? 0);
+    $userId = academia_user_id($user);
     $memberships = academia_memberships_for_user($pdo, $userId, $roles);
 
     if (!$memberships) {
@@ -25,7 +36,7 @@ function academia_require_role(PDO $pdo, array $user, array $roles): array
 
 function academia_require_alumno(PDO $pdo, array $user): array
 {
-    $userId = (int) ($user['id'] ?? 0);
+    $userId = academia_user_id($user);
     $statement = $pdo->prepare(
         'SELECT al.*, a.miembro_id AS academia_id, m.nombre_publico AS academia_nombre
          FROM academia_alumnos al

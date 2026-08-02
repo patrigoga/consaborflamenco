@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/app/auth.php';
 require_once __DIR__ . '/app/layout.php';
+require_once __DIR__ . '/app/academia_security.php';
 
 $user = require_login();
 
@@ -12,10 +13,10 @@ $alumnoPanelLink = false;
 $panelPdo = db();
 if ($panelPdo) {
     try {
-        $academiaPanelLink = academia_memberships_for_user($panelPdo, (int) $user['id'], ['RESPONSABLE', 'PROFESOR']) !== [];
+        $academiaPanelLink = academia_memberships_for_user($panelPdo, academia_user_id($user), ['RESPONSABLE', 'PROFESOR']) !== [];
 
         $alumnoCheck = $panelPdo->prepare('SELECT id FROM academia_alumnos WHERE usuario_id = :usuario_id AND estado = "ACTIVO" LIMIT 1');
-        $alumnoCheck->execute(['usuario_id' => (int) $user['id']]);
+        $alumnoCheck->execute(['usuario_id' => academia_user_id($user)]);
         $alumnoPanelLink = $alumnoCheck->fetchColumn() !== false;
     } catch (Throwable $exception) {
         error_log('[panel-usuario] Academia links skipped: ' . $exception->getMessage());

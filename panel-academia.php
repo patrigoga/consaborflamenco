@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'facebook_url' => trim((string) ($_POST['facebook_url'] ?? '')),
                     'razon_social' => clean_text((string) ($_POST['razon_social'] ?? '')),
                     'cif' => clean_text((string) ($_POST['cif'] ?? '')),
-                ], (int) $user['id']);
+                ], academia_user_id($user));
                 academia_set_disciplinas($pdo, $academiaId, array_map('intval', $_POST['disciplinas'] ?? []));
                 $messages[] = 'Datos de la academia actualizados.';
             } elseif ($action === 'add_nivel' && $isResponsable) {
@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $academiaId,
                     (string) ($_POST['email'] ?? ''),
                     clean_text((string) ($_POST['especialidad'] ?? '')),
-                    (int) $user['id']
+                    academia_user_id($user)
                 );
                 if ($result['ok']) {
                     $messages[] = 'Profesor añadido.';
@@ -77,10 +77,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'email' => normalize_email((string) ($_POST['email'] ?? '')),
                     'telefono' => clean_text((string) ($_POST['telefono'] ?? '')),
                     'notas_internas' => clean_text((string) ($_POST['notas_internas'] ?? '')),
-                ], (int) $user['id']);
+                ], academia_user_id($user));
                 $messages[] = 'Alumno guardado.';
             } elseif ($action === 'upsert_curso' && $isResponsable) {
-                academia_upsert_curso($pdo, $academiaId, !empty($_POST['curso_id']) ? (int) $_POST['curso_id'] : null, [
+                $cursoGuardadoId = academia_upsert_curso($pdo, $academiaId, !empty($_POST['curso_id']) ? (int) $_POST['curso_id'] : null, [
                     'disciplina_id' => (int) ($_POST['disciplina_id'] ?? 0),
                     'nivel_id' => (int) ($_POST['nivel_id'] ?? 0),
                     'nombre' => clean_text((string) ($_POST['nombre'] ?? '')),
@@ -97,7 +97,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'plazas_maximas' => clean_text((string) ($_POST['plazas_maximas'] ?? '')),
                     'periodo_matricula_inicio' => clean_text((string) ($_POST['periodo_matricula_inicio'] ?? '')),
                     'periodo_matricula_fin' => clean_text((string) ($_POST['periodo_matricula_fin'] ?? '')),
-                ], (int) $user['id']);
+                ], academia_user_id($user));
+                academia_set_curso_profesores($pdo, $academiaId, $cursoGuardadoId, $_POST['profesores'] ?? []);
                 $messages[] = 'Curso guardado.';
             } elseif ($action === 'upsert_grupo' && $isResponsable) {
                 $cursoId = (int) ($_POST['curso_id'] ?? 0);
@@ -127,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'estado' => (string) ($_POST['estado'] ?? 'SOLICITADA'),
                         'descuento_pct' => clean_text((string) ($_POST['descuento_pct'] ?? '')),
                         'observaciones_internas' => clean_text((string) ($_POST['observaciones_internas'] ?? '')),
-                    ], (int) $user['id']);
+                    ], academia_user_id($user));
                     $messages[] = 'Matrícula creada.';
                 } else {
                     $errors[] = 'Alumno o curso no válido.';
@@ -151,7 +152,9 @@ $disciplinasAcademiaIds = array_column($disciplinasAcademia, 'id');
 $niveles = academia_list_niveles($pdo, $academiaId);
 
 if ($isResponsable) {
-    $profesores = $activeSection === 'profesores' ? academia_list_profesores($pdo, $academiaId) : [];
+    // Cursos tambien necesita el listado: sin asignar profesores a un curso, el
+    // panel del profesor se queda vacio porque todo lo suyo pasa por esa relacion.
+    $profesores = in_array($activeSection, ['profesores', 'cursos'], true) ? academia_list_profesores($pdo, $academiaId) : [];
     $alumnos = $activeSection === 'alumnos' ? academia_list_alumnos($pdo, $academiaId, clean_text((string) ($_GET['buscar'] ?? ''))) : [];
     $cursos = in_array($activeSection, ['cursos', 'grupos', 'matriculas'], true) ? academia_list_cursos($pdo, $academiaId) : [];
     $grupos = $activeSection === 'grupos' ? academia_list_grupos($pdo, $academiaId, !empty($_GET['curso_id']) ? (int) $_GET['curso_id'] : null) : [];
@@ -222,7 +225,7 @@ if ($isResponsable) {
                                         <input id="nombre_publico" name="nombre_publico" type="text" value="<?= e((string) $academia['nombre_publico']) ?>" required>
                                     </label>
                                     <label for="biografia">Descripción / historia
-                                        <textarea id="biografia" name="biografia" rows="4"><?= e((string) $academia['biografia']) ?></textarea>
+                                        <textarea id="biografia" name="biografia" rows="4"><?= e(academia_descripcion($academia)) ?></textarea>
                                     </label>
                                     <div class="form-grid-two">
                                         <label for="ciudad">Municipio
@@ -390,6 +393,11 @@ if ($isResponsable) {
                                         <h3><?= e((string) $curso['nombre']) ?></h3>
                                         <p><?= e((string) ($curso['disciplina_nombre'] ?? 'Sin disciplina')) ?><?= $curso['nivel_nombre'] ? ' · ' . e((string) $curso['nivel_nombre']) : '' ?></p>
                                         <p><?= e(ucfirst(strtolower((string) $curso['modalidad']))) ?><?= $curso['precio'] !== null ? ' · ' . e(number_format((float) $curso['precio'], 2, ',', '.')) . ' €' : '' ?></p>
+                                        <?php if (!empty($curso['profesores'])): ?>
+                                            <p class="field-help">Profesores: <?= e(implode(', ', $curso['profesores'])) ?></p>
+                                        <?php else: ?>
+                                            <p class="field-help">Sin profesor asignado.</p>
+                                        <?php endif; ?>
                                         <span class="status-pill <?= e(admin_badge_class((string) $curso['estado'])) ?>"><?= e(str_replace('_', ' ', (string) $curso['estado'])) ?></span>
                                         <?php if (!empty($curso['visible_publico'])): ?><span class="status-pill status-pill-active">Visible en la web</span><?php endif; ?>
                                     </article>
@@ -454,6 +462,21 @@ if ($isResponsable) {
                                         <label>Precio (€)<input name="precio" type="number" step="0.01" min="0"></label>
                                         <label>Tipo de cuota<input name="tipo_cuota" type="text" placeholder="Mensual, trimestral..."></label>
                                     </div>
+                                    <label>Profesores del curso
+                                        <?php if ($profesores): ?>
+                                            <div class="card-background-options" aria-label="Profesores asignados">
+                                                <?php foreach ($profesores as $profesor): ?>
+                                                    <label class="checkbox-field">
+                                                        <input type="checkbox" name="profesores[]" value="<?= e((string) $profesor['academia_miembro_id']) ?>">
+                                                        <span><?= e((string) $profesor['nombre']) ?></span>
+                                                    </label>
+                                                <?php endforeach; ?>
+                                            </div>
+                                            <span class="field-help">Cada profesor solo ve los cursos, grupos y alumnos que tenga asignados aquí.</span>
+                                        <?php else: ?>
+                                            <span class="field-help">Todavía no hay profesores. Añádelos en la pestaña Profesores para poder asignarlos a este curso.</span>
+                                        <?php endif; ?>
+                                    </label>
                                     <label class="checkbox-field"><input type="checkbox" name="visible_publico"> <span>Mostrar en la ficha pública de la academia</span></label>
                                     <button class="button button-primary" type="submit">Guardar curso</button>
                                 </form>

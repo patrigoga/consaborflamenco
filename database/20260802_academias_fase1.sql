@@ -1,9 +1,48 @@
 -- Con Sabor Flamenco - Modulo de Academias, Fase 1
--- Migracion no destructiva: crea tablas solo si no existen.
+-- Migracion no destructiva e idempotente: crea tablas solo si no existen,
+-- por lo que se puede volver a ejecutar sin riesgo.
 -- Ejecutar con: php tools/run_migration.php database/20260802_academias_fase1.sql
---
--- DEPENDENCIA: requiere que 20260718_disciplinas.sql se haya ejecutado antes,
--- porque academia_cursos declara una clave foranea contra disciplinas(id).
+
+-- Dependencia: academia_cursos declara una clave foranea contra disciplinas(id).
+-- Esas tablas nacieron en 20260718_disciplinas.sql, pero se comprobo contra el
+-- volcado de produccion del 2026-08-01 que esa migracion nunca llego a ejecutarse
+-- alli. Se repiten aqui con CREATE TABLE IF NOT EXISTS / INSERT IGNORE para que
+-- esta migracion sea autosuficiente: si ya existen, este bloque no hace nada.
+
+CREATE TABLE IF NOT EXISTS disciplinas (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    slug VARCHAR(80) NOT NULL UNIQUE,
+    nombre VARCHAR(120) NOT NULL,
+    estado ENUM('ACTIVA','INACTIVA') NOT NULL DEFAULT 'ACTIVA',
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO disciplinas (slug, nombre) VALUES
+('baile', 'Baile'),
+('cante', 'Cante'),
+('toque', 'Toque'),
+('percusion', 'Percusión');
+
+CREATE TABLE IF NOT EXISTS miembro_disciplinas (
+    miembro_id BIGINT UNSIGNED NOT NULL,
+    disciplina_id BIGINT UNSIGNED NOT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (miembro_id, disciplina_id),
+    CONSTRAINT fk_miembro_disciplinas_miembro FOREIGN KEY (miembro_id) REFERENCES miembros(id) ON DELETE CASCADE,
+    CONSTRAINT fk_miembro_disciplinas_disciplina FOREIGN KEY (disciplina_id) REFERENCES disciplinas(id) ON DELETE CASCADE,
+    INDEX idx_miembro_disciplinas_disciplina (disciplina_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS academia_disciplinas (
+    academia_id BIGINT UNSIGNED NOT NULL,
+    disciplina_id BIGINT UNSIGNED NOT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (academia_id, disciplina_id),
+    CONSTRAINT fk_academia_disciplinas_miembro FOREIGN KEY (academia_id) REFERENCES miembros(id) ON DELETE CASCADE,
+    CONSTRAINT fk_academia_disciplinas_disciplina FOREIGN KEY (disciplina_id) REFERENCES disciplinas(id) ON DELETE CASCADE,
+    INDEX idx_academia_disciplinas_disciplina (disciplina_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS academias (
     miembro_id BIGINT UNSIGNED PRIMARY KEY,

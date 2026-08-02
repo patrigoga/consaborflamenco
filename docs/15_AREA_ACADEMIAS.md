@@ -156,12 +156,51 @@ Modificados:
 php tools/run_migration.php database/20260802_academias_fase1.sql
 ```
 
-Requiere que `database/20260718_disciplinas.sql` se haya ejecutado antes, porque
-`academia_cursos` declara una clave foranea contra `disciplinas(id)`.
+Es idempotente: se puede volver a ejecutar sin efectos secundarios.
+
+La migracion crea tambien `disciplinas`, `miembro_disciplinas` y `academia_disciplinas`.
+Nacieron en `20260718_disciplinas.sql`, pero al comprobar el volcado de produccion del
+2026-08-01 se vio que **esa migracion nunca llego a ejecutarse alli**: la base de datos
+tenia 18 tablas y ninguna de disciplinas. Como `academia_cursos` declara una clave foranea
+contra `disciplinas(id)`, sin ese bloque la migracion se quedaba a medias, creando seis
+tablas y abortando. Se repiten con `CREATE TABLE IF NOT EXISTS` / `INSERT IGNORE` para que
+sea autosuficiente y no rompa nada si ya existen.
+
+Efecto secundario util: al crear `disciplinas`, los filtros por disciplina del directorio
+publico (`csf_fetch_member_directory()`) dejan de degradar al modo texto y pasan a usar la
+relacion real.
 
 El codigo degrada con elegancia si la migracion todavia no se ha ejecutado: tanto
 `panel-usuario.php` como `panel-admin.php` capturan el error y ocultan lo relativo a
 academias en lugar de romper la pagina.
+
+## Trampas del modelo heredado que afectan a este modulo
+
+Dos comportamientos de `app/auth.php` que hay que respetar al ampliar el modulo:
+
+1. **`$user['id']` NO es el id numerico**, es el uuid (ver `db_user_from_row()`). El id al
+   que apuntan todas las claves foraneas es `$user['db_id']`. Se usa el helper
+   `academia_user_id()` de `app/academia_security.php` para no volver a equivocarse.
+2. **`miembros` tiene doble fuente de verdad**: las columnas y `perfil_json`.
+   `db_upsert_member_for_user()` reescribe las columnas desde `perfil_json` en cada inicio
+   de sesion, y ademas vacia siempre la columna `biografia`. Por eso
+   `academia_update_profile()` escribe en ambos sitios y la descripcion publica se guarda
+   en `perfil_json.short_description`, que es lo que lee `academia_descripcion()`.
+
+## Verificacion realizada
+
+Fase 1 se probo contra una copia del esquema real de produccion, levantando MariaDB
+aparte e importando el volcado del 2026-08-01:
+
+- Migracion ejecutada sobre el esquema real y repetida para confirmar idempotencia.
+- Las 44 funciones del repositorio y de seguridad ejercitadas contra la base de datos.
+- Alta automatica de academia al registrarse, incluida su repeticion.
+- Navegacion HTTP real con sesion iniciada de las siete secciones del panel.
+- Rol PROFESOR: menu reducido, sin acceso a Matriculas, y solo ve los alumnos de los
+  cursos que tiene asignados.
+- Rechazo de acciones de responsable ejecutadas por un profesor y de POST sin CSRF valido.
+- Intento de asignar a un curso un profesor de otra academia: descartado en el INSERT.
+- Ficha publica con slug real (200) y con slug inexistente (404).
 
 ## Fases
 

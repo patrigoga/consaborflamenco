@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/app/admin_repository.php';
 require_once __DIR__ . '/app/admin_ui.php';
+require_once __DIR__ . '/app/academia_security.php';
 require_once __DIR__ . '/app/legal_repository.php';
 require_once __DIR__ . '/app/site_content_repository.php';
 require_once __DIR__ . '/app/layout.php';
@@ -55,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 site_delete_contact_message((int) ($_POST['message_id'] ?? 0));
                 $adminMessages[] = 'Mensaje eliminado.';
             } elseif ($action === 'academia_set_estado' && admin_database() instanceof PDO) {
-                academia_admin_set_estado(admin_database(), (int) ($_POST['academia_id'] ?? 0), (string) ($_POST['estado'] ?? 'PENDIENTE'), (int) $user['id']);
+                academia_admin_set_estado(admin_database(), (int) ($_POST['academia_id'] ?? 0), (string) ($_POST['estado'] ?? 'PENDIENTE'), academia_user_id($user));
                 $adminMessages[] = 'Estado de la academia actualizado.';
             }
         } catch (Throwable $exception) {

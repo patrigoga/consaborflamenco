@@ -37,6 +37,20 @@ function academia_decode_config(?string $json): array
     return is_array($decoded) ? $decoded : [];
 }
 
+/**
+ * Descripcion publica de la academia.
+ *
+ * Vive en perfil_json porque db_upsert_member_for_user() vacia la columna
+ * `biografia` en cada login. La columna se usa solo como respaldo.
+ */
+function academia_descripcion(array $academia): string
+{
+    $profile = academia_decode_config((string) ($academia['perfil_json'] ?? ''));
+    $descripcion = clean_text((string) ($profile['short_description'] ?? ''));
+
+    return $descripcion !== '' ? $descripcion : clean_text((string) ($academia['biografia'] ?? ''));
+}
+
 function academia_memberships_for_user(PDO $pdo, int $userId, array $roles = []): array
 {
     $sql = 'SELECT am.*, a.estado AS academia_estado, a.plan, m.nombre_publico, m.slug
@@ -68,7 +82,7 @@ function academia_get(PDO $pdo, int $academiaId): ?array
 {
     $statement = $pdo->prepare(
         'SELECT a.*, m.nombre_publico, m.slug, m.biografia, m.ciudad, m.provincia_texto, m.telefono,
-                m.foto_principal_path, m.web_url, m.instagram_url, m.facebook_url, m.youtube_url
+                m.foto_principal_path, m.web_url, m.instagram_url, m.facebook_url, m.youtube_url, m.perfil_json
          FROM academias a
          INNER JOIN miembros m ON m.id = a.miembro_id
          WHERE a.miembro_id = :academia_id LIMIT 1'
@@ -83,7 +97,7 @@ function academia_get_by_slug(PDO $pdo, string $slug): ?array
 {
     $statement = $pdo->prepare(
         'SELECT a.*, m.nombre_publico, m.slug, m.biografia, m.ciudad, m.provincia_texto, m.telefono,
-                m.foto_principal_path, m.web_url, m.instagram_url, m.facebook_url, m.youtube_url
+                m.foto_principal_path, m.web_url, m.instagram_url, m.facebook_url, m.youtube_url, m.perfil_json
          FROM academias a
          INNER JOIN miembros m ON m.id = a.miembro_id
          WHERE m.slug = :slug LIMIT 1'
@@ -96,6 +110,23 @@ function academia_get_by_slug(PDO $pdo, string $slug): ?array
 
 function academia_update_profile(PDO $pdo, int $academiaId, array $data, int $actorUserId): void
 {
+    // `miembros` tiene doble fuente de verdad: las columnas y `perfil_json`.
+    // db_upsert_member_for_user() reescribe las columnas desde perfil_json en cada
+    // login, asi que hay que actualizar ambos o la edicion se revierte al entrar.
+    // La descripcion va solo en perfil_json porque esa funcion vacia `biografia`.
+    $current = $pdo->prepare('SELECT perfil_json FROM miembros WHERE id = :academia_id LIMIT 1');
+    $current->execute(['academia_id' => $academiaId]);
+    $profile = academia_decode_config((string) ($current->fetchColumn() ?: ''));
+
+    $profile['member_type'] = 'academia';
+    $profile['public_name'] = $data['nombre_publico'];
+    $profile['short_description'] = $data['biografia'];
+    $profile['city'] = $data['ciudad'];
+    $profile['province'] = $data['provincia_texto'];
+    $profile['phone'] = $data['telefono'];
+    $profile['website_url'] = $data['web_url'];
+    $profile['instagram_url'] = $data['instagram_url'];
+
     $pdo->prepare(
         'UPDATE miembros SET
             nombre_publico = :nombre_publico,
@@ -106,6 +137,7 @@ function academia_update_profile(PDO $pdo, int $academiaId, array $data, int $ac
             web_url = :web_url,
             instagram_url = :instagram_url,
             facebook_url = :facebook_url,
+            perfil_json = :perfil_json,
             updated_at = UTC_TIMESTAMP()
          WHERE id = :academia_id'
     )->execute([
@@ -117,6 +149,7 @@ function academia_update_profile(PDO $pdo, int $academiaId, array $data, int $ac
         'web_url' => $data['web_url'],
         'instagram_url' => $data['instagram_url'],
         'facebook_url' => $data['facebook_url'],
+        'perfil_json' => json_encode($profile, JSON_UNESCAPED_UNICODE),
         'academia_id' => $academiaId,
     ]);
 
@@ -353,8 +386,34 @@ function academia_list_cursos(PDO $pdo, int $academiaId, array $filters = []): a
 
     $statement = $pdo->prepare($sql);
     $statement->execute($params);
+    $cursos = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-    return $statement->fetchAll(PDO::FETCH_ASSOC);
+    if (!$cursos) {
+        return [];
+    }
+
+    $ids = array_column($cursos, 'id');
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $profesorStatement = $pdo->prepare(
+        "SELECT cp.curso_id, u.nombre
+         FROM academia_curso_profesores cp
+         INNER JOIN academia_miembros am ON am.id = cp.academia_miembro_id
+         INNER JOIN usuarios u ON u.id = am.usuario_id
+         WHERE cp.curso_id IN ($placeholders)
+         ORDER BY u.nombre ASC"
+    );
+    $profesorStatement->execute($ids);
+    $profesoresPorCurso = [];
+    foreach ($profesorStatement->fetchAll(PDO::FETCH_ASSOC) as $fila) {
+        $profesoresPorCurso[(int) $fila['curso_id']][] = (string) $fila['nombre'];
+    }
+
+    foreach ($cursos as &$curso) {
+        $curso['profesores'] = $profesoresPorCurso[(int) $curso['id']] ?? [];
+    }
+    unset($curso);
+
+    return $cursos;
 }
 
 function academia_get_curso(PDO $pdo, int $academiaId, int $cursoId): ?array
@@ -419,6 +478,41 @@ function academia_upsert_curso(PDO $pdo, int $academiaId, ?int $cursoId, array $
     )->execute($params);
 
     return (int) $pdo->lastInsertId();
+}
+
+function academia_curso_profesor_ids(PDO $pdo, int $cursoId): array
+{
+    $statement = $pdo->prepare('SELECT academia_miembro_id FROM academia_curso_profesores WHERE curso_id = :curso_id');
+    $statement->execute(['curso_id' => $cursoId]);
+
+    return array_map('intval', $statement->fetchAll(PDO::FETCH_COLUMN));
+}
+
+function academia_set_curso_profesores(PDO $pdo, int $academiaId, int $cursoId, array $academiaMiembroIds): void
+{
+    $pdo->prepare('DELETE FROM academia_curso_profesores WHERE curso_id = :curso_id')
+        ->execute(['curso_id' => $cursoId]);
+
+    if (!$academiaMiembroIds) {
+        return;
+    }
+
+    // El INSERT ... SELECT solo inserta si el profesor pertenece de verdad a esta
+    // academia: impide asignar profesores de otra academia manipulando el formulario.
+    $statement = $pdo->prepare(
+        'INSERT IGNORE INTO academia_curso_profesores (curso_id, academia_miembro_id)
+         SELECT :curso_id, am.id
+         FROM academia_miembros am
+         WHERE am.id = :academia_miembro_id AND am.academia_id = :academia_id AND am.rol = "PROFESOR"'
+    );
+
+    foreach ($academiaMiembroIds as $academiaMiembroId) {
+        $statement->execute([
+            'curso_id' => $cursoId,
+            'academia_miembro_id' => (int) $academiaMiembroId,
+            'academia_id' => $academiaId,
+        ]);
+    }
 }
 
 function academia_list_grupos(PDO $pdo, int $academiaId, ?int $cursoId = null): array
