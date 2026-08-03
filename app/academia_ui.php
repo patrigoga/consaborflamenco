@@ -41,7 +41,26 @@ function academia_section_url(string $section, array $params = []): string
 
 function academia_dia_semana_label(int $dia): string
 {
-    $labels = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    $labels = academia_dias_semana();
 
     return $labels[$dia] ?? '-';
+}
+
+/**
+ * Pinta las <option> de un catalogo de ENUM del modulo.
+ *
+ * Los catalogos viven en app/academia_repository.php, no aqui: los necesita
+ * tambien la capa de datos para validar, y ese fichero si lo carga siempre
+ * app/auth.php.
+ */
+function academia_enum_options(array $options, string $selected): string
+{
+    $html = '';
+    foreach ($options as $value => $label) {
+        $html .= '<option value="' . e((string) $value) . '"'
+            . ((string) $value === $selected ? ' selected' : '') . '>'
+            . e((string) $label) . '</option>';
+    }
+
+    return $html;
 }

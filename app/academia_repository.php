@@ -1,6 +1,125 @@
 <?php
 declare(strict_types=1);
 
+/**
+ * Catalogos de los ENUM del modulo.
+ *
+ * Fuente unica de verdad: se usan para pintar los <select> y para validar en
+ * servidor lo que llega por POST. Antes los valores estaban escritos a mano en
+ * el HTML de panel-academia.php y viajaban crudos hasta la consulta, asi que un
+ * valor inventado reventaba el INSERT contra la columna ENUM.
+ *
+ * Viven aqui, y no en academia_ui.php, porque tambien los necesita esta capa
+ * para validar y este es el fichero que carga siempre app/auth.php.
+ *
+ * Las claves deben coincidir exactamente con los ENUM de
+ * database/20260802_academias_fase1.sql.
+ */
+function academia_dias_semana(): array
+{
+    return [
+        1 => 'Lunes',
+        2 => 'Martes',
+        3 => 'Miércoles',
+        4 => 'Jueves',
+        5 => 'Viernes',
+        6 => 'Sábado',
+        0 => 'Domingo',
+    ];
+}
+
+function academia_curso_estados(): array
+{
+    return [
+        'BORRADOR' => 'Borrador',
+        'PUBLICADO' => 'Publicado',
+        'MATRICULA_ABIERTA' => 'Matrícula abierta',
+        'COMPLETO' => 'Completo',
+        'EN_CURSO' => 'En curso',
+        'FINALIZADO' => 'Finalizado',
+        'CANCELADO' => 'Cancelado',
+    ];
+}
+
+function academia_curso_modalidades(): array
+{
+    return [
+        'PRESENCIAL' => 'Presencial',
+        'ONLINE' => 'Online',
+        'MIXTA' => 'Mixta',
+    ];
+}
+
+function academia_grupo_estados(): array
+{
+    return [
+        'ACTIVO' => 'Activo',
+        'CERRADO' => 'Cerrado',
+    ];
+}
+
+function academia_matricula_estados(): array
+{
+    return [
+        'SOLICITADA' => 'Solicitada',
+        'PENDIENTE_DOCUMENTACION' => 'Pendiente de documentación',
+        'PENDIENTE_PAGO' => 'Pendiente de pago',
+        'ACTIVA' => 'Activa',
+        'PAUSADA' => 'Pausada',
+        'FINALIZADA' => 'Finalizada',
+        'CANCELADA' => 'Cancelada',
+        'RECHAZADA' => 'Rechazada',
+    ];
+}
+
+/**
+ * Estados de matricula que ocupan plaza en un grupo.
+ */
+function academia_matricula_estados_ocupan_plaza(): array
+{
+    return ['SOLICITADA', 'PENDIENTE_DOCUMENTACION', 'PENDIENTE_PAGO', 'ACTIVA', 'PAUSADA'];
+}
+
+function academia_miembro_estados(): array
+{
+    return [
+        'ACTIVO' => 'Activo',
+        'INACTIVO' => 'Inactivo',
+        'SUSPENDIDO' => 'Suspendido',
+        'PENDIENTE' => 'Pendiente',
+    ];
+}
+
+function academia_alumno_estados(): array
+{
+    return [
+        'ACTIVO' => 'Activo',
+        'INACTIVO' => 'Inactivo',
+        'BAJA' => 'Baja',
+    ];
+}
+
+/**
+ * Devuelve el valor solo si esta en el catalogo; si no, el valor por defecto.
+ * Nunca deja pasar a la consulta algo que la columna ENUM no admita.
+ */
+function academia_enum(mixed $value, array $options, string $default): string
+{
+    $candidate = is_scalar($value) ? (string) $value : '';
+
+    return array_key_exists($candidate, $options) ? $candidate : $default;
+}
+
+/**
+ * Igual que academia_enum() pero admite vacio, para filtros del tipo "todos".
+ */
+function academia_enum_filter(mixed $value, array $options): string
+{
+    $candidate = is_scalar($value) ? (string) $value : '';
+
+    return array_key_exists($candidate, $options) ? $candidate : '';
+}
+
 function academia_sync_membership(PDO $pdo, int $userId): void
 {
     $statement = $pdo->prepare(
@@ -279,7 +398,11 @@ function academia_set_profesor_estado(PDO $pdo, int $academiaId, int $academiaMi
     $pdo->prepare(
         'UPDATE academia_miembros SET estado = :estado, updated_at = UTC_TIMESTAMP()
          WHERE id = :id AND academia_id = :academia_id AND rol = "PROFESOR"'
-    )->execute(['estado' => $estado, 'id' => $academiaMiembroId, 'academia_id' => $academiaId]);
+    )->execute([
+        'estado' => academia_enum($estado, academia_miembro_estados(), 'ACTIVO'),
+        'id' => $academiaMiembroId,
+        'academia_id' => $academiaId,
+    ]);
 }
 
 function academia_list_alumnos(PDO $pdo, int $academiaId, string $search = ''): array
@@ -320,11 +443,13 @@ function academia_upsert_alumno(PDO $pdo, int $academiaId, ?int $alumnoId, array
         }
     }
 
+    $estado = academia_enum($data['estado'] ?? 'ACTIVO', academia_alumno_estados(), 'ACTIVO');
+
     if ($alumnoId !== null) {
         $pdo->prepare(
             'UPDATE academia_alumnos SET
                 nombre = :nombre, apellidos = :apellidos, fecha_nacimiento = :fecha_nacimiento,
-                email = :email, telefono = :telefono, es_menor_edad = :es_menor_edad,
+                email = :email, telefono = :telefono, es_menor_edad = :es_menor_edad, estado = :estado,
                 notas_internas = :notas_internas, updated_at = UTC_TIMESTAMP()
              WHERE id = :id AND academia_id = :academia_id'
         )->execute([
@@ -333,20 +458,25 @@ function academia_upsert_alumno(PDO $pdo, int $academiaId, ?int $alumnoId, array
             'fecha_nacimiento' => $data['fecha_nacimiento'] ?: null,
             'email' => $data['email'] ?: null,
             'telefono' => $data['telefono'] ?: null,
-            'es_menor_edad' => $esMenor,
+            // (int) obligatorio: PDO manda `false` como cadena vacia y MySQL en
+            // modo estricto rechaza '' para una columna BOOLEAN.
+            'es_menor_edad' => (int) $esMenor,
+            'estado' => $estado,
             'notas_internas' => $data['notas_internas'] ?: null,
             'id' => $alumnoId,
             'academia_id' => $academiaId,
         ]);
+
+        academia_sync_alumno_usuario($pdo, $academiaId, $alumnoId, (string) ($data['email'] ?? ''), $actorUserId);
 
         return $alumnoId;
     }
 
     $pdo->prepare(
         'INSERT INTO academia_alumnos (
-            academia_id, nombre, apellidos, fecha_nacimiento, email, telefono, es_menor_edad, notas_internas, created_by
+            academia_id, nombre, apellidos, fecha_nacimiento, email, telefono, es_menor_edad, estado, notas_internas, created_by
         ) VALUES (
-            :academia_id, :nombre, :apellidos, :fecha_nacimiento, :email, :telefono, :es_menor_edad, :notas_internas, :creado_por
+            :academia_id, :nombre, :apellidos, :fecha_nacimiento, :email, :telefono, :es_menor_edad, :estado, :notas_internas, :creado_por
         )'
     )->execute([
         'academia_id' => $academiaId,
@@ -355,12 +485,65 @@ function academia_upsert_alumno(PDO $pdo, int $academiaId, ?int $alumnoId, array
         'fecha_nacimiento' => $data['fecha_nacimiento'] ?: null,
         'email' => $data['email'] ?: null,
         'telefono' => $data['telefono'] ?: null,
-        'es_menor_edad' => $esMenor,
+        'es_menor_edad' => (int) $esMenor,
+        'estado' => $estado,
         'notas_internas' => $data['notas_internas'] ?: null,
         'creado_por' => $actorUserId,
     ]);
 
-    return (int) $pdo->lastInsertId();
+    $nuevoId = (int) $pdo->lastInsertId();
+    academia_sync_alumno_usuario($pdo, $academiaId, $nuevoId, (string) ($data['email'] ?? ''), $actorUserId);
+
+    return $nuevoId;
+}
+
+/**
+ * Enlaza la ficha de alumno con su cuenta de Con Sabor Flamenco, si existe.
+ *
+ * Sin esto el panel del alumno era inalcanzable: academia_require_alumno() busca
+ * por `academia_alumnos.usuario_id` y esa columna no se rellenaba nunca, asi que
+ * ningun alumno podia entrar jamas.
+ *
+ * El vinculo se deduce del email de la ficha. Si no hay cuenta con ese email, la
+ * ficha se queda sin usuario (caso normal en menores que gestiona la academia).
+ * Ademas se crea la fila de rol ALUMNO en `academia_miembros` para que el modelo
+ * de roles siga siendo la unica fuente de verdad.
+ */
+function academia_sync_alumno_usuario(PDO $pdo, int $academiaId, int $alumnoId, string $email, int $actorUserId): void
+{
+    $email = normalize_email($email);
+    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return;
+    }
+
+    $lookup = $pdo->prepare('SELECT id FROM usuarios WHERE email = :email LIMIT 1');
+    $lookup->execute(['email' => $email]);
+    $usuarioId = $lookup->fetchColumn();
+
+    if ($usuarioId === false) {
+        return;
+    }
+
+    $usuarioId = (int) $usuarioId;
+
+    // Una cuenta no puede quedar enlazada a dos fichas de la misma academia: la
+    // segunda veria los datos de la primera al entrar en su panel.
+    $ocupado = $pdo->prepare(
+        'SELECT id FROM academia_alumnos
+         WHERE academia_id = :academia_id AND usuario_id = :usuario_id AND id != :alumno_id LIMIT 1'
+    );
+    $ocupado->execute(['academia_id' => $academiaId, 'usuario_id' => $usuarioId, 'alumno_id' => $alumnoId]);
+    if ($ocupado->fetchColumn() !== false) {
+        return;
+    }
+
+    $pdo->prepare('UPDATE academia_alumnos SET usuario_id = :usuario_id WHERE id = :id AND academia_id = :academia_id')
+        ->execute(['usuario_id' => $usuarioId, 'id' => $alumnoId, 'academia_id' => $academiaId]);
+
+    $pdo->prepare(
+        'INSERT IGNORE INTO academia_miembros (academia_id, usuario_id, rol, estado, fecha_alta, created_by)
+         VALUES (:academia_id, :usuario_id, "ALUMNO", "ACTIVO", CURRENT_DATE(), :creado_por)'
+    )->execute(['academia_id' => $academiaId, 'usuario_id' => $usuarioId, 'creado_por' => $actorUserId]);
 }
 
 function academia_list_cursos(PDO $pdo, int $academiaId, array $filters = []): array
@@ -433,12 +616,12 @@ function academia_upsert_curso(PDO $pdo, int $academiaId, ?int $cursoId, array $
         'nivel_id' => $data['nivel_id'] ?: null,
         'nombre' => $data['nombre'],
         'descripcion' => $data['descripcion'] ?: null,
-        'modalidad' => $data['modalidad'],
+        'modalidad' => academia_enum($data['modalidad'] ?? '', academia_curso_modalidades(), 'PRESENCIAL'),
         'fecha_inicio' => $data['fecha_inicio'] ?: null,
         'fecha_fin' => $data['fecha_fin'] ?: null,
         'precio' => $data['precio'] !== '' ? $data['precio'] : null,
         'tipo_cuota' => $data['tipo_cuota'] ?: null,
-        'estado' => $data['estado'],
+        'estado' => academia_enum($data['estado'] ?? '', academia_curso_estados(), 'BORRADOR'),
         'requisitos' => $data['requisitos'] ?: null,
         'material_necesario' => $data['material_necesario'] ?: null,
         'visible_publico' => !empty($data['visible_publico']) ? 1 : 0,
@@ -490,8 +673,13 @@ function academia_curso_profesor_ids(PDO $pdo, int $cursoId): array
 
 function academia_set_curso_profesores(PDO $pdo, int $academiaId, int $cursoId, array $academiaMiembroIds): void
 {
-    $pdo->prepare('DELETE FROM academia_curso_profesores WHERE curso_id = :curso_id')
-        ->execute(['curso_id' => $cursoId]);
+    // El DELETE va filtrado por academia: sin ese INNER JOIN, enviando el
+    // curso_id de otra academia se le borraban sus asignaciones de profesorado.
+    $pdo->prepare(
+        'DELETE cp FROM academia_curso_profesores cp
+         INNER JOIN academia_cursos c ON c.id = cp.curso_id
+         WHERE cp.curso_id = :curso_id AND c.academia_id = :academia_id'
+    )->execute(['curso_id' => $cursoId, 'academia_id' => $academiaId]);
 
     if (!$academiaMiembroIds) {
         return;
@@ -566,6 +754,14 @@ function academia_get_grupo(PDO $pdo, int $academiaId, int $grupoId): ?array
     return $row ?: null;
 }
 
+/**
+ * Crea o actualiza un grupo. NO toca los horarios.
+ *
+ * Antes esta funcion borraba todos los horarios del grupo y reinsertaba como
+ * mucho uno, asi que editar el nombre de un grupo con tres clases semanales se
+ * llevaba por delante dos. El horario se gestiona aparte, con
+ * academia_set_grupo_horarios().
+ */
 function academia_upsert_grupo(PDO $pdo, int $academiaId, ?int $grupoId, array $data): int
 {
     if ($grupoId !== null) {
@@ -577,43 +773,127 @@ function academia_upsert_grupo(PDO $pdo, int $academiaId, ?int $grupoId, array $
             'nombre' => $data['nombre'],
             'aula' => $data['aula_o_ubicacion'] ?: null,
             'plazas' => $data['plazas_maximas'] !== '' ? $data['plazas_maximas'] : null,
-            'estado' => $data['estado'],
+            'estado' => academia_enum($data['estado'] ?? '', academia_grupo_estados(), 'ACTIVO'),
             'id' => $grupoId,
             'academia_id' => $academiaId,
         ]);
-    } else {
-        $pdo->prepare(
-            'INSERT INTO academia_grupos (curso_id, academia_id, nombre, aula_o_ubicacion, plazas_maximas, estado)
-             VALUES (:curso_id, :academia_id, :nombre, :aula, :plazas, :estado)'
-        )->execute([
-            'curso_id' => $data['curso_id'],
-            'academia_id' => $academiaId,
-            'nombre' => $data['nombre'],
-            'aula' => $data['aula_o_ubicacion'] ?: null,
-            'plazas' => $data['plazas_maximas'] !== '' ? $data['plazas_maximas'] : null,
-            'estado' => $data['estado'],
-        ]);
-        $grupoId = (int) $pdo->lastInsertId();
+
+        return $grupoId;
     }
 
-    $pdo->prepare('DELETE FROM academia_horarios_grupo WHERE grupo_id = :grupo_id')->execute(['grupo_id' => $grupoId]);
+    $pdo->prepare(
+        'INSERT INTO academia_grupos (curso_id, academia_id, nombre, aula_o_ubicacion, plazas_maximas, estado)
+         VALUES (:curso_id, :academia_id, :nombre, :aula, :plazas, :estado)'
+    )->execute([
+        'curso_id' => $data['curso_id'],
+        'academia_id' => $academiaId,
+        'nombre' => $data['nombre'],
+        'aula' => $data['aula_o_ubicacion'] ?: null,
+        'plazas' => $data['plazas_maximas'] !== '' ? $data['plazas_maximas'] : null,
+        'estado' => academia_enum($data['estado'] ?? '', academia_grupo_estados(), 'ACTIVO'),
+    ]);
 
-    if (!empty($data['dia_semana']) || $data['dia_semana'] === '0') {
-        if ($data['hora_inicio'] !== '' && $data['hora_fin'] !== '') {
-            $pdo->prepare(
-                'INSERT INTO academia_horarios_grupo (grupo_id, dia_semana, hora_inicio, hora_fin, aula)
-                 VALUES (:grupo_id, :dia_semana, :hora_inicio, :hora_fin, :aula)'
-            )->execute([
-                'grupo_id' => $grupoId,
-                'dia_semana' => (int) $data['dia_semana'],
-                'hora_inicio' => $data['hora_inicio'],
-                'hora_fin' => $data['hora_fin'],
-                'aula' => $data['aula_o_ubicacion'] ?: null,
-            ]);
+    return (int) $pdo->lastInsertId();
+}
+
+/**
+ * Reemplaza el horario semanal completo de un grupo.
+ *
+ * $horarios: lista de ['dia_semana' => int, 'hora_inicio' => 'HH:MM',
+ * 'hora_fin' => 'HH:MM', 'aula' => string]. Las filas incompletas se ignoran.
+ * Si la lista llega vacia, el grupo se queda sin horario (es una accion
+ * explicita del formulario, no un efecto colateral de editar otro campo).
+ */
+function academia_set_grupo_horarios(PDO $pdo, int $academiaId, int $grupoId, array $horarios): int
+{
+    // El DELETE filtra por academia via subconsulta: aunque el grupo_id venga
+    // manipulado, no se pueden borrar horarios de otra academia.
+    $pdo->prepare(
+        'DELETE h FROM academia_horarios_grupo h
+         INNER JOIN academia_grupos g ON g.id = h.grupo_id
+         WHERE h.grupo_id = :grupo_id AND g.academia_id = :academia_id'
+    )->execute(['grupo_id' => $grupoId, 'academia_id' => $academiaId]);
+
+    $insert = $pdo->prepare(
+        'INSERT INTO academia_horarios_grupo (grupo_id, dia_semana, hora_inicio, hora_fin, aula)
+         VALUES (:grupo_id, :dia_semana, :hora_inicio, :hora_fin, :aula)'
+    );
+
+    $guardados = 0;
+    foreach ($horarios as $horario) {
+        $inicio = academia_normalize_hora((string) ($horario['hora_inicio'] ?? ''));
+        $fin = academia_normalize_hora((string) ($horario['hora_fin'] ?? ''));
+        $dia = $horario['dia_semana'];
+
+        if ($inicio === null || $fin === null || $dia === null || $dia === '' || $fin <= $inicio) {
+            continue;
         }
+
+        $insert->execute([
+            'grupo_id' => $grupoId,
+            'dia_semana' => (int) $dia,
+            'hora_inicio' => $inicio,
+            'hora_fin' => $fin,
+            'aula' => ($horario['aula'] ?? '') !== '' ? $horario['aula'] : null,
+        ]);
+        $guardados++;
     }
 
-    return $grupoId;
+    return $guardados;
+}
+
+function academia_normalize_hora(string $valor): ?string
+{
+    $valor = trim($valor);
+
+    return preg_match('/^([01][0-9]|2[0-3]):[0-5][0-9]$/', $valor) === 1 ? $valor : null;
+}
+
+function academia_list_horarios_grupo(PDO $pdo, int $grupoId): array
+{
+    $statement = $pdo->prepare(
+        'SELECT * FROM academia_horarios_grupo WHERE grupo_id = :grupo_id ORDER BY dia_semana ASC, hora_inicio ASC'
+    );
+    $statement->execute(['grupo_id' => $grupoId]);
+
+    return $statement->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/**
+ * Plazas ocupadas y maximas de un grupo.
+ *
+ * Solo cuentan las matriculas que ocupan sitio de verdad: una cancelada o
+ * rechazada no bloquea la plaza. `maximas` es null cuando el grupo no tiene
+ * limite declarado.
+ */
+function academia_grupo_ocupacion(PDO $pdo, int $academiaId, int $grupoId): array
+{
+    $estados = academia_matricula_estados_ocupan_plaza();
+    $placeholders = implode(',', array_fill(0, count($estados), '?'));
+
+    $statement = $pdo->prepare(
+        "SELECT g.plazas_maximas,
+                (SELECT COUNT(*) FROM academia_matriculas mt
+                  WHERE mt.grupo_id = g.id AND mt.estado IN ($placeholders)
+                ) AS ocupadas
+         FROM academia_grupos g
+         WHERE g.id = ? AND g.academia_id = ? LIMIT 1"
+    );
+    $statement->execute([...$estados, $grupoId, $academiaId]);
+    $row = $statement->fetch(PDO::FETCH_ASSOC);
+
+    if (!$row) {
+        return ['ocupadas' => 0, 'maximas' => null, 'completo' => false];
+    }
+
+    $maximas = $row['plazas_maximas'] !== null ? (int) $row['plazas_maximas'] : null;
+    $ocupadas = (int) $row['ocupadas'];
+
+    return [
+        'ocupadas' => $ocupadas,
+        'maximas' => $maximas,
+        'completo' => $maximas !== null && $ocupadas >= $maximas,
+    ];
 }
 
 function academia_list_matriculas(PDO $pdo, int $academiaId, array $filters = []): array
@@ -658,7 +938,7 @@ function academia_create_matricula(PDO $pdo, int $academiaId, array $data, int $
         'alumno_id' => $data['alumno_id'],
         'curso_id' => $data['curso_id'],
         'grupo_id' => $data['grupo_id'] ?: null,
-        'estado' => $data['estado'] ?: 'SOLICITADA',
+        'estado' => academia_enum($data['estado'] ?? '', academia_matricula_estados(), 'SOLICITADA'),
         'descuento_pct' => $data['descuento_pct'] !== '' ? $data['descuento_pct'] : null,
         'observaciones' => $data['observaciones_internas'] ?: null,
         'creado_por' => $actorUserId,
@@ -669,6 +949,7 @@ function academia_create_matricula(PDO $pdo, int $academiaId, array $data, int $
 
 function academia_update_matricula_estado(PDO $pdo, int $academiaId, int $matriculaId, string $estado): void
 {
+    $estado = academia_enum($estado, academia_matricula_estados(), 'SOLICITADA');
     $fechaBaja = in_array($estado, ['FINALIZADA', 'CANCELADA', 'RECHAZADA'], true) ? 'CURRENT_DATE()' : 'NULL';
 
     $pdo->prepare(

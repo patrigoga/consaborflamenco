@@ -12,6 +12,19 @@ function academia_user_id(array $user): int
     return (int) ($user['db_id'] ?? 0);
 }
 
+/**
+ * Estados de `academias` en los que el panel admite escrituras.
+ *
+ * PENDIENTE entra aqui a proposito: una academia recien registrada tiene que
+ * poder preparar profesores, cursos y grupos mientras espera la aprobacion (ver
+ * docs/15_AREA_ACADEMIAS.md). SUSPENDIDA y BAJA quedan en solo lectura: si no,
+ * suspender desde el panel de administracion no tendria ningun efecto real.
+ */
+function academia_estado_operativo(?string $estado): bool
+{
+    return in_array((string) $estado, ['ACTIVA', 'PENDIENTE'], true);
+}
+
 function academia_require_role(PDO $pdo, array $user, array $roles): array
 {
     $userId = academia_user_id($user);
@@ -75,6 +88,50 @@ function academia_verify_grupo_ownership(PDO $pdo, int $academiaId, int $grupoId
 {
     $statement = $pdo->prepare('SELECT id FROM academia_grupos WHERE id = :id AND academia_id = :academia_id LIMIT 1');
     $statement->execute(['id' => $grupoId, 'academia_id' => $academiaId]);
+
+    return $statement->fetchColumn() !== false;
+}
+
+/**
+ * El grupo pertenece a la academia Y al curso indicado.
+ *
+ * Comprobar solo la academia no basta: matricular en el curso A con un grupo del
+ * curso B deja la matricula incoherente y el horario del alumno, vacio.
+ */
+function academia_verify_grupo_del_curso(PDO $pdo, int $academiaId, int $cursoId, int $grupoId): bool
+{
+    $statement = $pdo->prepare(
+        'SELECT id FROM academia_grupos
+         WHERE id = :id AND academia_id = :academia_id AND curso_id = :curso_id LIMIT 1'
+    );
+    $statement->execute(['id' => $grupoId, 'academia_id' => $academiaId, 'curso_id' => $cursoId]);
+
+    return $statement->fetchColumn() !== false;
+}
+
+function academia_verify_profesor_ownership(PDO $pdo, int $academiaId, int $academiaMiembroId): bool
+{
+    $statement = $pdo->prepare(
+        'SELECT id FROM academia_miembros
+         WHERE id = :id AND academia_id = :academia_id AND rol = "PROFESOR" LIMIT 1'
+    );
+    $statement->execute(['id' => $academiaMiembroId, 'academia_id' => $academiaId]);
+
+    return $statement->fetchColumn() !== false;
+}
+
+function academia_verify_matricula_ownership(PDO $pdo, int $academiaId, int $matriculaId): bool
+{
+    $statement = $pdo->prepare('SELECT id FROM academia_matriculas WHERE id = :id AND academia_id = :academia_id LIMIT 1');
+    $statement->execute(['id' => $matriculaId, 'academia_id' => $academiaId]);
+
+    return $statement->fetchColumn() !== false;
+}
+
+function academia_verify_nivel_ownership(PDO $pdo, int $academiaId, int $nivelId): bool
+{
+    $statement = $pdo->prepare('SELECT id FROM academia_niveles WHERE id = :id AND academia_id = :academia_id LIMIT 1');
+    $statement->execute(['id' => $nivelId, 'academia_id' => $academiaId]);
 
     return $statement->fetchColumn() !== false;
 }

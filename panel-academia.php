@@ -18,6 +18,12 @@ $academiaMiembroId = (int) $membership['id'];
 $rol = (string) $membership['rol'];
 $isResponsable = $rol === 'RESPONSABLE';
 
+// Una academia SUSPENDIDA o de BAJA pasa a solo lectura. Antes conservaba el
+// panel completo, asi que suspenderla desde administracion no tenia mas efecto
+// que ocultar su web publica.
+$academiaOperativa = academia_estado_operativo((string) ($membership['academia_estado'] ?? ''));
+$canManage = $isResponsable && $academiaOperativa;
+
 $sections = academia_panel_sections($rol);
 $activeSection = academia_active_section_key($sections);
 
@@ -27,11 +33,13 @@ $errors = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
         $errors[] = 'La sesión ha caducado. Vuelve a intentarlo.';
+    } elseif (!$academiaOperativa) {
+        $errors[] = 'Tu academia está ' . strtolower((string) ($membership['academia_estado'] ?? '')) . ': el panel queda en solo lectura. Contacta con Con Sabor Flamenco.';
     } else {
         $action = (string) ($_POST['action'] ?? '');
 
         try {
-            if ($action === 'update_academia' && $isResponsable) {
+            if ($action === 'update_academia' && $canManage) {
                 academia_update_profile($pdo, $academiaId, [
                     'nombre_publico' => clean_text((string) ($_POST['nombre_publico'] ?? '')),
                     'biografia' => clean_html_text((string) ($_POST['biografia'] ?? '')),
@@ -46,14 +54,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ], academia_user_id($user));
                 academia_set_disciplinas($pdo, $academiaId, array_map('intval', $_POST['disciplinas'] ?? []));
                 $messages[] = 'Datos de la academia actualizados.';
-            } elseif ($action === 'add_nivel' && $isResponsable) {
+            } elseif ($action === 'add_nivel' && $canManage) {
                 academia_upsert_nivel($pdo, $academiaId, [
                     'nombre' => clean_text((string) ($_POST['nombre'] ?? '')),
                     'orden' => (string) ($_POST['orden'] ?? ''),
                     'descripcion' => clean_text((string) ($_POST['descripcion'] ?? '')),
                 ]);
                 $messages[] = 'Nivel añadido.';
-            } elseif ($action === 'add_profesor' && $isResponsable) {
+            } elseif ($action === 'add_profesor' && $canManage) {
                 $result = academia_add_profesor(
                     $pdo,
                     $academiaId,
@@ -66,21 +74,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     $errors[] = $result['error'];
                 }
-            } elseif ($action === 'set_profesor_estado' && $isResponsable) {
-                academia_set_profesor_estado($pdo, $academiaId, (int) ($_POST['academia_miembro_id'] ?? 0), (string) ($_POST['estado'] ?? 'ACTIVO'));
-                $messages[] = 'Estado del profesor actualizado.';
-            } elseif ($action === 'upsert_alumno' && $isResponsable) {
-                academia_upsert_alumno($pdo, $academiaId, !empty($_POST['alumno_id']) ? (int) $_POST['alumno_id'] : null, [
-                    'nombre' => clean_text((string) ($_POST['nombre'] ?? '')),
-                    'apellidos' => clean_text((string) ($_POST['apellidos'] ?? '')),
-                    'fecha_nacimiento' => clean_text((string) ($_POST['fecha_nacimiento'] ?? '')),
-                    'email' => normalize_email((string) ($_POST['email'] ?? '')),
-                    'telefono' => clean_text((string) ($_POST['telefono'] ?? '')),
-                    'notas_internas' => clean_text((string) ($_POST['notas_internas'] ?? '')),
-                ], academia_user_id($user));
-                $messages[] = 'Alumno guardado.';
-            } elseif ($action === 'upsert_curso' && $isResponsable) {
-                $cursoGuardadoId = academia_upsert_curso($pdo, $academiaId, !empty($_POST['curso_id']) ? (int) $_POST['curso_id'] : null, [
+            } elseif ($action === 'set_profesor_estado' && $canManage) {
+                $profesorId = (int) ($_POST['academia_miembro_id'] ?? 0);
+                if (academia_verify_profesor_ownership($pdo, $academiaId, $profesorId)) {
+                    academia_set_profesor_estado($pdo, $academiaId, $profesorId, (string) ($_POST['estado'] ?? 'ACTIVO'));
+                    $messages[] = 'Estado del profesor actualizado.';
+                } else {
+                    $errors[] = 'Profesor no válido.';
+                }
+            } elseif ($action === 'upsert_alumno' && $canManage) {
+                $alumnoEditadoId = !empty($_POST['alumno_id']) ? (int) $_POST['alumno_id'] : null;
+
+                if ($alumnoEditadoId !== null && !academia_verify_alumno_ownership($pdo, $academiaId, $alumnoEditadoId)) {
+                    $errors[] = 'Alumno no válido.';
+                } else {
+                    $alumnoGuardadoId = academia_upsert_alumno($pdo, $academiaId, $alumnoEditadoId, [
+                        'nombre' => clean_text((string) ($_POST['nombre'] ?? '')),
+                        'apellidos' => clean_text((string) ($_POST['apellidos'] ?? '')),
+                        'fecha_nacimiento' => clean_text((string) ($_POST['fecha_nacimiento'] ?? '')),
+                        'email' => normalize_email((string) ($_POST['email'] ?? '')),
+                        'telefono' => clean_text((string) ($_POST['telefono'] ?? '')),
+                        'estado' => (string) ($_POST['estado'] ?? 'ACTIVO'),
+                        'notas_internas' => clean_text((string) ($_POST['notas_internas'] ?? '')),
+                    ], academia_user_id($user));
+
+                    $alumnoGuardado = academia_get_alumno($pdo, $academiaId, $alumnoGuardadoId);
+                    $messages[] = !empty($alumnoGuardado['usuario_id'])
+                        ? 'Alumno guardado y vinculado con su cuenta de Con Sabor Flamenco: ya puede entrar en su panel.'
+                        : 'Alumno guardado. Si algún día se registra con ese email, se vinculará con su cuenta al volver a guardar la ficha.';
+                }
+            } elseif ($action === 'upsert_curso' && $canManage) {
+                $cursoEditadoId = !empty($_POST['curso_id']) ? (int) $_POST['curso_id'] : null;
+                if ($cursoEditadoId !== null && !academia_verify_curso_ownership($pdo, $academiaId, $cursoEditadoId)) {
+                    throw new RuntimeException('Curso de otra academia');
+                }
+                $cursoGuardadoId = academia_upsert_curso($pdo, $academiaId, $cursoEditadoId, [
                     'disciplina_id' => (int) ($_POST['disciplina_id'] ?? 0),
                     'nivel_id' => (int) ($_POST['nivel_id'] ?? 0),
                     'nombre' => clean_text((string) ($_POST['nombre'] ?? '')),
@@ -100,42 +128,82 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ], academia_user_id($user));
                 academia_set_curso_profesores($pdo, $academiaId, $cursoGuardadoId, $_POST['profesores'] ?? []);
                 $messages[] = 'Curso guardado.';
-            } elseif ($action === 'upsert_grupo' && $isResponsable) {
+            } elseif ($action === 'upsert_grupo' && $canManage) {
                 $cursoId = (int) ($_POST['curso_id'] ?? 0);
                 if (academia_verify_curso_ownership($pdo, $academiaId, $cursoId)) {
-                    academia_upsert_grupo($pdo, $academiaId, !empty($_POST['grupo_id']) ? (int) $_POST['grupo_id'] : null, [
+                    $grupoGuardadoId = academia_upsert_grupo($pdo, $academiaId, !empty($_POST['grupo_id']) ? (int) $_POST['grupo_id'] : null, [
                         'curso_id' => $cursoId,
                         'nombre' => clean_text((string) ($_POST['nombre'] ?? '')),
                         'aula_o_ubicacion' => clean_text((string) ($_POST['aula_o_ubicacion'] ?? '')),
                         'plazas_maximas' => clean_text((string) ($_POST['plazas_maximas'] ?? '')),
                         'estado' => (string) ($_POST['estado'] ?? 'ACTIVO'),
-                        'dia_semana' => clean_text((string) ($_POST['dia_semana'] ?? '')),
-                        'hora_inicio' => clean_text((string) ($_POST['hora_inicio'] ?? '')),
-                        'hora_fin' => clean_text((string) ($_POST['hora_fin'] ?? '')),
                     ]);
-                    $messages[] = 'Grupo guardado.';
+
+                    // El horario se guarda aparte y admite varias clases por semana.
+                    $horariosEnviados = is_array($_POST['horarios'] ?? null) ? $_POST['horarios'] : [];
+                    $horarios = [];
+                    foreach ($horariosEnviados as $fila) {
+                        if (!is_array($fila)) {
+                            continue;
+                        }
+                        $horarios[] = [
+                            'dia_semana' => array_key_exists((string) ($fila['dia_semana'] ?? ''), academia_dias_semana())
+                                ? (int) $fila['dia_semana']
+                                : null,
+                            'hora_inicio' => clean_text((string) ($fila['hora_inicio'] ?? '')),
+                            'hora_fin' => clean_text((string) ($fila['hora_fin'] ?? '')),
+                            'aula' => clean_text((string) ($fila['aula'] ?? ($_POST['aula_o_ubicacion'] ?? ''))),
+                        ];
+                    }
+                    $guardados = academia_set_grupo_horarios($pdo, $academiaId, $grupoGuardadoId, $horarios);
+                    $messages[] = $guardados > 0
+                        ? 'Grupo guardado con ' . $guardados . ' clase(s) a la semana.'
+                        : 'Grupo guardado. No has indicado ningún horario válido.';
                 } else {
                     $errors[] = 'Curso no válido.';
                 }
-            } elseif ($action === 'create_matricula' && $isResponsable) {
+            } elseif ($action === 'create_matricula' && $canManage) {
                 $alumnoId = (int) ($_POST['alumno_id'] ?? 0);
                 $cursoId = (int) ($_POST['curso_id'] ?? 0);
-                if (academia_verify_alumno_ownership($pdo, $academiaId, $alumnoId) && academia_verify_curso_ownership($pdo, $academiaId, $cursoId)) {
-                    academia_create_matricula($pdo, $academiaId, [
-                        'alumno_id' => $alumnoId,
-                        'curso_id' => $cursoId,
-                        'grupo_id' => (int) ($_POST['grupo_id'] ?? 0),
-                        'estado' => (string) ($_POST['estado'] ?? 'SOLICITADA'),
-                        'descuento_pct' => clean_text((string) ($_POST['descuento_pct'] ?? '')),
-                        'observaciones_internas' => clean_text((string) ($_POST['observaciones_internas'] ?? '')),
-                    ], academia_user_id($user));
-                    $messages[] = 'Matrícula creada.';
-                } else {
+                $grupoId = (int) ($_POST['grupo_id'] ?? 0);
+
+                if (!academia_verify_alumno_ownership($pdo, $academiaId, $alumnoId) || !academia_verify_curso_ownership($pdo, $academiaId, $cursoId)) {
                     $errors[] = 'Alumno o curso no válido.';
+                } elseif ($grupoId > 0 && !academia_verify_grupo_del_curso($pdo, $academiaId, $cursoId, $grupoId)) {
+                    // Faltaba esta comprobacion: el grupo llegaba crudo desde el
+                    // formulario y podia ser de otro curso o de otra academia.
+                    $errors[] = 'El grupo elegido no pertenece a ese curso de tu academia.';
+                } else {
+                    $ocupacion = $grupoId > 0 ? academia_grupo_ocupacion($pdo, $academiaId, $grupoId) : ['completo' => false, 'ocupadas' => 0, 'maximas' => null];
+
+                    if ($ocupacion['completo'] && empty($_POST['confirmar_exceso'])) {
+                        $errors[] = sprintf(
+                            'El grupo está completo (%d de %d plazas). Marca "Matricular igualmente" si quieres superar el aforo.',
+                            $ocupacion['ocupadas'],
+                            (int) $ocupacion['maximas']
+                        );
+                    } else {
+                        academia_create_matricula($pdo, $academiaId, [
+                            'alumno_id' => $alumnoId,
+                            'curso_id' => $cursoId,
+                            'grupo_id' => $grupoId,
+                            'estado' => (string) ($_POST['estado'] ?? 'SOLICITADA'),
+                            'descuento_pct' => clean_text((string) ($_POST['descuento_pct'] ?? '')),
+                            'observaciones_internas' => clean_text((string) ($_POST['observaciones_internas'] ?? '')),
+                        ], academia_user_id($user));
+                        $messages[] = $ocupacion['completo']
+                            ? 'Matrícula creada superando el aforo del grupo.'
+                            : 'Matrícula creada.';
+                    }
                 }
-            } elseif ($action === 'update_matricula_estado' && $isResponsable) {
-                academia_update_matricula_estado($pdo, $academiaId, (int) ($_POST['matricula_id'] ?? 0), (string) ($_POST['estado'] ?? ''));
-                $messages[] = 'Estado de la matrícula actualizado.';
+            } elseif ($action === 'update_matricula_estado' && $canManage) {
+                $matriculaId = (int) ($_POST['matricula_id'] ?? 0);
+                if (academia_verify_matricula_ownership($pdo, $academiaId, $matriculaId)) {
+                    academia_update_matricula_estado($pdo, $academiaId, $matriculaId, (string) ($_POST['estado'] ?? ''));
+                    $messages[] = 'Estado de la matrícula actualizado.';
+                } else {
+                    $errors[] = 'Matrícula no válida.';
+                }
             }
         } catch (Throwable $exception) {
             error_log('[panel-academia] ' . $exception->getMessage());
@@ -158,7 +226,11 @@ if ($isResponsable) {
     $alumnos = $activeSection === 'alumnos' ? academia_list_alumnos($pdo, $academiaId, clean_text((string) ($_GET['buscar'] ?? ''))) : [];
     $cursos = in_array($activeSection, ['cursos', 'grupos', 'matriculas'], true) ? academia_list_cursos($pdo, $academiaId) : [];
     $grupos = $activeSection === 'grupos' ? academia_list_grupos($pdo, $academiaId, !empty($_GET['curso_id']) ? (int) $_GET['curso_id'] : null) : [];
-    $matriculas = $activeSection === 'matriculas' ? academia_list_matriculas($pdo, $academiaId, ['estado' => clean_text((string) ($_GET['estado'] ?? ''))]) : [];
+    $matriculas = $activeSection === 'matriculas' ? academia_list_matriculas($pdo, $academiaId, ['estado' => academia_enum_filter($_GET['estado'] ?? '', academia_matricula_estados())]) : [];
+    // Se carga una sola vez: el formulario de nueva matricula volvia a consultar
+    // la lista entera de alumnos dentro del propio render.
+    $alumnosParaMatricular = $activeSection === 'matriculas' ? academia_list_alumnos($pdo, $academiaId) : [];
+    $gruposParaMatricular = $activeSection === 'matriculas' ? academia_list_grupos($pdo, $academiaId) : [];
 } else {
     $cursos = $activeSection === 'cursos' ? academia_list_cursos_for_profesor($pdo, $academiaMiembroId) : [];
     $grupos = $activeSection === 'grupos' ? academia_list_grupos_for_profesor($pdo, $academiaMiembroId) : [];
@@ -190,6 +262,14 @@ if ($isResponsable) {
                 <?php endif; ?>
                 <?php if ($errors): ?>
                     <div class="form-alert form-alert-error"><?php foreach ($errors as $error): ?><p><?= e($error) ?></p><?php endforeach; ?></div>
+                <?php endif; ?>
+
+                <?php if (!$academiaOperativa): ?>
+                    <div class="form-alert form-alert-error" role="status">
+                        <p><strong>Panel en solo lectura.</strong> Tu academia está en estado
+                        <?= e((string) ($academia['estado'] ?? '')) ?> y no admite cambios.
+                        Puedes seguir consultando tus datos. Escríbenos para revisar la situación.</p>
+                    </div>
                 <?php endif; ?>
 
                 <?php if ($activeSection === 'resumen'): ?>
@@ -376,7 +456,11 @@ if ($isResponsable) {
                                     <label>Fecha de nacimiento<input name="fecha_nacimiento" type="date"></label>
                                     <label>Email<input name="email" type="email"></label>
                                     <label>Teléfono<input name="telefono" type="tel"></label>
+                                    <label>Estado
+                                        <select name="estado"><?= academia_enum_options(academia_alumno_estados(), 'ACTIVO') ?></select>
+                                    </label>
                                     <label>Notas internas<input name="notas_internas" type="text"></label>
+                                    <p class="field-help" style="grid-column:1 / -1;">Si el email coincide con una cuenta de Con Sabor Flamenco, la ficha se vincula sola y esa persona podrá entrar en su panel de alumno.</p>
                                     <button class="button button-primary" type="submit">Guardar alumno</button>
                                 </form>
                             </div>
@@ -435,22 +519,10 @@ if ($isResponsable) {
                                             </select>
                                         </label>
                                         <label>Modalidad
-                                            <select name="modalidad">
-                                                <option value="PRESENCIAL">Presencial</option>
-                                                <option value="ONLINE">Online</option>
-                                                <option value="MIXTA">Mixta</option>
-                                            </select>
+                                            <select name="modalidad"><?= academia_enum_options(academia_curso_modalidades(), 'PRESENCIAL') ?></select>
                                         </label>
                                         <label>Estado
-                                            <select name="estado">
-                                                <option value="BORRADOR">Borrador</option>
-                                                <option value="PUBLICADO">Publicado</option>
-                                                <option value="MATRICULA_ABIERTA">Matrícula abierta</option>
-                                                <option value="COMPLETO">Completo</option>
-                                                <option value="EN_CURSO">En curso</option>
-                                                <option value="FINALIZADO">Finalizado</option>
-                                                <option value="CANCELADO">Cancelado</option>
-                                            </select>
+                                            <select name="estado"><?= academia_enum_options(academia_curso_estados(), 'BORRADOR') ?></select>
                                         </label>
                                     </div>
                                     <div class="form-grid-three">
@@ -526,28 +598,28 @@ if ($isResponsable) {
                                             <label>Aula o ubicación<input name="aula_o_ubicacion" type="text"></label>
                                             <label>Plazas máximas<input name="plazas_maximas" type="number" min="0"></label>
                                             <label>Estado
-                                                <select name="estado">
-                                                    <option value="ACTIVO">Activo</option>
-                                                    <option value="CERRADO">Cerrado</option>
-                                                </select>
+                                                <select name="estado"><?= academia_enum_options(academia_grupo_estados(), 'ACTIVO') ?></select>
                                             </label>
                                         </div>
-                                        <div class="form-grid-three">
-                                            <label>Día de la semana
-                                                <select name="dia_semana">
-                                                    <option value="">Sin horario</option>
-                                                    <option value="1">Lunes</option>
-                                                    <option value="2">Martes</option>
-                                                    <option value="3">Miércoles</option>
-                                                    <option value="4">Jueves</option>
-                                                    <option value="5">Viernes</option>
-                                                    <option value="6">Sábado</option>
-                                                    <option value="0">Domingo</option>
-                                                </select>
-                                            </label>
-                                            <label>Hora inicio<input name="hora_inicio" type="time"></label>
-                                            <label>Hora fin<input name="hora_fin" type="time"></label>
-                                        </div>
+
+                                        <fieldset class="cv-fieldset">
+                                            <legend><span>Horario</span><strong>Clases de la semana</strong><em>Puedes indicar varios días. Se guardan todos.</em></legend>
+                                            <?php for ($fila = 0; $fila < 3; $fila++): ?>
+                                                <div class="form-grid-three">
+                                                    <label>Día
+                                                        <select name="horarios[<?= $fila ?>][dia_semana]">
+                                                            <option value="">Sin clase</option>
+                                                            <?php foreach (academia_dias_semana() as $diaValor => $diaLabel): ?>
+                                                                <option value="<?= e((string) $diaValor) ?>"><?= e($diaLabel) ?></option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                    </label>
+                                                    <label>Hora inicio<input name="horarios[<?= $fila ?>][hora_inicio]" type="time"></label>
+                                                    <label>Hora fin<input name="horarios[<?= $fila ?>][hora_fin]" type="time"></label>
+                                                </div>
+                                            <?php endfor; ?>
+                                        </fieldset>
+
                                         <button class="button button-primary" type="submit">Guardar grupo</button>
                                     </form>
                                 <?php else: ?>
@@ -571,11 +643,7 @@ if ($isResponsable) {
                                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                             <input type="hidden" name="action" value="update_matricula_estado">
                                             <input type="hidden" name="matricula_id" value="<?= e((string) $matricula['id']) ?>">
-                                            <select name="estado">
-                                                <?php foreach (['SOLICITADA', 'PENDIENTE_DOCUMENTACION', 'PENDIENTE_PAGO', 'ACTIVA', 'PAUSADA', 'FINALIZADA', 'CANCELADA', 'RECHAZADA'] as $estadoOption): ?>
-                                                    <option value="<?= e($estadoOption) ?>" <?= $matricula['estado'] === $estadoOption ? 'selected' : '' ?>><?= e(str_replace('_', ' ', $estadoOption)) ?></option>
-                                                <?php endforeach; ?>
-                                            </select>
+                                            <select name="estado"><?= academia_enum_options(academia_matricula_estados(), (string) $matricula['estado']) ?></select>
                                             <button class="button button-secondary" type="submit">Actualizar</button>
                                         </form>
                                     </article>
@@ -592,8 +660,8 @@ if ($isResponsable) {
                                 <input type="hidden" name="action" value="create_matricula">
                                 <label>Alumno
                                     <select name="alumno_id" required>
-                                        <?php foreach (academia_list_alumnos($pdo, $academiaId) as $alumno): ?>
-                                            <option value="<?= e((string) $alumno['id']) ?>"><?= e((string) $alumno['nombre'] . ' ' . (string) $alumno['apellidos']) ?></option>
+                                        <?php foreach ($alumnosParaMatricular as $alumno): ?>
+                                            <option value="<?= e((string) $alumno['id']) ?>"><?= e(trim((string) $alumno['nombre'] . ' ' . (string) $alumno['apellidos'])) ?></option>
                                         <?php endforeach; ?>
                                     </select>
                                 </label>
@@ -604,7 +672,29 @@ if ($isResponsable) {
                                         <?php endforeach; ?>
                                     </select>
                                 </label>
+                                <label>Grupo
+                                    <select name="grupo_id">
+                                        <option value="">Sin grupo asignado</option>
+                                        <?php foreach ($gruposParaMatricular as $grupoOpcion): ?>
+                                            <?php $ocupacionGrupo = academia_grupo_ocupacion($pdo, $academiaId, (int) $grupoOpcion['id']); ?>
+                                            <option value="<?= e((string) $grupoOpcion['id']) ?>">
+                                                <?= e((string) $grupoOpcion['curso_nombre'] . ' — ' . (string) $grupoOpcion['nombre']) ?>
+                                                <?php if ($ocupacionGrupo['maximas'] !== null): ?>
+                                                    (<?= e((string) $ocupacionGrupo['ocupadas']) ?>/<?= e((string) $ocupacionGrupo['maximas']) ?><?= $ocupacionGrupo['completo'] ? ' COMPLETO' : '' ?>)
+                                                <?php endif; ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </label>
+                                <label>Estado inicial
+                                    <select name="estado"><?= academia_enum_options(academia_matricula_estados(), 'SOLICITADA') ?></select>
+                                </label>
                                 <label>Descuento (%)<input name="descuento_pct" type="number" step="0.01" min="0" max="100"></label>
+                                <label class="checkbox-field" style="align-self:end;">
+                                    <input type="checkbox" name="confirmar_exceso" value="1">
+                                    <span>Matricular igualmente si el grupo está completo</span>
+                                </label>
+                                <p class="field-help" style="grid-column:1 / -1;">El grupo debe pertenecer al curso elegido. Si está completo, hace falta marcar la casilla para superar el aforo.</p>
                                 <button class="button button-primary" type="submit" style="grid-column:1 / -1;">Matricular</button>
                             </form>
                         </div>
