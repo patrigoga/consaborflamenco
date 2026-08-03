@@ -73,10 +73,14 @@ $categories = admin_article_categories();
 $articles = admin_articles();
 $banners = admin_banners();
 $academiasAdmin = [];
+$academiasCounts = ['TOTAL' => 0, 'PENDIENTE' => 0, 'ACTIVA' => 0, 'SUSPENDIDA' => 0, 'BAJA' => 0];
+$academiasFiltroEstado = '';
 if ($databaseReady) {
     // Degrada en silencio si el modulo de academias aun no esta migrado en este entorno.
     try {
-        $academiasAdmin = academia_admin_list(admin_database());
+        $academiasFiltroEstado = academia_enum_filter($_GET['academia_estado'] ?? '', academia_admin_estados());
+        $academiasAdmin = academia_admin_list(admin_database(), ['estado' => $academiasFiltroEstado]);
+        $academiasCounts = academia_admin_estado_counts(admin_database());
     } catch (Throwable $exception) {
         admin_record_error($exception);
     }
@@ -484,44 +488,123 @@ $recentBlocks = [
         </section>
 
         <section class="content-section admin-shell" id="academias">
-            <div class="section-heading">
+            <?php
+            // El h1 del hero lo reescribe assets/js/admin-sidebar.js con el nombre de
+            // la seccion, asi que un <h2>Academias</h2> aqui duplicaba el titulo en
+            // enorme. Esta cabecera es compacta y su titulo aporta dato, no eco.
+            $academiasTotal = (int) $academiasCounts['TOTAL'];
+            ?>
+            <div class="section-heading admin-section-heading">
                 <div class="section-heading-content">
                     <p class="section-kicker">Formación</p>
-                    <h2>Academias</h2>
-                    <p>Aprobación, activación y suspensión de academias registradas.</p>
+                    <h2><?= $academiasTotal === 1 ? '1 academia registrada' : e((string) $academiasTotal) . ' academias registradas' ?></h2>
+                    <p>Aprobación, activación y suspensión. Una academia solo es visible en la web y puede gestionar sus datos cuando está <strong>activa</strong>.</p>
                 </div>
+                <form method="get" class="admin-filter-form">
+                    <input type="hidden" name="section" value="academias">
+                    <label for="academia_estado">Estado</label>
+                    <select id="academia_estado" name="academia_estado" onchange="this.form.submit()">
+                        <option value="">Todas</option>
+                        <?php foreach (academia_admin_estados() as $estadoValor => $estadoLabel): ?>
+                            <option value="<?= e($estadoValor) ?>" <?= $academiasFiltroEstado === $estadoValor ? 'selected' : '' ?>><?= e($estadoLabel) ?> (<?= e((string) $academiasCounts[$estadoValor]) ?>)</option>
+                        <?php endforeach; ?>
+                    </select>
+                    <noscript><button class="button button-secondary" type="submit">Filtrar</button></noscript>
+                </form>
             </div>
+
+            <div class="admin-metric-grid admin-metric-grid-quarters">
+                <?php
+                $academiaResumen = [
+                    ['label' => 'Registradas', 'valor' => $academiasCounts['TOTAL'], 'estado' => '', 'detalle' => 'Total en la plataforma'],
+                    ['label' => 'Pendientes', 'valor' => $academiasCounts['PENDIENTE'], 'estado' => 'PENDIENTE', 'detalle' => 'Esperan tu aprobación'],
+                    ['label' => 'Activas', 'valor' => $academiasCounts['ACTIVA'], 'estado' => 'ACTIVA', 'detalle' => 'Visibles y operativas'],
+                    ['label' => 'Suspendidas o de baja', 'valor' => $academiasCounts['SUSPENDIDA'] + $academiasCounts['BAJA'], 'estado' => 'SUSPENDIDA', 'detalle' => 'Sin acceso ni web pública'],
+                ];
+                ?>
+                <?php foreach ($academiaResumen as $tarjeta): ?>
+                    <article class="admin-metric-card">
+                        <span><?= e((string) $tarjeta['label']) ?></span>
+                        <strong><?= e((string) $tarjeta['valor']) ?></strong>
+                        <p class="admin-metric-detail"><?= e((string) $tarjeta['detalle']) ?></p>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+
+            <?php if ($academiasCounts['PENDIENTE'] > 0 && $academiasFiltroEstado === ''): ?>
+                <p class="admin-callout">
+                    Hay <strong><?= e((string) $academiasCounts['PENDIENTE']) ?></strong>
+                    <?= $academiasCounts['PENDIENTE'] === 1 ? 'academia pendiente' : 'academias pendientes' ?>
+                    de aprobación. Hasta que las actives, su página pública responde 404 y no pueden gestionar su academia.
+                </p>
+            <?php endif; ?>
+
             <div class="admin-table-wrap">
-                <table class="admin-table">
+                <table class="admin-table admin-table-cards">
                     <thead>
                         <tr>
                             <th>Academia</th>
                             <th>Responsable</th>
                             <th>Ubicación</th>
-                            <th>Plan</th>
+                            <th>Actividad</th>
                             <th>Estado</th>
                             <th>Cambiar estado</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (!$academiasAdmin): ?>
-                            <tr><td colspan="6">Todavia no hay academias registradas.</td></tr>
+                            <tr>
+                                <td colspan="6" class="admin-empty-note">
+                                    <?= $academiasFiltroEstado !== ''
+                                        ? 'No hay academias en estado ' . e(strtolower(academia_admin_estados()[$academiasFiltroEstado])) . '.'
+                                        : 'Todavía no hay academias registradas. Aparecerán aquí en cuanto alguien se dé de alta eligiendo el tipo de espacio "Academia".' ?>
+                                </td>
+                            </tr>
                         <?php endif; ?>
                         <?php foreach ($academiasAdmin as $academiaRow): ?>
+                            <?php
+                            $ubicacion = trim((string) $academiaRow['ciudad'] . (($academiaRow['ciudad'] && $academiaRow['provincia_texto']) ? ', ' : '') . (string) $academiaRow['provincia_texto']);
+                            $esActiva = (string) $academiaRow['estado'] === 'ACTIVA';
+                            ?>
                             <tr>
-                                <td><strong><?= e((string) $academiaRow['nombre_publico']) ?></strong></td>
-                                <td><?= e((string) ($academiaRow['responsable_nombre'] ?? '-')) ?><small><?= e((string) ($academiaRow['responsable_email'] ?? '')) ?></small></td>
-                                <td><?= e(trim((string) $academiaRow['ciudad'] . (($academiaRow['ciudad'] && $academiaRow['provincia_texto']) ? ', ' : '') . (string) $academiaRow['provincia_texto'])) ?></td>
-                                <td><?= e((string) $academiaRow['plan']) ?></td>
-                                <td><span class="status-pill <?= e(admin_badge_class((string) $academiaRow['estado'])) ?>"><?= e((string) $academiaRow['estado']) ?></span></td>
-                                <td>
-                                    <form method="post" style="display:flex;gap:8px;align-items:center;">
+                                <td data-label="Academia">
+                                    <strong><?= e((string) $academiaRow['nombre_publico']) ?></strong>
+                                    <small>
+                                        <?php if ($esActiva): ?>
+                                            <a href="<?= e(app_url(member_public_path('academia', (string) $academiaRow['slug']))) ?>" target="_blank" rel="noopener">/academia/<?= e((string) $academiaRow['slug']) ?></a>
+                                        <?php else: ?>
+                                            /academia/<?= e((string) $academiaRow['slug']) ?> · sin publicar
+                                        <?php endif; ?>
+                                        · Plan <?= e((string) $academiaRow['plan']) ?>
+                                    </small>
+                                </td>
+                                <td data-label="Responsable">
+                                    <?= e((string) ($academiaRow['responsable_nombre'] ?? '—')) ?>
+                                    <?php if (!empty($academiaRow['responsable_email'])): ?>
+                                        <small><a href="mailto:<?= e((string) $academiaRow['responsable_email']) ?>"><?= e((string) $academiaRow['responsable_email']) ?></a></small>
+                                    <?php endif; ?>
+                                </td>
+                                <td data-label="Ubicación"><?= $ubicacion !== '' ? e($ubicacion) : '<span class="admin-empty-note">Sin indicar</span>' ?></td>
+                                <td data-label="Actividad">
+                                    <span class="admin-inline-metrics">
+                                        <span><strong><?= e((string) $academiaRow['alumnos_activos']) ?></strong> alumnos</span>
+                                        <span><strong><?= e((string) $academiaRow['profesores_activos']) ?></strong> profesores</span>
+                                        <span><strong><?= e((string) $academiaRow['cursos_totales']) ?></strong> cursos</span>
+                                    </span>
+                                    <?php if ((int) $academiaRow['solicitudes_nuevas'] > 0): ?>
+                                        <small><?= e((string) $academiaRow['solicitudes_nuevas']) ?> solicitud(es) sin leer</small>
+                                    <?php endif; ?>
+                                </td>
+                                <td data-label="Estado"><span class="status-pill <?= e(admin_badge_class((string) $academiaRow['estado'])) ?>"><?= e(academia_admin_estados()[(string) $academiaRow['estado']] ?? (string) $academiaRow['estado']) ?></span></td>
+                                <td data-label="Cambiar estado">
+                                    <form method="post" class="admin-inline-form">
                                         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                         <input type="hidden" name="admin_action" value="academia_set_estado">
                                         <input type="hidden" name="academia_id" value="<?= e((string) $academiaRow['miembro_id']) ?>">
-                                        <select name="estado">
-                                            <?php foreach (['PENDIENTE', 'ACTIVA', 'SUSPENDIDA', 'BAJA'] as $estadoOption): ?>
-                                                <option value="<?= e($estadoOption) ?>" <?= $academiaRow['estado'] === $estadoOption ? 'selected' : '' ?>><?= e($estadoOption) ?></option>
+                                        <label class="visually-hidden" for="estado_<?= e((string) $academiaRow['miembro_id']) ?>">Nuevo estado de <?= e((string) $academiaRow['nombre_publico']) ?></label>
+                                        <select id="estado_<?= e((string) $academiaRow['miembro_id']) ?>" name="estado">
+                                            <?php foreach (academia_admin_estados() as $estadoValor => $estadoLabel): ?>
+                                                <option value="<?= e($estadoValor) ?>" <?= $academiaRow['estado'] === $estadoValor ? 'selected' : '' ?>><?= e($estadoLabel) ?></option>
                                             <?php endforeach; ?>
                                         </select>
                                         <button class="button button-secondary" type="submit">Guardar</button>

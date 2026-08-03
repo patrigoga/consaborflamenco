@@ -1134,22 +1134,60 @@ function academia_dashboard_stats(PDO $pdo, int $academiaId): array
     ];
 }
 
+function academia_admin_estados(): array
+{
+    return [
+        'PENDIENTE' => 'Pendiente',
+        'ACTIVA' => 'Activa',
+        'SUSPENDIDA' => 'Suspendida',
+        'BAJA' => 'Baja',
+    ];
+}
+
+/**
+ * Numero de academias por estado, para las tarjetas de resumen del panel.
+ * Devuelve siempre las cuatro claves, aunque alguna este a cero.
+ */
+function academia_admin_estado_counts(PDO $pdo): array
+{
+    $counts = array_fill_keys(array_keys(academia_admin_estados()), 0);
+    $counts['TOTAL'] = 0;
+
+    foreach ($pdo->query('SELECT estado, COUNT(*) AS total FROM academias GROUP BY estado') as $row) {
+        $estado = (string) $row['estado'];
+        $total = (int) $row['total'];
+        if (array_key_exists($estado, $counts)) {
+            $counts[$estado] = $total;
+        }
+        $counts['TOTAL'] += $total;
+    }
+
+    return $counts;
+}
+
 function academia_admin_list(PDO $pdo, array $filters = []): array
 {
+    // Los contadores van como subconsulta y no como JOIN + GROUP BY: con dos
+    // LEFT JOIN a la vez los totales se multiplican entre si.
     $sql = 'SELECT a.miembro_id, a.estado, a.plan, a.created_at, m.nombre_publico, m.slug, m.ciudad, m.provincia_texto,
-                   u.nombre AS responsable_nombre, u.email AS responsable_email
+                   u.nombre AS responsable_nombre, u.email AS responsable_email,
+                   (SELECT COUNT(*) FROM academia_alumnos al WHERE al.academia_id = a.miembro_id AND al.estado = "ACTIVO") AS alumnos_activos,
+                   (SELECT COUNT(*) FROM academia_cursos c WHERE c.academia_id = a.miembro_id) AS cursos_totales,
+                   (SELECT COUNT(*) FROM academia_miembros p WHERE p.academia_id = a.miembro_id AND p.rol = "PROFESOR" AND p.estado = "ACTIVO") AS profesores_activos,
+                   (SELECT COUNT(*) FROM academia_solicitudes_info si WHERE si.academia_id = a.miembro_id AND si.estado = "NUEVA") AS solicitudes_nuevas
             FROM academias a
             INNER JOIN miembros m ON m.id = a.miembro_id
             LEFT JOIN academia_miembros am ON am.academia_id = a.miembro_id AND am.rol = "RESPONSABLE"
             LEFT JOIN usuarios u ON u.id = am.usuario_id';
     $params = [];
 
-    if (!empty($filters['estado'])) {
+    $estado = academia_enum_filter($filters['estado'] ?? '', academia_admin_estados());
+    if ($estado !== '') {
         $sql .= ' WHERE a.estado = :estado';
-        $params['estado'] = $filters['estado'];
+        $params['estado'] = $estado;
     }
 
-    $sql .= ' ORDER BY a.created_at DESC LIMIT 200';
+    $sql .= ' ORDER BY FIELD(a.estado, "PENDIENTE") DESC, a.created_at DESC LIMIT 200';
 
     $statement = $pdo->prepare($sql);
     $statement->execute($params);
