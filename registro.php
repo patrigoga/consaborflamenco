@@ -9,6 +9,7 @@ $values = [
     'full_name' => '',
     'email' => '',
     'member_type' => 'artista',
+    'public_name' => '',
 ];
 
 $currentUser = current_user();
@@ -30,15 +31,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $values['full_name'] = clean_text((string) ($_POST['full_name'] ?? ''));
     $values['email'] = normalize_email($_POST['email'] ?? '');
     $values['member_type'] = normalize_member_type((string) ($_POST['member_type'] ?? 'artista'));
+    $values['public_name'] = clean_text((string) ($_POST['public_name'] ?? ''));
     $password = (string) ($_POST['password'] ?? '');
     $passwordConfirm = (string) ($_POST['password_confirm'] ?? '');
     $acceptedTerms = isset($_POST['terms']);
+    $publicSlug = '';
 
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
         $errors[] = 'La sesion ha caducado. Vuelve a intentarlo.';
     }
     if ($values['full_name'] === '') {
         $errors[] = 'Introduce tu nombre y apellidos.';
+    }
+
+    // El nombre publico es el nombre de la web del miembro: se reserva aqui y ya
+    // no se puede cambiar desde el panel. Por eso se comprueba que este libre.
+    if ($values['public_name'] === '') {
+        $errors[] = 'Introduce el nombre publico de tu espacio (artista, academia, asociacion...).';
+    } elseif (mb_strlen($values['public_name']) < 2 || mb_strlen($values['public_name']) > 160) {
+        $errors[] = 'El nombre publico debe tener entre 2 y 160 caracteres.';
+    } else {
+        $publicSlug = slugify($values['public_name']);
+        if (member_slug_in_use($publicSlug)) {
+            $errors[] = 'Ese nombre publico ya esta ocupado. Elige otro.';
+        }
     }
     if (!filter_var($values['email'], FILTER_VALIDATE_EMAIL)) {
         $errors[] = 'Introduce un email valido.';
@@ -60,6 +76,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $user = create_user($values['full_name'], $values['email'], $password, [
                 'member_type' => $values['member_type'],
+                'public_name' => $values['public_name'],
+                'slug' => $publicSlug,
+                // Marca el nombre publico y su URL como reservados: a partir de
+                // aqui el panel los muestra en solo lectura.
+                'slug_locked_at' => gmdate('c'),
             ]);
 
             // Send email verification token (best-effort)
@@ -113,11 +134,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input id="full_name" name="full_name" type="text" autocomplete="name" value="<?= e($values['full_name']) ?>" required>
 
                 <label for="member_type">Tipo de espacio</label>
-                <select id="member_type" name="member_type" required>
+                <select id="member_type" name="member_type" required data-register-type>
                     <?php foreach (member_type_options() as $typeValue => $typeLabel): ?>
-                        <option value="<?= e($typeValue) ?>" <?= $values['member_type'] === $typeValue ? 'selected' : '' ?>><?= e($typeLabel) ?></option>
+                        <option value="<?= e($typeValue) ?>" data-url-prefix="<?= e(member_type_url_prefix($typeValue)) ?>" <?= $values['member_type'] === $typeValue ? 'selected' : '' ?>><?= e($typeLabel) ?></option>
                     <?php endforeach; ?>
                 </select>
+
+                <label for="public_name">Nombre publico</label>
+                <input id="public_name" name="public_name" type="text" value="<?= e($values['public_name']) ?>" maxlength="160" minlength="2" placeholder="Nombre del artista, academia o asociacion" required data-register-public-name>
+                <p class="field-help">
+                    Sera el nombre de tu web:
+                    <strong data-register-url-preview><?= e(member_public_url($values['member_type'], $values['public_name'] !== '' ? $values['public_name'] : 'tu-nombre')) ?></strong>
+                    Se reserva al crear la cuenta y no se puede cambiar despues sin solicitarlo.
+                </p>
 
                 <label for="email">Email</label>
                 <input id="email" name="email" type="email" autocomplete="email" value="<?= e($values['email']) ?>" required>
@@ -151,5 +180,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </main>
     <?php page_footer(); ?>
     <?php province_modal('Asi podremos mostrarte servicios, comunidad y oportunidades relevantes segun tu provincia.'); ?>
+    <script>
+        (function () {
+            const typeSelect = document.querySelector('[data-register-type]');
+            const nameInput = document.querySelector('[data-register-public-name]');
+            const preview = document.querySelector('[data-register-url-preview]');
+            if (!typeSelect || !nameInput || !preview) {
+                return;
+            }
+
+            const baseUrl = <?= json_encode(app_url(''), JSON_UNESCAPED_SLASHES) ?>;
+
+            // Aproximacion en cliente de slugify(): el servidor manda igualmente.
+            function toSlug(value) {
+                const normalized = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                return normalized.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+            }
+
+            function refresh() {
+                const option = typeSelect.options[typeSelect.selectedIndex];
+                const prefix = (option && option.dataset.urlPrefix) || 'artista';
+                preview.textContent = baseUrl + prefix + '/' + (toSlug(nameInput.value) || 'tu-nombre');
+            }
+
+            typeSelect.addEventListener('change', refresh);
+            nameInput.addEventListener('input', refresh);
+            refresh();
+        })();
+    </script>
 </body>
 </html>

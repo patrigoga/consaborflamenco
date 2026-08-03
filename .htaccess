@@ -1,6 +1,9 @@
 Options -MultiViews
 RewriteEngine On
 
+# URLs publicas de miembro: cada tipo tiene su propia raiz.
+# Los prefijos deben coincidir con member_type_url_prefixes() en app/auth.php.
+
 RewriteCond %{THE_REQUEST} \s+(.*/)?artista\.php\?slug=([^\s&]+) [NC]
 RewriteRule ^artista\.php$ %1artista/%2? [R=301,L,NE]
 
@@ -10,3 +13,8 @@ RewriteCond %{THE_REQUEST} \s+(.*/)?academia\.php\?slug=([^\s&]+) [NC]
 RewriteRule ^academia\.php$ %1academia/%2? [R=301,L,NE]
 
 RewriteRule ^academia/([a-z0-9_-]+)/?$ academia.php?slug=$1 [L,QSA,NC]
+
+# El resto de tipos comparten el microsite generico de artista.php, pero
+# conservan su propio prefijo. artista.php redirige al prefijo correcto si no
+# coincide con el tipo real del miembro.
+RewriteRule ^(asociacion|tienda|pena|tablao|festival|profesional)/([a-z0-9_-]+)/?$ artista.php?slug=$2&tipo=$1 [L,QSA,NC]

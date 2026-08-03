@@ -70,7 +70,9 @@ function artist_public_base_url(): string
     $requestPath = (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
     $scriptPath = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
 
-    if (preg_match('#^(.*?)/artista(?:/[^/]+)?/?$#', $requestPath, $matches)) {
+    // Cualquier prefijo de tipo de miembro, no solo /artista/.
+    $prefixes = implode('|', array_map('preg_quote', array_values(member_type_url_prefixes())));
+    if (preg_match('#^(.*?)/(?:' . $prefixes . ')(?:/[^/]+)?/?$#', $requestPath, $matches)) {
         $basePath = rtrim($matches[1], '/');
     } elseif (strpos($scriptPath, '/artista.php') !== false) {
         $basePath = rtrim(dirname($scriptPath), '/');
@@ -144,10 +146,21 @@ function artist_public_month_label(int $month): string
 
 $uri = $_SERVER['REQUEST_URI'] ?? '';
 $slug = null;
-if (preg_match('#/artista/([a-z0-9\-_%]+)#i', $uri, $matches)) {
-    $slug = urldecode($matches[1]);
+$requestedPrefix = '';
+
+// Esta pagina es el microsite generico de cualquier tipo de miembro salvo las
+// academias, que tienen el suyo en academia.php. Se entra por el prefijo del
+// tipo (/artista/, /asociacion/, /tienda/...) y mas abajo se comprueba que el
+// prefijo usado sea el que corresponde al tipo real del miembro.
+$prefixPattern = implode('|', array_map('preg_quote', array_values(member_type_url_prefixes())));
+if (preg_match('#/(' . $prefixPattern . ')/([a-z0-9\-_%]+)#i', $uri, $matches)) {
+    $requestedPrefix = strtolower($matches[1]);
+    $slug = urldecode($matches[2]);
 } elseif (!empty($_GET['slug'])) {
     $slug = $_GET['slug'];
+    // Sin reescritura (acceso directo a artista.php?slug=) se asume el prefijo
+    // historico: asi esta pagina sigue sirviendo a los artistas sin redirigir.
+    $requestedPrefix = strtolower(clean_text((string) ($_GET['tipo'] ?? ''))) ?: 'artista';
 }
 
 $slug = slugify((string) $slug);
@@ -160,11 +173,19 @@ if ($slug === '') {
 $member = find_user_by_member_slug($slug);
 if (!$member) {
     header('HTTP/1.1 404 Not Found');
-    echo 'Artista no encontrado';
+    echo 'Miembro no encontrado';
     exit;
 }
 
 $profile = default_member_profile($member);
+
+// Canonico: cada miembro se publica bajo el prefijo de su tipo. Si se ha
+// llegado por otro (o por artista.php?slug=), se redirige de forma permanente.
+$canonicalPrefix = member_type_url_prefix((string) ($profile['member_type'] ?? 'artista'));
+if ($requestedPrefix !== $canonicalPrefix) {
+    header('Location: ' . app_url(member_public_path((string) ($profile['member_type'] ?? 'artista'), $slug)), true, 301);
+    exit;
+}
 $webPage = default_member_web_page(is_array($profile['web_page'] ?? null) ? $profile['web_page'] : []);
 $displayName = clean_text((string) ($profile['public_name'] ?: ($member['name'] ?? 'Artista')));
 $memberTypeLabel = member_type_options()[$profile['member_type'] ?? 'artista'] ?? 'Artista';
@@ -199,7 +220,7 @@ usort($news, static function (array $a, array $b): int {
 $socialLinks = is_array($webPage['social_links'] ?? null) ? $webPage['social_links'] : [];
 $contactFields = is_array($webPage['contact_fields'] ?? null) ? $webPage['contact_fields'] : [];
 $siteBaseUrl = artist_public_base_url();
-$artistPageUrl = $siteBaseUrl . '/artista/' . rawurlencode($slug);
+$artistPageUrl = $siteBaseUrl . '/' . member_public_path((string) ($profile['member_type'] ?? 'artista'), $slug);
 $artistsUrl = $siteBaseUrl . '/artistas.php';
 $registerUrl = $siteBaseUrl . '/registro.php';
 $defaultHeroImage = artist_public_media_url('assets/images/flamenco-header-art.png');

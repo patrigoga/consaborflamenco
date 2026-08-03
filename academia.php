@@ -10,7 +10,29 @@ $slug = clean_text((string) ($_GET['slug'] ?? ''));
 $pdo = db();
 $academia = ($pdo && $slug !== '') ? academia_get_by_slug($pdo, $slug) : null;
 
-if (!$academia || $academia['estado'] !== 'ACTIVA') {
+if (!$academia) {
+    // El slug es unico para todos los tipos de miembro: si existe pero no es una
+    // academia, se manda al prefijo que le corresponde en vez de dar un 404.
+    $member = $slug !== '' ? find_user_by_member_slug($slug) : null;
+    if ($member) {
+        $memberProfile = default_member_profile($member);
+        $memberType = (string) ($memberProfile['member_type'] ?? 'artista');
+        // Nunca se redirige a 'academia': seria un bucle. Si el miembro es de tipo
+        // academia pero no tiene fila en `academias`, se cae al 404 de abajo.
+        if (member_type_url_prefix($memberType) !== 'academia') {
+            header('Location: ' . app_url(member_public_path($memberType, $slug)), true, 301);
+            exit;
+        }
+    }
+
+    header('HTTP/1.1 404 Not Found');
+    echo 'Academia no encontrada';
+    exit;
+}
+
+// La microweb publica solo se muestra cuando la administracion aprueba la
+// academia (estado ACTIVA). Ver docs/15_AREA_ACADEMIAS.md, "Alta de una academia".
+if ($academia['estado'] !== 'ACTIVA') {
     header('HTTP/1.1 404 Not Found');
     echo 'Academia no encontrada';
     exit;

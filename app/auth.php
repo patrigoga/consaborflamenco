@@ -149,6 +149,7 @@ function member_type_options(): array
     return [
         'artista' => 'Artista',
         'academia' => 'Academia',
+        'asociacion' => 'Asociacion flamenca',
         'tienda' => 'Tienda flamenca',
         'pena' => 'Pena flamenca',
         'tablao' => 'Tablao flamenco',
@@ -160,6 +161,118 @@ function member_type_options(): array
 function normalize_member_type(string $type): string
 {
     return array_key_exists($type, member_type_options()) ? $type : 'artista';
+}
+
+/**
+ * Prefijo de URL publica de cada tipo de miembro.
+ *
+ * Todos los tipos son miembros y comparten el mismo espacio de slugs (la columna
+ * `miembros.slug` es unica), pero cada uno se publica bajo su propia raiz:
+ * /artista/{slug}, /academia/{slug}, /asociacion/{slug}...
+ *
+ * Como el slug es unico en toda la plataforma, el prefijo no forma parte de la
+ * identidad: solo dice de que tipo de espacio se trata. Si se entra por el
+ * prefijo equivocado, la pagina publica redirige (301) al canonico.
+ *
+ * Las claves deben coincidir con member_type_options() y los valores con las
+ * reglas de reescritura de .htaccess.
+ */
+function member_type_url_prefixes(): array
+{
+    return [
+        'artista' => 'artista',
+        'academia' => 'academia',
+        'asociacion' => 'asociacion',
+        'tienda' => 'tienda',
+        'pena' => 'pena',
+        'tablao' => 'tablao',
+        'festival' => 'festival',
+        'profesional' => 'profesional',
+    ];
+}
+
+function member_type_url_prefix(string $type): string
+{
+    return member_type_url_prefixes()[normalize_member_type($type)] ?? 'artista';
+}
+
+/**
+ * Tipo de miembro al que pertenece un prefijo de URL, o null si no es conocido.
+ */
+function member_type_from_url_prefix(string $prefix): ?string
+{
+    $type = array_search(strtolower(trim($prefix)), member_type_url_prefixes(), true);
+
+    return is_string($type) ? $type : null;
+}
+
+/**
+ * Ruta publica relativa de un miembro, sin barra inicial: "academia/mi-academia".
+ */
+function member_public_path(string $type, string $slug): string
+{
+    $slug = clean_text($slug);
+
+    return member_type_url_prefix($type) . '/' . rawurlencode($slug !== '' ? slugify($slug) : 'miembro');
+}
+
+function member_public_url(string $type, string $slug): string
+{
+    return app_url(member_public_path($type, $slug));
+}
+
+/**
+ * Comprueba si un slug ya pertenece a otro miembro.
+ *
+ * Se usa tanto en el alta (registro.php) como en el panel: el slug es unico en
+ * toda la plataforma, independientemente del tipo de miembro.
+ *
+ * Ojo: slugify() nunca devuelve cadena vacia (degrada a "contenido"), asi que
+ * quien llame debe validar antes que el texto de origen no venia vacio.
+ */
+function member_slug_in_use(string $slug, int $excludeUserId = 0): bool
+{
+    $slug = clean_text($slug);
+    if ($slug === '') {
+        return false;
+    }
+    $slug = slugify($slug);
+
+    $pdo = db();
+    if ($pdo && db_column_exists($pdo, 'miembros', 'slug')) {
+        $statement = $pdo->prepare('SELECT COUNT(*) FROM miembros WHERE slug = :slug AND usuario_id != :usuario_id');
+        $statement->execute([
+            'slug' => $slug,
+            'usuario_id' => max(0, $excludeUserId),
+        ]);
+
+        return ((int) $statement->fetchColumn()) > 0;
+    }
+
+    // Sin base de datos se trabaja contra el almacen legacy en JSON. Solo se
+    // recorre en ese caso: con PDO, all_users() se traeria la tabla entera.
+    foreach (all_users() as $user) {
+        if ($excludeUserId > 0 && (int) ($user['db_id'] ?? 0) === $excludeUserId) {
+            continue;
+        }
+        $profile = default_member_profile($user);
+        if (slugify((string) ($profile['slug'] ?? '')) === $slug) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Indica si el nombre publico y su slug quedaron fijados al crear la cuenta.
+ *
+ * El nombre publico es el nombre de la web del miembro, asi que se reserva en el
+ * alta y no se puede cambiar desde el panel: hay que solicitarlo.
+ */
+function member_public_name_is_locked(array $profile): bool
+{
+    return clean_text((string) ($profile['slug_locked_at'] ?? '')) !== '';
 }
 
 function default_member_profile(array $user = []): array
@@ -291,11 +404,23 @@ function member_profile_from_input(array $input, array $existingProfile = []): a
 {
     $profile = default_member_profile(['artistic_profile' => $existingProfile]);
     $profile['member_type'] = normalize_member_type((string) ($input['member_type'] ?? $profile['member_type']));
-    $profile['public_name'] = clean_text((string) ($input['public_name'] ?? $input['name'] ?? $profile['public_name']));
-    $requestedSlug = clean_text((string) ($input['slug'] ?? $profile['slug'] ?? $profile['public_name'] ?? $input['public_name'] ?? $input['name'] ?? ''));
-    $normalizedSlug = slugify($requestedSlug !== '' ? $requestedSlug : ($profile['public_name'] ?? $input['public_name'] ?? $input['name'] ?? 'miembro'));
-    $profile['slug'] = $normalizedSlug;
-    $profile['slug_locked_at'] = clean_text((string) ($existingProfile['slug_locked_at'] ?? '')) ?: null;
+    $lockedAt = clean_text((string) ($existingProfile['slug_locked_at'] ?? '')) ?: null;
+    $lockedName = clean_text((string) ($existingProfile['public_name'] ?? ''));
+    $lockedSlug = clean_text((string) ($existingProfile['slug'] ?? ''));
+
+    if ($lockedAt !== null && $lockedName !== '' && $lockedSlug !== '') {
+        // Nombre publico reservado en el alta: es el nombre de la web del
+        // miembro, asi que ni el nombre ni el slug se aceptan desde el formulario.
+        $profile['public_name'] = $lockedName;
+        $profile['slug'] = slugify($lockedSlug);
+    } else {
+        $profile['public_name'] = clean_text((string) ($input['public_name'] ?? $input['name'] ?? $profile['public_name']));
+        $requestedSlug = clean_text((string) ($input['slug'] ?? $profile['slug'] ?? $profile['public_name'] ?? $input['public_name'] ?? $input['name'] ?? ''));
+        $normalizedSlug = slugify($requestedSlug !== '' ? $requestedSlug : ($profile['public_name'] ?? $input['public_name'] ?? $input['name'] ?? 'miembro'));
+        $profile['slug'] = $normalizedSlug;
+    }
+
+    $profile['slug_locked_at'] = $lockedAt;
     $profile['artistic_headline'] = clean_text((string) ($input['artistic_headline'] ?? $profile['artistic_headline']));
     $profile['short_description'] = '';
     $profile['cv_summary'] = '';

@@ -8,16 +8,58 @@ El area de miembros sera una zona privada donde artistas, academias, penas, tabl
 
 Definir las capacidades previstas para los miembros y documentar los tipos de miembros contemplados en la plataforma.
 
-## Tipos de miembros previstos
+## Tipos de miembros
 
-- Artista.
-- Academia.
-- Tienda flamenca.
-- Pena flamenca.
-- Tablao.
-- Festival.
-- Profesional flamenco.
-- Entidad colaboradora.
+Todo el que se da de alta en `registro.php` es un miembro. Lo que elige en el alta no es
+una categoria decorativa: define el tipo de espacio, el panel al que accede y la raiz de su
+URL publica.
+
+Tipos implementados, con su prefijo de URL:
+
+| Tipo | Etiqueta en el alta | URL publica | Pagina que la sirve |
+|---|---|---|---|
+| `artista` | Artista | `/artista/{slug}` | `artista.php` |
+| `academia` | Academia | `/academia/{slug}` | `academia.php` |
+| `asociacion` | Asociacion flamenca | `/asociacion/{slug}` | `artista.php` |
+| `tienda` | Tienda flamenca | `/tienda/{slug}` | `artista.php` |
+| `pena` | Pena flamenca | `/pena/{slug}` | `artista.php` |
+| `tablao` | Tablao flamenco | `/tablao/{slug}` | `artista.php` |
+| `festival` | Festival | `/festival/{slug}` | `artista.php` |
+| `profesional` | Profesional flamenco | `/profesional/{slug}` | `artista.php` |
+
+La lista vive en `member_type_options()` y los prefijos en `member_type_url_prefixes()`,
+ambas en `app/auth.php`. Las claves de las dos deben coincidir. Los prefijos tienen que
+estar tambien en las reglas de reescritura de `.htaccess`.
+
+Pendiente de decidir como tipo propio: entidad colaboradora.
+
+## Nombre publico y URL
+
+El nombre publico es el nombre de la web del miembro, asi que se trata como un recurso
+reservado:
+
+1. Se elige en el alta (`registro.php`), junto al tipo de espacio. El formulario muestra en
+   vivo como quedara la URL.
+2. Antes de crear la cuenta se comprueba con `member_slug_in_use()` que el slug este libre.
+   El slug es unico para toda la plataforma, no por tipo: no puede haber una academia y un
+   artista con el mismo nombre.
+3. Al crear la cuenta se guarda `slug_locked_at` en el perfil. A partir de ahi el panel
+   muestra el nombre publico y el slug en solo lectura: para cambiarlos hay que solicitarlo.
+   Es el mismo criterio que ya se aplicaba al nombre de cuenta.
+4. El tipo de espacio si se puede cambiar desde el panel. Solo cambia el prefijo de la URL,
+   no el nombre.
+
+Las cuentas anteriores a esta regla no tienen `slug_locked_at` y conservan el boton
+"Guardar URL". La primera vez que lo usan, su URL queda reservada igual que en las altas
+nuevas.
+
+### Canonico
+
+Como el slug es unico, el prefijo no forma parte de la identidad: solo dice de que tipo de
+espacio se trata. Si se entra por el prefijo equivocado (`/artista/mi-academia`), la pagina
+publica responde un 301 al prefijo correcto. Lo resuelven `member_public_path()` y
+`member_public_url()`, que son las funciones que hay que usar siempre para construir el
+enlace publico de un miembro, en lugar de concatenar `'artista/' . $slug`.
 
 ## Funciones previstas
 
@@ -68,8 +110,9 @@ El panel de miembro se organiza con:
 - Cabecera privada tipo dashboard con fotografia principal, nombre artistico, tipo de espacio, ubicacion y metricas de estado.
 - La fotografia principal se edita desde la propia imagen de cabecera mediante hover, evitando duplicar la misma imagen en el panel.
 - Bloque de perfil con datos principales del miembro, sin cabecera secundaria redundante bajo el resumen principal.
-- Editor de perfil artistico con tipo de espacio, nombre artistico, titular artistico, ubicacion, contacto, redes y fotografia principal.
-- La URL publica del perfil se guarda con un boton propio y valida duplicados antes de persistir el slug.
+- Editor de perfil artistico con tipo de espacio, nombre publico, titular artistico, ubicacion, contacto, redes y fotografia principal.
+- El nombre publico y su URL quedan reservados al crear la cuenta: se muestran en solo lectura y para cambiarlos hay que solicitarlo. En cuentas antiguas sin reserva, la URL se guarda con un boton propio, valida duplicados y queda reservada al guardarse.
+- La vista previa de la URL publica cambia de prefijo al cambiar el tipo de espacio (`/artista/`, `/academia/`, `/asociacion/`...).
 - Editor de curriculum artistico con formacion, experiencia escenica, docencia, actuaciones destacadas, premios, repertorio, disponibilidad y notas privadas.
 - Configuracion de pagina web de una sola pagina con cabecera, galeria de hasta 9 imagenes, videos, eventos, actualidad y contacto.
 - La pagina publica mostrara en su menu interno solo las secciones con contenido guardado, manteniendo la cabecera siempre visible.

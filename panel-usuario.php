@@ -315,29 +315,8 @@ function web_news_uploaded_file(array $files, int $index): ?array
     ];
 }
 
-function member_slug_in_use(string $slug, int $excludeUserId = 0): bool
-{
-    $slug = slugify(clean_text($slug));
-    if ($slug === '') {
-        return false;
-    }
-
-    $pdo = db();
-    if (!$pdo) {
-        return false;
-    }
-    if (!db_column_exists($pdo, 'miembros', 'slug')) {
-        return false;
-    }
-
-    $statement = $pdo->prepare('SELECT COUNT(*) FROM miembros WHERE slug = :slug AND usuario_id != :usuario_id');
-    $statement->execute([
-        'slug' => $slug,
-        'usuario_id' => max(0, $excludeUserId),
-    ]);
-
-    return ((int) $statement->fetchColumn()) > 0;
-}
+// member_slug_in_use() vive ahora en app/auth.php: el alta (registro.php) tambien
+// necesita comprobar que el slug esta libre antes de crear la cuenta.
 
 function user_name_in_use(string $name, string $excludeUserId): bool
 {
@@ -545,17 +524,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($profileAction, ['update_p
     }
 
     if (!$profileErrors && $isSlugSave) {
-        $requestedSlug = slugify(clean_text((string) ($_POST['slug'] ?? '')));
-        if ($requestedSlug === '') {
-            $profileErrors[] = 'La URL publica no es valida. Usa solo letras, numeros y guiones.';
-        } elseif (member_slug_in_use($requestedSlug, (int) ($user['db_id'] ?? 0))) {
-            $profileErrors[] = 'La URL publica ya esta en uso. Elige otro slug.';
+        if (member_public_name_is_locked($memberProfile)) {
+            // Nombre publico reservado en el alta: solo se cambia bajo solicitud.
+            $profileErrors[] = 'Tu URL publica esta reservada. Para cambiarla, solicita autorizacion por correo electronico.';
         } else {
-            $memberProfile['slug'] = $requestedSlug;
-            $memberProfile['slug_locked_at'] = null;
-            $user['artistic_profile'] = $memberProfile;
-            update_user($user);
-            $profileMessages[] = 'URL publica guardada. Ya puedes abrir tu ficha con este enlace.';
+            $rawSlug = clean_text((string) ($_POST['slug'] ?? ''));
+            $requestedSlug = $rawSlug !== '' ? slugify($rawSlug) : '';
+            if ($requestedSlug === '') {
+                $profileErrors[] = 'La URL publica no es valida. Usa solo letras, numeros y guiones.';
+            } elseif (member_slug_in_use($requestedSlug, (int) ($user['db_id'] ?? 0))) {
+                $profileErrors[] = 'La URL publica ya esta en uso. Elige otro slug.';
+            } else {
+                $memberProfile['slug'] = $requestedSlug;
+                // A partir de ahora queda reservada, como en las altas nuevas.
+                $memberProfile['slug_locked_at'] = gmdate('c');
+                $user['artistic_profile'] = $memberProfile;
+                update_user($user);
+                $profileMessages[] = 'URL publica guardada y reservada. Para cambiarla mas adelante tendras que solicitarlo.';
+            }
         }
     }
 
@@ -883,7 +869,9 @@ $profileStatusClass = profile_is_complete($memberProfile) ? 'status-pill-active'
 $displayName = $memberProfile['public_name'] !== '' ? $memberProfile['public_name'] : $userName;
 $publicSlug = clean_text((string) ($memberProfile['slug'] ?? slugify($displayName)));
 $publicSlug = $publicSlug !== '' ? $publicSlug : slugify($displayName);
-$publicProfileUrl = app_url('artista/' . rawurlencode($publicSlug));
+$publicNameLocked = member_public_name_is_locked($memberProfile);
+$memberTypePrefix = member_type_url_prefix((string) ($memberProfile['member_type'] ?? 'artista'));
+$publicProfileUrl = member_public_url((string) ($memberProfile['member_type'] ?? 'artista'), $publicSlug);
 $webPage = default_member_web_page(is_array($memberProfile['web_page'] ?? null) ? $memberProfile['web_page'] : []);
 $webSlides = is_array($webPage['hero_slides'] ?? null) ? array_slice($webPage['hero_slides'], 0, 3) : [];
 $webGallery = array_slice($webPage['gallery'], 0, 9);
@@ -1069,26 +1057,34 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                                 </label>
                                 <div class="form-grid-two">
                                     <label for="member_type">Tipo de espacio
-                                        <select id="member_type" name="member_type" required>
+                                        <select id="member_type" name="member_type" required data-member-type-select>
                                             <?php foreach (member_type_options() as $typeValue => $typeLabel): ?>
-                                                <option value="<?= e($typeValue) ?>" <?= $memberProfile['member_type'] === $typeValue ? 'selected' : '' ?>><?= e($typeLabel) ?></option>
+                                                <option value="<?= e($typeValue) ?>" data-url-prefix="<?= e(member_type_url_prefix($typeValue)) ?>" <?= $memberProfile['member_type'] === $typeValue ? 'selected' : '' ?>><?= e($typeLabel) ?></option>
                                             <?php endforeach; ?>
                                         </select>
                                     </label>
-                                    <label for="public_name">Nombre artistico
-                                        <input id="public_name" name="public_name" type="text" value="<?= e($displayName) ?>" required>
+                                    <label for="public_name">Nombre publico
+                                        <input id="public_name" name="public_name" type="text" value="<?= e($displayName) ?>" <?= $publicNameLocked ? 'readonly aria-readonly="true"' : 'required' ?>>
+                                        <?php if ($publicNameLocked): ?>
+                                            <span class="field-help">Nombre reservado al crear la cuenta. Para cambiarlo, solicita autorizacion por correo electronico.</span>
+                                        <?php endif; ?>
                                     </label>
                                 </div>
                                 <div class="public-url-control">
                                     <label for="slug">URL pública (slug)
-	                                        <input id="slug" name="slug" type="text" value="<?= e($publicSlug) ?>" placeholder="nombre-artista" pattern="[a-z0-9-]+" autocomplete="off" spellcheck="false" data-slug-input data-public-profile-base="<?= e(app_url('artista/')) ?>" required>
+	                                        <input id="slug" name="slug" type="text" value="<?= e($publicSlug) ?>" placeholder="nombre-artista" pattern="[a-z0-9-]+" autocomplete="off" spellcheck="false" data-slug-input data-public-profile-base="<?= e(app_url('')) ?>" data-public-profile-prefix="<?= e($memberTypePrefix) ?>" <?= $publicNameLocked ? 'readonly aria-readonly="true"' : 'required' ?>>
                                     </label>
+	                                    <?php if (!$publicNameLocked): ?>
 	                                    <button class="button button-secondary public-url-save" type="submit" name="slug_action" value="save_public_slug" formnovalidate>Guardar URL</button>
+	                                    <?php endif; ?>
 		                                    <a class="public-url-cta" href="<?= e($publicProfileUrl) ?>" target="_blank" rel="noopener" data-public-url-cta>
 		                                        <span>Ver URL publica</span>
 		                                        <strong data-public-url-text><?= e($publicProfileUrl) ?></strong>
 		                                    </a>
 	                                </div>
+	                                <?php if ($publicNameLocked): ?>
+	                                    <p class="field-help">Tu URL publica quedo reservada al crear la cuenta. Si cambias el tipo de espacio solo se ajusta el prefijo; el nombre se cambia unicamente bajo solicitud.</p>
+	                                <?php endif; ?>
 	                                    </div>
 	                                </div>
 	                            </fieldset>
@@ -1750,8 +1746,14 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                 slugInput.value = normalizedSlug;
             }
 
+            // El prefijo depende del tipo de espacio: /artista/, /academia/,
+            // /asociacion/... Se lee del selector para que la vista previa
+            // reaccione antes de guardar.
             const baseUrl = slugInput.dataset.publicProfileBase || '';
-            const nextUrl = `${baseUrl}${normalizedSlug || 'nombre-artista'}`;
+            const typeSelect = document.querySelector('[data-member-type-select]');
+            const selectedOption = typeSelect instanceof HTMLSelectElement ? typeSelect.options[typeSelect.selectedIndex] : null;
+            const prefix = (selectedOption && selectedOption.dataset.urlPrefix) || slugInput.dataset.publicProfilePrefix || 'artista';
+            const nextUrl = `${baseUrl}${prefix}/${normalizedSlug || 'nombre-artista'}`;
             publicUrlCtas.forEach((publicUrlCta) => {
                 if (!(publicUrlCta instanceof HTMLAnchorElement)) {
                     return;
@@ -1766,6 +1768,7 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
 
         document.querySelector('[data-slug-input]')?.addEventListener('input', syncPublicUrlCta);
         document.querySelector('[data-slug-input]')?.addEventListener('blur', syncPublicUrlCta);
+        document.querySelector('[data-member-type-select]')?.addEventListener('change', syncPublicUrlCta);
         syncPublicUrlCta();
 
         const submitIsolatedImageUpdate = async (input) => {

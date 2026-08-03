@@ -375,6 +375,24 @@ function db_seed_article_categories(PDO $pdo): void
 function slugify(string $value): string
 {
     $value = trim(mb_strtolower($value, 'UTF-8'));
+
+    // Transliteracion explicita antes de iconv(): //TRANSLIT depende del locale
+    // del sistema y en Windows convierte "pena" (con enye) en "pe~na", con lo que
+    // el slug acababa siendo "pe-na". Como el slug es la URL publica del miembro
+    // y se reserva de por vida, no puede depender del servidor donde se ejecute.
+    // Acentos sueltos (texto en NFD, habitual en macOS): se descartan.
+    $value = preg_replace('/\p{Mn}+/u', '', $value) ?? $value;
+
+    $value = strtr($value, [
+        'á' => 'a', 'à' => 'a', 'ä' => 'a', 'â' => 'a', 'ã' => 'a', 'å' => 'a',
+        'é' => 'e', 'è' => 'e', 'ë' => 'e', 'ê' => 'e',
+        'í' => 'i', 'ì' => 'i', 'ï' => 'i', 'î' => 'i',
+        'ó' => 'o', 'ò' => 'o', 'ö' => 'o', 'ô' => 'o', 'õ' => 'o',
+        'ú' => 'u', 'ù' => 'u', 'ü' => 'u', 'û' => 'u',
+        'ñ' => 'n', 'ç' => 'c', 'ý' => 'y', 'ÿ' => 'y',
+        'ß' => 'ss', 'æ' => 'ae', 'œ' => 'oe', 'ø' => 'o', 'đ' => 'd',
+    ]);
+
     $transliterated = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value);
     $value = $transliterated !== false ? $transliterated : $value;
     $value = preg_replace('/[^a-z0-9]+/', '-', $value) ?? '';

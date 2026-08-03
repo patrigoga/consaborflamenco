@@ -67,13 +67,21 @@ academias desde `panel-admin.php`, seccion Academias.
 
 ## Alta de una academia
 
-1. La persona se registra en `registro.php` eligiendo el tipo de espacio "Academia".
+1. La persona se registra en `registro.php` eligiendo el tipo de espacio "Academia" y el
+   nombre publico de la academia. Ese nombre es el de su web (`/academia/{slug}`), se
+   comprueba que no este ocupado y queda reservado: no se puede cambiar desde el panel.
+   Ver "Nombre publico y URL" en `docs/05_AREA_MIEMBROS.md`.
 2. `db_upsert_member_for_user()` crea su fila en `miembros` con `tipo_miembro = academia`.
 3. `academia_sync_membership()` crea automaticamente su fila en `academias` con estado
    `PENDIENTE` y su fila en `academia_miembros` con rol `RESPONSABLE` y estado `ACTIVO`.
 4. La academia puede entrar ya en `panel-academia.php` y preparar profesores, cursos y
    grupos, pero su microweb publica NO es visible hasta que un administrador cambie su
    estado a `ACTIVA` desde `panel-admin.php`.
+
+Mientras esta en `PENDIENTE`, `/academia/{slug}` responde 404. Tampoco hay puerta trasera
+por `/artista/{slug}`: desde que existen prefijos por tipo, esa URL redirige (301) a
+`/academia/{slug}`, que es la canonica del miembro. Antes de ese cambio, una academia sin
+aprobar seguia siendo visible en `/artista/{slug}`.
 
 ## Seguridad multiacademia
 

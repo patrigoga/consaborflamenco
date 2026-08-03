@@ -86,7 +86,11 @@ csf_media_url('member-photos/foo.png')  // → media.php?file=member-photos/foo.
 
 ### URLs limpias
 
-Solo hay una regla de rewrite, en [.htaccess](.htaccess): `/artista/{slug}` → `artista.php?slug={slug}`, con 301 desde la forma antigua. Las páginas de artista se renderizan **sin header ni footer globales** (funcionan como microsite). El resto de páginas son `.php` directos.
+Las reglas de rewrite de [.htaccess](.htaccess) publican a cada miembro bajo el prefijo de su tipo: `/artista/{slug}`, `/academia/{slug}`, `/asociacion/{slug}`, `/tienda/{slug}`, `/pena/{slug}`, `/tablao/{slug}`, `/festival/{slug}`, `/profesional/{slug}`. Los sirve `academia.php` en el caso de las academias y `artista.php` en todos los demás.
+
+El mapa vive en `member_type_url_prefixes()` ([app/auth.php](app/auth.php)) y sus valores **deben coincidir** con los prefijos del `.htaccess`. Para construir el enlace público de un miembro usa `member_public_path()` / `member_public_url()`; no concatenes `'artista/' . $slug`.
+
+El slug es único para toda la plataforma, no por tipo, así que el prefijo es solo informativo: si se entra por el equivocado, la página pública responde un 301 al canónico. Las páginas de artista se renderizan **sin header ni footer globales** (funcionan como microsite). El resto de páginas son `.php` directos.
 
 ## Convenciones obligatorias
 
