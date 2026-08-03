@@ -41,7 +41,9 @@ if ($academia['estado'] !== 'ACTIVA') {
 $academiaId = (int) $academia['miembro_id'];
 $displayName = clean_text((string) $academia['nombre_publico']);
 $location = trim(clean_text((string) $academia['ciudad']) . (($academia['ciudad'] !== '' && $academia['provincia_texto'] !== '') ? ', ' : '') . clean_text((string) $academia['provincia_texto']));
-$mainPhoto = clean_text((string) $academia['foto_principal_path']);
+// Absoluta: esta pagina vive en /academia/{slug} y una ruta relativa se
+// resolveria contra /academia/, dejando la imagen rota.
+$mainPhoto = csf_media_url_absolute(clean_text((string) $academia['foto_principal_path']));
 $disciplinas = academia_list_disciplinas($pdo, $academiaId);
 $profesores = academia_public_profesores($pdo, $academiaId);
 $cursos = academia_public_cursos($pdo, $academiaId);
@@ -98,29 +100,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <?php page_header('ACADEMIAS'); ?>
     <main>
-        <section class="page-intro" data-ad-category="ACADEMIAS">
-            <p class="section-kicker">Academia</p>
-            <h1><?= e($displayName) ?></h1>
-            <?php if ($location !== ''): ?><p><?= e($location) ?></p><?php endif; ?>
-            <?php if ($disciplinas): ?>
-                <p><?= e(implode(' · ', array_map(static fn (array $d): string => $d['nombre'], $disciplinas))) ?></p>
-            <?php endif; ?>
+        <section class="page-intro academia-hero" data-ad-category="ACADEMIAS">
+            <div>
+                <p class="section-kicker">Academia de flamenco</p>
+                <h1><?= e($displayName) ?></h1>
+                <p class="academia-hero-meta">
+                    <?php if ($location !== ''): ?><span><?= e($location) ?></span><?php endif; ?>
+                    <?php foreach ($disciplinas as $disciplina): ?>
+                        <span class="academia-tag"><?= e((string) $disciplina['nombre']) ?></span>
+                    <?php endforeach; ?>
+                </p>
+            </div>
+            <a class="button button-primary" href="#contacto">Solicitar información</a>
         </section>
 
         <div class="page-shell">
             <div class="primary-content">
                 <section class="content-section">
-                    <?php if ($mainPhoto !== ''): ?>
-                        <img src="<?= e($mainPhoto) ?>" alt="Imagen de <?= e($displayName) ?>" loading="lazy" style="width:100%;border-radius:var(--radius);margin-bottom:24px;">
-                    <?php endif; ?>
-                    <?php $descripcion = academia_descripcion($academia); ?>
-                    <?php if ($descripcion !== ''): ?>
-                        <p><?= e($descripcion) ?></p>
-                    <?php endif; ?>
+                    <div class="academia-presentacion">
+                        <?php if ($mainPhoto !== ''): ?>
+                            <img class="academia-portada" src="<?= e($mainPhoto) ?>" alt="Imagen de <?= e($displayName) ?>" loading="lazy">
+                        <?php endif; ?>
 
-                    <div class="editorial-story-content" style="margin-top:16px;">
-                        <?php if ($academia['telefono'] !== ''): ?><p>Teléfono: <?= e((string) $academia['telefono']) ?></p><?php endif; ?>
-                        <?php if ($academia['web_url'] !== ''): ?><p>Web: <a href="<?= e((string) $academia['web_url']) ?>" target="_blank" rel="noopener"><?= e((string) $academia['web_url']) ?></a></p><?php endif; ?>
+                        <div class="academia-presentacion-texto">
+                            <?php $descripcion = academia_descripcion($academia); ?>
+                            <?php if ($descripcion !== ''): ?>
+                                <p class="academia-descripcion"><?= e($descripcion) ?></p>
+                            <?php else: ?>
+                                <p class="academia-descripcion"><?= e($displayName) ?> todavía no ha publicado su presentación<?= $location !== '' ? ', pero imparte clases en ' . e($location) : '' ?>. Escríbeles y te cuentan.</p>
+                            <?php endif; ?>
+
+                            <dl class="academia-datos">
+                                <?php if ((string) $academia['telefono'] !== ''): ?>
+                                    <div><dt>Teléfono</dt><dd><a href="tel:<?= e(preg_replace('/\s+/', '', (string) $academia['telefono'])) ?>"><?= e((string) $academia['telefono']) ?></a></dd></div>
+                                <?php endif; ?>
+                                <?php if ((string) $academia['web_url'] !== ''): ?>
+                                    <div><dt>Web</dt><dd><a href="<?= e((string) $academia['web_url']) ?>" target="_blank" rel="noopener"><?= e(preg_replace('#^https?://#', '', (string) $academia['web_url'])) ?></a></dd></div>
+                                <?php endif; ?>
+                                <?php if ((string) $academia['instagram_url'] !== ''): ?>
+                                    <div><dt>Instagram</dt><dd><a href="<?= e((string) $academia['instagram_url']) ?>" target="_blank" rel="noopener">Perfil</a></dd></div>
+                                <?php endif; ?>
+                                <?php if ($cursos): ?>
+                                    <div><dt>Cursos abiertos</dt><dd><?= e((string) count($cursos)) ?></dd></div>
+                                <?php endif; ?>
+                            </dl>
+                        </div>
                     </div>
                 </section>
 
@@ -155,22 +179,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?php if ($cursos): ?>
                         <div class="editorial-grid directory-grid">
                             <?php foreach ($cursos as $curso): ?>
-                                <article class="editorial-story-content member-config-card">
-                                    <span class="editorial-meta">
-                                        <strong><?= e((string) $curso['nombre']) ?></strong>
-                                        <span><?= e((string) ($curso['disciplina_nombre'] ?? 'Flamenco')) ?><?= $curso['nivel_nombre'] ? ' · ' . e((string) $curso['nivel_nombre']) : '' ?></span>
-                                    </span>
+                                <article class="academia-curso-card">
+                                    <header>
+                                        <span class="academia-curso-disciplina"><?= e((string) ($curso['disciplina_nombre'] ?? 'Flamenco')) ?><?= $curso['nivel_nombre'] ? ' · ' . e((string) $curso['nivel_nombre']) : '' ?></span>
+                                        <h3><?= e((string) $curso['nombre']) ?></h3>
+                                    </header>
                                     <?php if ($curso['descripcion']): ?><p><?= e((string) $curso['descripcion']) ?></p><?php endif; ?>
-                                    <p>
-                                        <?= e(ucfirst(strtolower((string) $curso['modalidad']))) ?>
-                                        <?php if ($curso['precio'] !== null): ?> · <?= e(number_format((float) $curso['precio'], 2, ',', '.')) ?> €<?php endif; ?>
-                                    </p>
-                                    <span class="status-pill <?= e(admin_badge_class((string) $curso['estado'])) ?>"><?= e(str_replace('_', ' ', (string) $curso['estado'])) ?></span>
+                                    <ul class="academia-curso-datos">
+                                        <li><?= e(ucfirst(strtolower((string) $curso['modalidad']))) ?></li>
+                                        <?php if ($curso['precio'] !== null): ?>
+                                            <li><strong><?= e(number_format((float) $curso['precio'], 2, ',', '.')) ?> €</strong><?= $curso['tipo_cuota'] ? ' / ' . e(strtolower((string) $curso['tipo_cuota'])) : '' ?></li>
+                                        <?php endif; ?>
+                                        <?php if (!empty($curso['fecha_inicio'])): ?>
+                                            <li>Desde <?= e(date('d/m/Y', strtotime((string) $curso['fecha_inicio']))) ?></li>
+                                        <?php endif; ?>
+                                    </ul>
+                                    <footer>
+                                        <span class="status-pill <?= e(admin_badge_class((string) $curso['estado'])) ?>"><?= e(str_replace('_', ' ', (string) $curso['estado'])) ?></span>
+                                        <a class="text-button" href="#contacto">Solicitar plaza</a>
+                                    </footer>
                                 </article>
                             <?php endforeach; ?>
                         </div>
                     <?php else: ?>
-                        <p class="empty-state">Esta academia todavía no ha publicado cursos.</p>
+                        <p class="empty-state">Esta academia todavía no ha publicado su oferta de cursos. Puedes escribirle igualmente y te informará de lo que imparte.</p>
                     <?php endif; ?>
                 </section>
 

@@ -111,6 +111,38 @@ function csf_normalize_media_file(string $file): ?string
     return $file;
 }
 
+/**
+ * URL absoluta de una imagen guardada en el perfil.
+ *
+ * Las rutas se almacenan como `media.php?file=...`, que es relativa. En las
+ * paginas con URL limpia (`/academia/{slug}`, `/artista/{slug}`) el navegador la
+ * resuelve contra `/academia/`, pide `/academia/media.php` y la imagen sale
+ * rota. Por eso cualquier salida de imagen de miembro debe pasar por aqui.
+ */
+function csf_media_url_absolute(string $storedPath): string
+{
+    $storedPath = trim(str_replace('\\', '/', $storedPath));
+    if ($storedPath === '' || str_starts_with($storedPath, 'data:') || preg_match('#^(?:https?:)?//#i', $storedPath) === 1) {
+        return $storedPath;
+    }
+
+    $file = csf_media_file_from_path($storedPath) ?? csf_normalize_media_file($storedPath);
+    if ($file !== null) {
+        return app_url(csf_media_url($file));
+    }
+
+    // Rutas heredadas dentro del repositorio (assets/uploads/...): al menos que
+    // salgan absolutas, para que tampoco dependan de la profundidad de la URL.
+    // Solo se acepta una ruta relativa limpia: nada de `..` ni de raiz, para no
+    // llegar a construir URLs que se salgan del sitio.
+    $legacy = ltrim($storedPath, '/');
+    if ($legacy === '' || str_contains($legacy, '..')) {
+        return '';
+    }
+
+    return app_url($legacy);
+}
+
 function csf_media_file_from_path(string $path): ?string
 {
     $path = trim(str_replace('\\', '/', $path));
@@ -124,7 +156,10 @@ function csf_media_file_from_path(string $path): ?string
         return csf_normalize_media_file((string) ($query['file'] ?? ''));
     }
 
-    if (preg_match('#(?:^|/)media\.php\?file=([^&#]+)#', $path, $matches) === 1) {
+    // Delimitador ~ a proposito: con # el `#` de la clase [^&#] cerraba el
+    // patron antes de tiempo ("Unknown modifier ']'") y esta rama no llegaba a
+    // evaluarse nunca, ademas de emitir un warning en cada llamada.
+    if (preg_match('~(?:^|/)media\.php\?file=([^&#]+)~', $path, $matches) === 1) {
         return csf_normalize_media_file((string) $matches[1]);
     }
 

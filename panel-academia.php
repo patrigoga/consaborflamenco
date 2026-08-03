@@ -274,21 +274,46 @@ if ($isResponsable) {
 
                 <?php if ($activeSection === 'resumen'): ?>
                     <section class="content-section">
-                        <div class="section-heading"><div class="section-heading-content"><p class="section-kicker">Resumen</p><h2>Estado de la academia</h2></div></div>
-                        <?php if ($isResponsable): ?>
-                            <div class="member-summary-grid">
-                                <article class="member-summary-card"><span>Alumnos activos</span><strong><?= e((string) $stats['alumnos_activos']) ?></strong></article>
-                                <article class="member-summary-card"><span>Profesores activos</span><strong><?= e((string) $stats['profesores_activos']) ?></strong></article>
-                                <article class="member-summary-card"><span>Cursos activos</span><strong><?= e((string) $stats['cursos_activos']) ?></strong></article>
-                                <article class="member-summary-card"><span>Matrículas pendientes</span><strong><?= e((string) $stats['matriculas_pendientes']) ?></strong></article>
-                                <article class="member-summary-card"><span>Solicitudes de información</span><strong><?= e((string) $stats['solicitudes_info_nuevas']) ?></strong></article>
-                                <article class="member-summary-card"><span>Solicitudes de matrícula</span><strong><?= e((string) $stats['solicitudes_matricula_nuevas']) ?></strong></article>
+                        <div class="section-heading admin-section-heading">
+                            <div class="section-heading-content">
+                                <p class="section-kicker">Resumen</p>
+                                <h2><?= $isResponsable ? 'Tu academia de un vistazo' : 'Tus clases de un vistazo' ?></h2>
+                                <p><?= $isResponsable
+                                    ? 'Todo lo que gestionas desde aquí: comunidad, formación y solicitudes recibidas.'
+                                    : 'Consulta los cursos, grupos y alumnos que tienes asignados.' ?></p>
                             </div>
+                            <?php if ($academiaOperativa && (string) ($academia['estado'] ?? '') === 'ACTIVA'): ?>
+                                <a class="section-enter-link" href="<?= e(app_url(member_public_path('academia', (string) ($academia['slug'] ?? '')))) ?>" target="_blank" rel="noopener">Ver mi web pública</a>
+                            <?php endif; ?>
+                        </div>
+
+                        <?php if ($isResponsable): ?>
+                            <?php
+                            $resumenTarjetas = [
+                                ['label' => 'Alumnos activos', 'valor' => $stats['alumnos_activos'], 'seccion' => 'alumnos'],
+                                ['label' => 'Profesores activos', 'valor' => $stats['profesores_activos'], 'seccion' => 'profesores'],
+                                ['label' => 'Cursos activos', 'valor' => $stats['cursos_activos'], 'seccion' => 'cursos'],
+                                ['label' => 'Matrículas pendientes', 'valor' => $stats['matriculas_pendientes'], 'seccion' => 'matriculas'],
+                                ['label' => 'Solicitudes de información', 'valor' => $stats['solicitudes_info_nuevas'], 'seccion' => 'matriculas'],
+                                ['label' => 'Solicitudes de matrícula', 'valor' => $stats['solicitudes_matricula_nuevas'], 'seccion' => 'matriculas'],
+                            ];
+                            ?>
+                            <div class="admin-metric-grid admin-metric-grid-quarters">
+                                <?php foreach ($resumenTarjetas as $tarjeta): ?>
+                                    <a class="admin-metric-card academia-metric-link" href="<?= e(academia_section_url((string) $tarjeta['seccion'])) ?>">
+                                        <span><?= e((string) $tarjeta['label']) ?></span>
+                                        <strong><?= e((string) $tarjeta['valor']) ?></strong>
+                                    </a>
+                                <?php endforeach; ?>
+                            </div>
+
                             <?php if ($academia['estado'] === 'PENDIENTE'): ?>
-                                <p class="empty-state">Tu academia está pendiente de aprobación por el equipo de Con Sabor Flamenco. Mientras tanto puedes ir completando profesores, cursos y grupos: no serán visibles públicamente hasta la aprobación.</p>
+                                <p class="admin-callout">Tu academia está <strong>pendiente de aprobación</strong>. Mientras tanto puedes ir dando de alta profesores, cursos y grupos: nada de eso será visible en la web hasta que el equipo de Con Sabor Flamenco la active.</p>
+                            <?php elseif ((int) $stats['alumnos_activos'] === 0 && (int) $stats['cursos_activos'] === 0): ?>
+                                <p class="admin-callout">Aún no has creado nada. El orden recomendado es: <strong>niveles y profesores</strong> en «Mi academia» y «Profesores», después <strong>cursos</strong>, luego <strong>grupos</strong> con su horario y, por último, <strong>alumnos y matrículas</strong>.</p>
                             <?php endif; ?>
                         <?php else: ?>
-                            <p>Bienvenido/a al panel de profesor. Desde aquí puedes consultar tus cursos, tus grupos y tus alumnos.</p>
+                            <p class="empty-state">Bienvenido/a al panel de profesor. Desde aquí puedes consultar tus cursos, tus grupos y tus alumnos.</p>
                         <?php endif; ?>
                     </section>
 

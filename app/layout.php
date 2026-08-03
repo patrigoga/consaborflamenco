@@ -64,9 +64,13 @@ function page_header(string $active = ''): void
     $panelHref = ($user['role'] ?? '') === 'admin' ? 'panel-admin.php' : 'panel-usuario.php';
     $userName = $user['name'] ?? 'Miembro';
     $initials = strtoupper(substr($userName, 0, 1));
-    $userProfilePhoto = function_exists('clean_text')
-        ? clean_text((string) ($user['artistic_profile']['main_photo_path'] ?? ''))
-        : trim((string) ($user['artistic_profile']['main_photo_path'] ?? ''));
+    // Absoluta: en las paginas con URL limpia (/academia/{slug}) una ruta
+    // relativa se resolveria contra /academia/ y el avatar saldria roto.
+    $userProfilePhoto = csf_media_url_absolute(
+        function_exists('clean_text')
+            ? clean_text((string) ($user['artistic_profile']['main_photo_path'] ?? ''))
+            : trim((string) ($user['artistic_profile']['main_photo_path'] ?? ''))
+    );
     ?>
     <header class="site-header">
         <a class="brand" href="index.php#inicio" aria-label="Con Sabor Flamenco - Inicio">

@@ -9137,3 +9137,157 @@ body.artist-public-body .artist-web-contact-grid {
         grid-template-columns: 1fr;
     }
 }
+
+/* ===========================================================================
+ * Ficha publica de academia (/academia/{slug})
+ *
+ * La pagina reutiliza la estructura publica general, pero sus bloques propios
+ * viven aqui con el prefijo .academia- para no colisionar con el microsite de
+ * artista, que tiene su hoja aparte con el prefijo ms-.
+ * ======================================================================== */
+.academia-hero {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 24px;
+}
+
+.academia-hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.academia-tag {
+    padding: 5px 12px;
+    border: 1px solid rgba(201, 164, 90, 0.55);
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.academia-presentacion {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: clamp(20px, 3vw, 36px);
+    align-items: start;
+}
+
+.academia-portada {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: var(--radius);
+}
+
+.academia-descripcion {
+    margin: 0 0 20px;
+    font-size: 1.05rem;
+    line-height: 1.65;
+}
+
+.academia-datos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+    margin: 0;
+    padding: 18px 20px;
+    border: 1px solid rgba(17, 17, 20, 0.1);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.62);
+}
+
+.academia-datos dt {
+    color: var(--color-muted);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.academia-datos dd {
+    margin: 4px 0 0;
+    font-weight: 700;
+}
+
+.academia-curso-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 22px;
+    border: 1px solid rgba(17, 17, 20, 0.1);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.72);
+}
+
+.academia-curso-card h3 {
+    margin: 6px 0 0;
+    font-size: 1.25rem;
+}
+
+.academia-curso-card p {
+    margin: 0;
+    color: var(--color-muted);
+    line-height: 1.55;
+}
+
+.academia-curso-disciplina {
+    color: var(--color-red);
+    font-size: 0.74rem;
+    font-weight: 900;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.academia-curso-datos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.9rem;
+}
+
+.academia-curso-datos strong {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+}
+
+.academia-curso-card footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid rgba(17, 17, 20, 0.08);
+}
+
+@media (max-width: 900px) {
+    .academia-presentacion {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .academia-portada {
+        aspect-ratio: 16 / 9;
+    }
+}
+
+/* Tarjeta de metrica que ademas es enlace a su seccion, en el panel de
+   academia. Hereda el aspecto de .admin-metric-card y solo anade el foco. */
+.academia-metric-link {
+    display: block;
+    text-decoration: none;
+    transition: transform 0.18s ease, border-color 0.18s ease;
+}
+
+.academia-metric-link:hover,
+.academia-metric-link:focus-visible {
+    transform: translateY(-2px);
+    border-color: rgba(201, 79, 92, 0.55);
+}
