@@ -614,13 +614,15 @@ a {
  * Se excluye .member-panel-section porque ahi .content-section es transparente
  * y no se puede dar por hecho que el fondo sea claro.
  */
-.content-section:not(.member-panel-section) .button-secondary {
+.content-section:not(.member-panel-section) .button-secondary,
+.academia-panel .button-secondary {
     color: var(--color-ink);
     border-color: rgba(17, 24, 39, 0.3);
     background: rgba(17, 24, 39, 0.06);
 }
 
-.content-section:not(.member-panel-section) .button-secondary:hover {
+.content-section:not(.member-panel-section) .button-secondary:hover,
+.academia-panel .button-secondary:hover {
     border-color: rgba(17, 24, 39, 0.45);
     background: rgba(17, 24, 39, 0.12);
 }
@@ -9138,12 +9140,32 @@ body.artist-public-body .artist-web-contact-grid {
     }
 }
 
+/* Tarjeta de metrica que ademas es enlace a su seccion, en el panel de
+   academia. Hereda el aspecto de .admin-metric-card y solo anade el foco. */
+.academia-metric-link {
+    display: block;
+    text-decoration: none;
+    transition: transform 0.18s ease, border-color 0.18s ease;
+}
+
+.academia-metric-link:hover,
+.academia-metric-link:focus-visible {
+    transform: translateY(-2px);
+    border-color: rgba(201, 79, 92, 0.55);
+}
+
 /* ===========================================================================
  * Ficha publica de academia (/academia/{slug})
  *
- * La pagina reutiliza la estructura publica general, pero sus bloques propios
- * viven aqui con el prefijo .academia- para no colisionar con el microsite de
- * artista, que tiene su hoja aparte con el prefijo ms-.
+ * Esta pagina NO usa .content-section + .section-heading. Esa pareja esta
+ * pensada para que cada seccion abra con una banda oscura a sangre y, de
+ * hecho, .content-section no tiene padding superior: da por supuesto que la
+ * banda ocupa ese hueco. Encadenar tres bandas gigantes en una ficha con poco
+ * contenido daba un resultado desproporcionado, y sin banda el contenido se
+ * salia por arriba.
+ *
+ * En su lugar hay paneles claros con cabecera compacta. Prefijo .academia-
+ * para no chocar con el microsite de artista, que usa el prefijo ms-.
  * ======================================================================== */
 .academia-hero {
     display: flex;
@@ -9158,7 +9180,7 @@ body.artist-public-body .artist-web-contact-grid {
     flex-wrap: wrap;
     align-items: center;
     gap: 10px;
-    margin-top: 12px;
+    margin-top: 14px;
 }
 
 .academia-tag {
@@ -9170,69 +9192,159 @@ body.artist-public-body .artist-web-contact-grid {
     line-height: 1.2;
 }
 
+.academia-contenido {
+    display: grid;
+    gap: clamp(20px, 2.6vw, 32px);
+}
+
+.academia-panel {
+    padding: clamp(24px, 3.2vw, 40px);
+    border: 1px solid rgba(201, 164, 90, 0.34);
+    border-radius: var(--section-radius, 24px);
+    background: #f6efe6;
+}
+
+.academia-panel-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 16px;
+    margin-bottom: clamp(18px, 2.4vw, 26px);
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(17, 17, 20, 0.12);
+}
+
+.academia-panel-head .section-kicker {
+    flex-basis: 100%;
+    margin: 0 0 4px;
+}
+
+.academia-panel-head h2,
+.academia-panel-titulo {
+    margin: 0;
+    font-size: clamp(1.5rem, 2.6vw, 2.1rem);
+    line-height: 1.15;
+}
+
+.academia-panel-titulo {
+    margin-bottom: 14px;
+}
+
+.academia-panel-contador {
+    color: var(--color-muted);
+    font-size: 0.86rem;
+    font-weight: 700;
+}
+
 .academia-presentacion {
     display: grid;
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-    gap: clamp(20px, 3vw, 36px);
+    grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+    gap: clamp(22px, 3vw, 40px);
     align-items: start;
 }
 
+.academia-presentacion-sin-foto {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+/* La imagen suele ser un logotipo, no una fotografia: `contain` sobre fondo
+   neutro evita recortarlo o deformarlo, que es lo que hacia `cover`. */
 .academia-portada {
-    width: 100%;
-    aspect-ratio: 4 / 3;
-    object-fit: cover;
-    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 18px;
+    aspect-ratio: 1 / 1;
+    border: 1px solid rgba(17, 17, 20, 0.1);
+    border-radius: 16px;
+    background: #fffdf9;
+}
+
+.academia-portada img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
 }
 
 .academia-descripcion {
-    margin: 0 0 20px;
-    font-size: 1.05rem;
-    line-height: 1.65;
+    margin: 0 0 22px;
+    font-size: 1.03rem;
+    line-height: 1.7;
+}
+
+.academia-descripcion-vacia {
+    color: var(--color-muted);
 }
 
 .academia-datos {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 16px;
-    margin: 0;
-    padding: 18px 20px;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 18px;
+    margin: 0 0 24px;
+    padding: 20px;
     border: 1px solid rgba(17, 17, 20, 0.1);
     border-radius: 14px;
-    background: rgba(255, 255, 255, 0.62);
+    background: rgba(255, 255, 255, 0.66);
 }
 
 .academia-datos dt {
     color: var(--color-muted);
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 900;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.09em;
     text-transform: uppercase;
 }
 
 .academia-datos dd {
-    margin: 4px 0 0;
+    margin: 5px 0 0;
     font-weight: 700;
 }
 
+.academia-cta-inline {
+    display: inline-flex;
+}
+
+.academia-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
+}
+
+.academia-profesor-card,
 .academia-curso-card {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     padding: 22px;
     border: 1px solid rgba(17, 17, 20, 0.1);
     border-radius: 16px;
     background: rgba(255, 255, 255, 0.72);
 }
 
-.academia-curso-card h3 {
-    margin: 6px 0 0;
-    font-size: 1.25rem;
+.academia-profesor-card strong {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
 }
 
+.academia-profesor-especialidad {
+    color: var(--color-red);
+    font-size: 0.74rem;
+    font-weight: 900;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.academia-profesor-card p,
 .academia-curso-card p {
     margin: 0;
     color: var(--color-muted);
     line-height: 1.55;
+}
+
+.academia-curso-card h3 {
+    margin: 6px 0 0;
+    font-size: 1.25rem;
 }
 
 .academia-curso-disciplina {
@@ -9254,8 +9366,8 @@ body.artist-public-body .artist-web-contact-grid {
 }
 
 .academia-curso-datos strong {
-    font-family: var(--font-display);
-    font-size: 1.15rem;
+    font-size: 1rem;
+    font-weight: 800;
 }
 
 .academia-curso-card footer {
@@ -9264,30 +9376,17 @@ body.artist-public-body .artist-web-contact-grid {
     justify-content: space-between;
     gap: 12px;
     margin-top: auto;
-    padding-top: 12px;
+    padding-top: 14px;
     border-top: 1px solid rgba(17, 17, 20, 0.08);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 820px) {
     .academia-presentacion {
         grid-template-columns: minmax(0, 1fr);
     }
 
     .academia-portada {
         aspect-ratio: 16 / 9;
+        max-width: 340px;
     }
-}
-
-/* Tarjeta de metrica que ademas es enlace a su seccion, en el panel de
-   academia. Hereda el aspecto de .admin-metric-card y solo anade el foco. */
-.academia-metric-link {
-    display: block;
-    text-decoration: none;
-    transition: transform 0.18s ease, border-color 0.18s ease;
-}
-
-.academia-metric-link:hover,
-.academia-metric-link:focus-visible {
-    transform: translateY(-2px);
-    border-color: rgba(201, 79, 92, 0.55);
 }

@@ -43,7 +43,14 @@ $displayName = clean_text((string) $academia['nombre_publico']);
 $location = trim(clean_text((string) $academia['ciudad']) . (($academia['ciudad'] !== '' && $academia['provincia_texto'] !== '') ? ', ' : '') . clean_text((string) $academia['provincia_texto']));
 // Absoluta: esta pagina vive en /academia/{slug} y una ruta relativa se
 // resolveria contra /academia/, dejando la imagen rota.
-$mainPhoto = csf_media_url_absolute(clean_text((string) $academia['foto_principal_path']));
+//
+// Ademas se comprueba que el fichero siga existiendo: si la ruta apunta a una
+// imagen borrada, es mejor no pintar el hueco con el icono de imagen rota.
+$fotoGuardada = clean_text((string) $academia['foto_principal_path']);
+$fotoFichero = $fotoGuardada !== '' ? csf_media_file_from_path($fotoGuardada) : null;
+$mainPhoto = ($fotoFichero === null || csf_media_file_exists($fotoFichero))
+    ? csf_media_url_absolute($fotoGuardada)
+    : '';
 $disciplinas = academia_list_disciplinas($pdo, $academiaId);
 $profesores = academia_public_profesores($pdo, $academiaId);
 $cursos = academia_public_cursos($pdo, $academiaId);
@@ -111,56 +118,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?php endforeach; ?>
                 </p>
             </div>
-            <a class="button button-primary" href="#contacto">Solicitar información</a>
+            <a class="button button-primary" href="#academia-contacto">Solicitar información</a>
         </section>
 
         <div class="page-shell">
-            <div class="primary-content">
-                <section class="content-section">
-                    <div class="academia-presentacion">
+            <div class="primary-content academia-contenido">
+                <?php
+                // Datos de contacto reales. Se construye la lista antes de pintar
+                // nada: si esta vacia no se dibuja el bloque, que si no salia como
+                // una caja con borde y nada dentro.
+                $datosContacto = [];
+                if ((string) $academia['telefono'] !== '') {
+                    $datosContacto[] = ['Teléfono', '<a href="tel:' . e(preg_replace('/\s+/', '', (string) $academia['telefono'])) . '">' . e((string) $academia['telefono']) . '</a>'];
+                }
+                if ((string) $academia['web_url'] !== '') {
+                    $datosContacto[] = ['Web', '<a href="' . e((string) $academia['web_url']) . '" target="_blank" rel="noopener">' . e(preg_replace('#^https?://#', '', (string) $academia['web_url'])) . '</a>'];
+                }
+                if ((string) $academia['instagram_url'] !== '') {
+                    $datosContacto[] = ['Instagram', '<a href="' . e((string) $academia['instagram_url']) . '" target="_blank" rel="noopener">Ver perfil</a>'];
+                }
+                if ($location !== '') {
+                    $datosContacto[] = ['Dónde', e($location)];
+                }
+                $descripcion = academia_descripcion($academia);
+                ?>
+
+                <section class="academia-panel">
+                    <div class="academia-presentacion<?= $mainPhoto === '' ? ' academia-presentacion-sin-foto' : '' ?>">
                         <?php if ($mainPhoto !== ''): ?>
-                            <img class="academia-portada" src="<?= e($mainPhoto) ?>" alt="Imagen de <?= e($displayName) ?>" loading="lazy">
+                            <figure class="academia-portada">
+                                <img src="<?= e($mainPhoto) ?>" alt="Imagen de <?= e($displayName) ?>" loading="lazy">
+                            </figure>
                         <?php endif; ?>
 
                         <div class="academia-presentacion-texto">
-                            <?php $descripcion = academia_descripcion($academia); ?>
+                            <h2 class="academia-panel-titulo">Sobre la academia</h2>
                             <?php if ($descripcion !== ''): ?>
                                 <p class="academia-descripcion"><?= e($descripcion) ?></p>
                             <?php else: ?>
-                                <p class="academia-descripcion"><?= e($displayName) ?> todavía no ha publicado su presentación<?= $location !== '' ? ', pero imparte clases en ' . e($location) : '' ?>. Escríbeles y te cuentan.</p>
+                                <p class="academia-descripcion academia-descripcion-vacia">
+                                    <?= e($displayName) ?> todavía no ha publicado su presentación<?= $location !== '' ? ', pero imparte clases en ' . e($location) : '' ?>.
+                                    Escríbele y te contará su método, sus horarios y sus precios.
+                                </p>
                             <?php endif; ?>
 
-                            <dl class="academia-datos">
-                                <?php if ((string) $academia['telefono'] !== ''): ?>
-                                    <div><dt>Teléfono</dt><dd><a href="tel:<?= e(preg_replace('/\s+/', '', (string) $academia['telefono'])) ?>"><?= e((string) $academia['telefono']) ?></a></dd></div>
-                                <?php endif; ?>
-                                <?php if ((string) $academia['web_url'] !== ''): ?>
-                                    <div><dt>Web</dt><dd><a href="<?= e((string) $academia['web_url']) ?>" target="_blank" rel="noopener"><?= e(preg_replace('#^https?://#', '', (string) $academia['web_url'])) ?></a></dd></div>
-                                <?php endif; ?>
-                                <?php if ((string) $academia['instagram_url'] !== ''): ?>
-                                    <div><dt>Instagram</dt><dd><a href="<?= e((string) $academia['instagram_url']) ?>" target="_blank" rel="noopener">Perfil</a></dd></div>
-                                <?php endif; ?>
-                                <?php if ($cursos): ?>
-                                    <div><dt>Cursos abiertos</dt><dd><?= e((string) count($cursos)) ?></dd></div>
-                                <?php endif; ?>
-                            </dl>
+                            <?php if ($datosContacto): ?>
+                                <dl class="academia-datos">
+                                    <?php foreach ($datosContacto as [$etiqueta, $valor]): ?>
+                                        <div><dt><?= e($etiqueta) ?></dt><dd><?= $valor ?></dd></div>
+                                    <?php endforeach; ?>
+                                </dl>
+                            <?php endif; ?>
+
+                            <a class="button button-primary academia-cta-inline" href="#academia-contacto">Solicitar información</a>
                         </div>
                     </div>
                 </section>
 
                 <?php if ($profesores): ?>
-                    <section id="profesores" class="content-section">
-                        <div class="section-heading">
-                            <div class="section-heading-content">
-                                <p class="section-kicker">Equipo docente</p>
-                                <h2>Profesores</h2>
-                            </div>
-                        </div>
-                        <div class="editorial-grid directory-grid">
+                    <section id="academia-profesores" class="academia-panel">
+                        <header class="academia-panel-head">
+                            <p class="section-kicker">Equipo docente</p>
+                            <h2>Profesores</h2>
+                        </header>
+                        <div class="academia-grid">
                             <?php foreach ($profesores as $profesor): ?>
-                                <article class="editorial-story-content member-config-card">
+                                <article class="academia-profesor-card">
                                     <strong><?= e((string) $profesor['nombre']) ?></strong>
-                                    <?php if (!empty($profesor['especialidad'])): ?><p><?= e((string) $profesor['especialidad']) ?></p><?php endif; ?>
+                                    <?php if (!empty($profesor['especialidad'])): ?><span class="academia-profesor-especialidad"><?= e((string) $profesor['especialidad']) ?></span><?php endif; ?>
                                     <?php if (!empty($profesor['biografia_docente'])): ?><p><?= e((string) $profesor['biografia_docente']) ?></p><?php endif; ?>
                                 </article>
                             <?php endforeach; ?>
@@ -168,16 +193,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </section>
                 <?php endif; ?>
 
-                <section id="cursos" class="content-section">
-                    <div class="section-heading">
-                        <div class="section-heading-content">
-                            <p class="section-kicker">Formación</p>
-                            <h2>Cursos disponibles</h2>
-                        </div>
-                    </div>
+                <section id="academia-cursos" class="academia-panel">
+                    <header class="academia-panel-head">
+                        <p class="section-kicker">Formación</p>
+                        <h2>Cursos disponibles</h2>
+                        <?php if ($cursos): ?>
+                            <span class="academia-panel-contador"><?= e((string) count($cursos)) ?> <?= count($cursos) === 1 ? 'curso abierto' : 'cursos abiertos' ?></span>
+                        <?php endif; ?>
+                    </header>
 
                     <?php if ($cursos): ?>
-                        <div class="editorial-grid directory-grid">
+                        <div class="academia-grid">
                             <?php foreach ($cursos as $curso): ?>
                                 <article class="academia-curso-card">
                                     <header>
@@ -196,7 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </ul>
                                     <footer>
                                         <span class="status-pill <?= e(admin_badge_class((string) $curso['estado'])) ?>"><?= e(str_replace('_', ' ', (string) $curso['estado'])) ?></span>
-                                        <a class="text-button" href="#contacto">Solicitar plaza</a>
+                                        <a class="text-button" href="#academia-contacto">Solicitar plaza</a>
                                     </footer>
                                 </article>
                             <?php endforeach; ?>
@@ -206,13 +232,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?php endif; ?>
                 </section>
 
-                <section id="contacto" class="content-section">
-                    <div class="section-heading">
-                        <div class="section-heading-content">
-                            <p class="section-kicker">Contacto</p>
-                            <h2>Solicita información o matrícula</h2>
-                        </div>
-                    </div>
+                <section id="academia-contacto" class="academia-panel">
+                    <header class="academia-panel-head">
+                        <p class="section-kicker">Contacto</p>
+                        <h2>Solicita información o matrícula</h2>
+                        <span class="academia-panel-contador">Te responde directamente la academia</span>
+                    </header>
 
                     <?php if ($formSent === 'info'): ?>
                         <div class="form-alert form-alert-success"><p>Gracias, hemos recibido tu solicitud de información.</p></div>
