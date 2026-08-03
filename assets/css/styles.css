@@ -604,6 +604,34 @@ a {
     background: rgba(255, 255, 255, 0.08);
 }
 
+/*
+ * .button-secondary nacio para superficies oscuras: texto blanco sobre blanco
+ * translucido. Dentro de .content-section el fondo es claro (#f6efe6), asi que
+ * quedaba practicamente invisible; el boton "Guardar" de la tabla de Academias
+ * del panel de administracion no se veia y no habia forma de saber como
+ * guardar el cambio de estado.
+ *
+ * Se excluye .member-panel-section porque ahi .content-section es transparente
+ * y no se puede dar por hecho que el fondo sea claro.
+ */
+.content-section:not(.member-panel-section) .button-secondary {
+    color: var(--color-ink);
+    border-color: rgba(17, 24, 39, 0.3);
+    background: rgba(17, 24, 39, 0.06);
+}
+
+.content-section:not(.member-panel-section) .button-secondary:hover {
+    border-color: rgba(17, 24, 39, 0.45);
+    background: rgba(17, 24, 39, 0.12);
+}
+
+.content-section:not(.member-panel-section) .button-secondary:disabled {
+    color: var(--color-muted);
+    border-color: rgba(17, 24, 39, 0.16);
+    background: rgba(17, 24, 39, 0.03);
+    cursor: not-allowed;
+}
+
 .hero-section {
     position: relative;
     width: 100%;
