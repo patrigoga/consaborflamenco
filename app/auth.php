@@ -403,7 +403,18 @@ function profile_is_complete(array $profile): bool
 function member_profile_from_input(array $input, array $existingProfile = []): array
 {
     $profile = default_member_profile(['artistic_profile' => $existingProfile]);
-    $profile['member_type'] = normalize_member_type((string) ($input['member_type'] ?? $profile['member_type']));
+
+    // El tipo de espacio se elige en el alta y no se cambia desde el panel.
+    // No es una preferencia: decide el prefijo de la URL publica, el directorio
+    // en el que aparece el miembro y, en el caso de las academias, un modulo
+    // entero con alumnos, cursos y matriculas colgando de el. Si ya hay un tipo
+    // guardado, se conserva y se ignora lo que llegue por formulario; solo el
+    // alta, que aun no tiene tipo previo, puede fijarlo.
+    $existingType = clean_text((string) ($existingProfile['member_type'] ?? ''));
+    $profile['member_type'] = $existingType !== ''
+        ? normalize_member_type($existingType)
+        : normalize_member_type((string) ($input['member_type'] ?? $profile['member_type']));
+
     $lockedAt = clean_text((string) ($existingProfile['slug_locked_at'] ?? '')) ?: null;
     $lockedName = clean_text((string) ($existingProfile['public_name'] ?? ''));
     $lockedSlug = clean_text((string) ($existingProfile['slug'] ?? ''));

@@ -46,8 +46,11 @@ reservado:
 3. Al crear la cuenta se guarda `slug_locked_at` en el perfil. A partir de ahi el panel
    muestra el nombre publico y el slug en solo lectura: para cambiarlos hay que solicitarlo.
    Es el mismo criterio que ya se aplicaba al nombre de cuenta.
-4. El tipo de espacio si se puede cambiar desde el panel. Solo cambia el prefijo de la URL,
-   no el nombre.
+4. El tipo de espacio **tampoco se cambia desde el panel**: se muestra en solo lectura. No es
+   una preferencia visual, decide el prefijo de la URL publica, el directorio en el que
+   aparece el miembro y, en el caso de las academias, un modulo entero con alumnos, cursos y
+   matriculas colgando de el. `member_profile_from_input()` conserva el tipo guardado e
+   ignora lo que llegue por formulario; solo el alta, que aun no tiene tipo previo, lo fija.
 
 Las cuentas anteriores a esta regla no tienen `slug_locked_at` y conservan el boton
 "Guardar URL". La primera vez que lo usan, su URL queda reservada igual que en las altas

@@ -1057,11 +1057,8 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                                 </label>
                                 <div class="form-grid-two">
                                     <label for="member_type">Tipo de espacio
-                                        <select id="member_type" name="member_type" required data-member-type-select>
-                                            <?php foreach (member_type_options() as $typeValue => $typeLabel): ?>
-                                                <option value="<?= e($typeValue) ?>" data-url-prefix="<?= e(member_type_url_prefix($typeValue)) ?>" <?= $memberProfile['member_type'] === $typeValue ? 'selected' : '' ?>><?= e($typeLabel) ?></option>
-                                            <?php endforeach; ?>
-                                        </select>
+                                        <input id="member_type" type="text" value="<?= e($memberTypeLabel) ?>" readonly aria-readonly="true">
+                                        <span class="field-help">Se elige al crear la cuenta y no se puede cambiar desde aquí: define tu URL pública y el directorio en el que apareces. Para cambiarlo, solicita autorizacion por correo electronico.</span>
                                     </label>
                                     <label for="public_name">Nombre publico
                                         <input id="public_name" name="public_name" type="text" value="<?= e($displayName) ?>" <?= $publicNameLocked ? 'readonly aria-readonly="true"' : 'required' ?>>
@@ -1083,7 +1080,7 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
 		                                    </a>
 	                                </div>
 	                                <?php if ($publicNameLocked): ?>
-	                                    <p class="field-help">Tu URL publica quedo reservada al crear la cuenta. Si cambias el tipo de espacio solo se ajusta el prefijo; el nombre se cambia unicamente bajo solicitud.</p>
+	                                    <p class="field-help">Tu URL publica quedo reservada al crear la cuenta, con el tipo de espacio que elegiste. Para cambiar cualquiera de los dos, solicita autorizacion por correo electronico.</p>
 	                                <?php endif; ?>
 	                                    </div>
 	                                </div>
@@ -1746,13 +1743,11 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                 slugInput.value = normalizedSlug;
             }
 
-            // El prefijo depende del tipo de espacio: /artista/, /academia/,
-            // /asociacion/... Se lee del selector para que la vista previa
-            // reaccione antes de guardar.
+            // El prefijo lo fija el tipo de espacio (/artista/, /academia/,
+            // /asociacion/...), que no se puede cambiar desde el panel, asi que
+            // viene resuelto del servidor y aqui solo varia el slug.
             const baseUrl = slugInput.dataset.publicProfileBase || '';
-            const typeSelect = document.querySelector('[data-member-type-select]');
-            const selectedOption = typeSelect instanceof HTMLSelectElement ? typeSelect.options[typeSelect.selectedIndex] : null;
-            const prefix = (selectedOption && selectedOption.dataset.urlPrefix) || slugInput.dataset.publicProfilePrefix || 'artista';
+            const prefix = slugInput.dataset.publicProfilePrefix || 'artista';
             const nextUrl = `${baseUrl}${prefix}/${normalizedSlug || 'nombre-artista'}`;
             publicUrlCtas.forEach((publicUrlCta) => {
                 if (!(publicUrlCta instanceof HTMLAnchorElement)) {
@@ -1768,7 +1763,6 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
 
         document.querySelector('[data-slug-input]')?.addEventListener('input', syncPublicUrlCta);
         document.querySelector('[data-slug-input]')?.addEventListener('blur', syncPublicUrlCta);
-        document.querySelector('[data-member-type-select]')?.addEventListener('change', syncPublicUrlCta);
         syncPublicUrlCta();
 
         const submitIsolatedImageUpdate = async (input) => {
