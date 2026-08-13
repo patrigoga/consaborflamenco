@@ -1514,27 +1514,43 @@ if ($alumnoPanelLink) {
                                     </div>
                                 </div>
 
-                                <details class="member-card-settings">
-                                    <summary>Ajustes de la seccion</summary>
-                                    <div class="cv-section-tools">
+                                <details class="member-settings">
+                                    <summary class="member-settings-summary">
+                                        <span class="member-settings-summary-main">
+                                            <strong>Ajustes de la seccion</strong>
+                                            <small>Como se comporta <?= e($sectionTitle) ?> en el curriculum PDF</small>
+                                        </span>
+                                        <span class="member-settings-state"><?= $sectionActive ? 'Se imprime' : 'No se imprime' ?></span>
+                                    </summary>
+                                    <div class="member-settings-grid">
                                         <input type="hidden" name="section_settings[<?= e($sectionKey) ?>][active]" value="0">
-                                        <label class="cv-section-toggle">
-                                            <input type="checkbox" name="section_settings[<?= e($sectionKey) ?>][active]" value="1" <?= $sectionActive ? 'checked' : '' ?>>
-                                            Activa en PDF
+                                        <label class="member-switch" for="section-active-<?= e($sectionKey) ?>">
+                                            <input id="section-active-<?= e($sectionKey) ?>" type="checkbox" name="section_settings[<?= e($sectionKey) ?>][active]" value="1" <?= $sectionActive ? 'checked' : '' ?>>
+                                            <span class="member-switch-track" aria-hidden="true"></span>
+                                            <span class="member-switch-text">
+                                                <strong>Incluir en el PDF</strong>
+                                                <small>Si lo desactivas, la seccion entera desaparece del curriculum impreso.</small>
+                                            </span>
                                         </label>
-                                        <label>Orden seccion
-                                            <input name="section_settings[<?= e($sectionKey) ?>][order]" type="number" min="1" step="1" value="<?= e((string) $sectionDisplayOrder) ?>">
-                                        </label>
-                                        <?php if (!empty($sectionConfig['sortable'])): ?>
-                                            <label>Orden entradas
-                                                <select name="sort_orders[<?= e($sectionKey) ?>]">
-                                                    <?php $sortOrder = normalize_cv_sort_order($memberProfile['sort_orders'][$sectionKey] ?? 'desc'); ?>
-                                                    <option value="desc" <?= $sortOrder === 'desc' ? 'selected' : '' ?>>Mas reciente primero</option>
-                                                    <option value="asc" <?= $sortOrder === 'asc' ? 'selected' : '' ?>>Mas antiguo primero</option>
-                                                    <option value="manual" <?= $sortOrder === 'manual' ? 'selected' : '' ?>>Orden manual</option>
-                                                </select>
-                                            </label>
-                                        <?php endif; ?>
+                                        <div class="member-settings-row">
+                                            <div class="member-settings-field">
+                                                <label for="section-order-<?= e($sectionKey) ?>">Posicion en el PDF</label>
+                                                <input id="section-order-<?= e($sectionKey) ?>" name="section_settings[<?= e($sectionKey) ?>][order]" type="number" min="1" step="1" value="<?= e((string) $sectionDisplayOrder) ?>">
+                                                <small>1 la coloca arriba del todo, por delante del resto de secciones.</small>
+                                            </div>
+                                            <?php if (!empty($sectionConfig['sortable'])): ?>
+                                                <div class="member-settings-field">
+                                                    <label for="section-sort-<?= e($sectionKey) ?>">Orden de las entradas</label>
+                                                    <select id="section-sort-<?= e($sectionKey) ?>" name="sort_orders[<?= e($sectionKey) ?>]">
+                                                        <?php $sortOrder = normalize_cv_sort_order($memberProfile['sort_orders'][$sectionKey] ?? 'desc'); ?>
+                                                        <option value="desc" <?= $sortOrder === 'desc' ? 'selected' : '' ?>>Mas reciente primero</option>
+                                                        <option value="asc" <?= $sortOrder === 'asc' ? 'selected' : '' ?>>Mas antiguo primero</option>
+                                                        <option value="manual" <?= $sortOrder === 'manual' ? 'selected' : '' ?>>Orden manual</option>
+                                                    </select>
+                                                    <small>Con orden manual mandan los numeros que pongas en cada entrada.</small>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
                                     </div>
                                 </details>
 
@@ -2511,6 +2527,22 @@ if ($alumnoPanelLink) {
         });
 
         document.querySelectorAll('[data-entry-card]').forEach((card) => refreshEntryCard(card));
+
+        // El resumen plegado dice si la seccion se imprime, asi que sigue al
+        // interruptor aunque el bloque de ajustes este cerrado.
+        document.querySelectorAll('.member-settings').forEach((settings) => {
+            const toggle = settings.querySelector('.member-switch input');
+            const state = settings.querySelector('.member-settings-state');
+            if (!(toggle instanceof HTMLInputElement) || !(state instanceof HTMLElement)) {
+                return;
+            }
+            toggle.addEventListener('change', () => {
+                state.textContent = toggle.checked ? 'Se imprime' : 'No se imprime';
+                state.classList.toggle('member-settings-state-off', !toggle.checked);
+                markProfilePendingSave();
+            });
+            state.classList.toggle('member-settings-state-off', !toggle.checked);
+        });
 
         document.addEventListener('change', (event) => {
             const input = event.target;
