@@ -55,6 +55,9 @@ $memberCardQrUrl = $memberCardQrBase . rawurlencode($memberCardPublicUrl);
 $profileMessages = [];
 $profileErrors = [];
 $memberProfile = default_member_profile($user);
+// Las academias tienen su propia microweb publica en /academia/{slug}, servida
+// por academia.php, asi que no usan el constructor de pagina web del panel.
+$hasWebPage = ($memberProfile['member_type'] ?? 'artista') !== 'academia';
 $publicFieldOptions = [
     'phone' => 'Telefono',
     'birth_place' => 'Lugar de origen',
@@ -253,6 +256,48 @@ function cv_print_sections(array $profile, array $sectionConfig): array
     });
 
     return $sections;
+}
+
+/**
+ * Indicadores de una seccion del curriculum para la cabecera de su pantalla.
+ * El mismo calculo se repite en JavaScript al crear, editar o borrar entradas,
+ * para no tener que recargar la pagina.
+ */
+function cv_section_metrics(array $entries): array
+{
+    $years = [];
+    $active = 0;
+    $withImage = 0;
+
+    foreach ($entries as $entry) {
+        if (!is_array($entry)) {
+            continue;
+        }
+        if (cv_entry_is_active($entry)) {
+            $active++;
+        }
+        if (clean_text((string) ($entry['image_path'] ?? '')) !== '') {
+            $withImage++;
+        }
+        foreach (['date_start', 'date_end'] as $dateField) {
+            $year = (int) substr(clean_text((string) ($entry[$dateField] ?? '')), 0, 4);
+            if ($year > 0) {
+                $years[] = $year;
+            }
+        }
+    }
+
+    $period = '—';
+    if ($years !== []) {
+        $period = min($years) === max($years) ? (string) min($years) : min($years) . '–' . max($years);
+    }
+
+    return [
+        'total' => count($entries),
+        'active' => $active,
+        'images' => $withImage,
+        'period' => $period,
+    ];
 }
 
 /**
@@ -795,7 +840,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $profileAction === 'upload_cv_entry
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') === 'update_web_page') {
+if ($hasWebPage && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') === 'update_web_page') {
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
         $profileErrors[] = 'La sesion ha caducado. Vuelve a intentarlo.';
     }
@@ -1046,6 +1091,104 @@ $profileCompletion = (int) round(($completedProfileFields / count($profileRequir
 $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
     ? "background-image: linear-gradient(135deg, rgba(17, 17, 20, 0.82), rgba(32, 56, 71, 0.74)), url('" . $cvHeaderVisibleBackground . "');"
     : '';
+
+// Cada seccion del curriculum es una pantalla propia del panel, con su ancla y
+// su tarjeta en la portada.
+$cvSectionAnchors = [
+    'education' => 'formacion',
+    'experience' => 'experiencia',
+    'custom_section' => 'seccion-personalizada',
+];
+$cvSectionNotes = [
+    'education' => 'Titulos, cursos y maestros con los que te has formado.',
+    'experience' => 'Companias, tablaos, giras y trabajos que has firmado.',
+    'custom_section' => 'Un apartado libre para lo que no encaja en los anteriores.',
+];
+$cvSectionImages = [
+    'education' => 'assets/images/community/academia-flamenca.webp',
+    'experience' => 'assets/images/community/evento-flamenco.webp',
+    'custom_section' => 'assets/images/community/pena-flamenca.webp',
+];
+$cvSectionEntries = [];
+$cvSectionMetrics = [];
+foreach ($cvSectionConfig as $sectionKey => $sectionConfig) {
+    $cvSectionEntries[$sectionKey] = is_array($memberProfile[$sectionKey] ?? null)
+        ? array_values($memberProfile[$sectionKey])
+        : [];
+    $cvSectionMetrics[$sectionKey] = cv_section_metrics($cvSectionEntries[$sectionKey]);
+}
+$totalCvEntries = array_sum(array_column($cvSectionMetrics, 'total'));
+
+$panelNavCards = [
+    [
+        'target' => 'perfil',
+        'title' => 'Mi perfil',
+        'note' => 'Identidad publica, ubicacion, contacto e imagenes de tu ficha.',
+        'image' => $mainPhotoVisiblePath !== '' ? $mainPhotoVisiblePath : 'assets/images/community/artista-bailaora.webp',
+        'metric' => $profileCompletion . '% completo',
+    ],
+];
+foreach ($cvSectionConfig as $sectionKey => $sectionConfig) {
+    $panelNavCards[] = [
+        'target' => $cvSectionAnchors[$sectionKey],
+        'title' => (string) $sectionConfig['title'],
+        'note' => $cvSectionNotes[$sectionKey],
+        'image' => $cvSectionImages[$sectionKey],
+        'metric' => $cvSectionMetrics[$sectionKey]['total'] === 1 ? '1 entrada' : $cvSectionMetrics[$sectionKey]['total'] . ' entradas',
+        'metric_section' => $sectionKey,
+    ];
+}
+if ($hasWebPage) {
+    $webBlocksWithContent = count(array_filter([
+        $webSlides,
+        $webGallery,
+        $webVideos,
+        $webEvents,
+        $webNews,
+    ]));
+    $panelNavCards[] = [
+        'target' => 'pagina-web',
+        'title' => 'Pagina web',
+        'note' => 'Los bloques de tu web publica de una sola pagina.',
+        'image' => 'assets/images/slider/presencia-web-flamenca.svg',
+        'metric' => $webBlocksWithContent === 1 ? '1 bloque con contenido' : $webBlocksWithContent . ' bloques con contenido',
+    ];
+}
+$panelNavCards[] = [
+    'target' => 'tarjeta-miembro',
+    'title' => 'Tarjeta de miembro',
+    'note' => 'Tu carnet digital, su diseno y el QR para compartirlo.',
+    'image' => 'assets/images/member-cards/tarjeta-bailaora.png',
+    'metric' => $memberStatus,
+];
+$panelNavCards[] = [
+    'target' => 'banners',
+    'title' => 'Banners',
+    'note' => 'Espacios publicitarios contratables en tu provincia.',
+    'image' => 'assets/images/flamenco-header-art.png',
+];
+$panelNavCards[] = [
+    'target' => 'seguridad',
+    'title' => 'Seguridad',
+    'note' => 'Contrasena de acceso y cierre de sesion.',
+    'image' => 'assets/images/auth/acceso-flamenco.png',
+];
+if ($academiaPanelLink) {
+    $panelNavCards[] = [
+        'href' => 'panel-academia.php',
+        'title' => 'Mi academia',
+        'note' => 'Alumnos, profesores, cursos, grupos y matriculas.',
+        'image' => 'assets/images/slider/comunidad-flamenca-esquema.svg',
+    ];
+}
+if ($alumnoPanelLink) {
+    $panelNavCards[] = [
+        'href' => 'panel-alumno.php',
+        'title' => 'Mis clases',
+        'note' => 'Los cursos en los que estas matriculado.',
+        'image' => 'assets/images/auth/registro-flamenco.png',
+    ];
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -1104,8 +1247,12 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                 </div>
                 <button class="member-sidebar-print" type="button" onclick="window.print()">Imprimir curriculum PDF</button>
                 <nav class="member-sidebar-nav">
-                    <a class="active" href="#perfil" data-panel-link="perfil">Perfil</a>
-                    <a href="#pagina-web" data-panel-link="pagina-web">Pagina web</a>
+                    <a class="active" href="#inicio" data-panel-link="inicio">Inicio</a>
+                    <a href="#perfil" data-panel-link="perfil">Mi perfil</a>
+                    <?php foreach ($cvSectionConfig as $sectionKey => $sectionConfig): ?>
+                        <a href="#<?= e($cvSectionAnchors[$sectionKey]) ?>" data-panel-link="<?= e($cvSectionAnchors[$sectionKey]) ?>"><?= e((string) $sectionConfig['title']) ?></a>
+                    <?php endforeach; ?>
+                    <?php if ($hasWebPage): ?><a href="#pagina-web" data-panel-link="pagina-web">Pagina web</a><?php endif; ?>
                     <a href="#tarjeta-miembro" data-panel-link="tarjeta-miembro">Tarjeta de miembro</a>
                     <a href="#banners" data-panel-link="banners">Banners</a>
                     <a href="#seguridad" data-panel-link="seguridad">Seguridad</a>
@@ -1115,13 +1262,9 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
             </aside>
 
             <div class="member-panel-content">
-                <div class="member-panel-tabs" role="tablist" aria-label="Secciones del panel de miembro">
-                    <button type="button" class="tab-button panel-tab-button active" data-tab-target="perfil">Perfil</button>
-                    <button type="button" class="tab-button panel-tab-button" data-tab-target="pagina-web">Pagina web</button>
-                    <button type="button" class="tab-button panel-tab-button" data-tab-target="tarjeta-miembro">Tarjeta de miembro</button>
-                    <button type="button" class="tab-button panel-tab-button" data-tab-target="banners">Banners</button>
-                    <button type="button" class="tab-button panel-tab-button" data-tab-target="seguridad">Seguridad</button>
-                </div>
+                <p class="member-panel-back" data-panel-back hidden>
+                    <a href="#inicio" data-panel-link="inicio">&larr; Volver al panel</a>
+                </p>
                 <?php if ($profileErrors || $profileMessages): ?>
                     <div class="member-panel-alerts">
                         <?php if ($profileErrors): ?>
@@ -1137,36 +1280,84 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                     </div>
                 <?php endif; ?>
 
-                <section id="perfil" class="content-section member-panel-section active">
-                    <div class="member-profile-editor">
-                        <form class="member-profile-form member-profile-cards cv-editor" id="member-profile-form" action="panel-usuario.php#perfil" method="post" enctype="multipart/form-data">
-                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                            <input type="hidden" name="profile_action" value="update_profile">
-                            <div class="member-cards">
-                            <article class="member-card" data-member-card="perfil">
-                                <header class="member-card-head">
-                                    <div class="member-card-heading">
+                <section id="inicio" class="content-section member-panel-section active">
+                    <div class="member-panel-heading">
+                        <div class="member-panel-heading-main">
+                            <div>
+                                <p class="section-kicker">Tu panel</p>
+                                <h2>¿Que quieres hacer hoy?</h2>
+                                <p>Cada tarjeta abre una pantalla del panel. Puedes volver aqui en cualquier momento.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="member-nav-grid">
+                        <?php foreach ($panelNavCards as $navCard): ?>
+                            <?php $navIsExternal = isset($navCard['href']); ?>
+                            <a class="member-nav-card"
+                               href="<?= e($navIsExternal ? $navCard['href'] : '#' . $navCard['target']) ?>"
+                               <?= $navIsExternal ? '' : 'data-panel-link="' . e($navCard['target']) . '"' ?>>
+                                <span class="member-nav-card-media">
+                                    <img src="<?= e($navCard['image']) ?>" alt="" loading="lazy">
+                                </span>
+                                <span class="member-nav-card-body">
+                                    <strong><?= e($navCard['title']) ?></strong>
+                                    <span class="member-nav-card-note"><?= e($navCard['note']) ?></span>
+                                    <?php if (isset($navCard['metric'])): ?>
+                                        <span class="member-nav-card-metric"<?= isset($navCard['metric_section']) ? ' data-nav-metric="' . e($navCard['metric_section']) . '"' : '' ?>><?= e($navCard['metric']) ?></span>
+                                    <?php endif; ?>
+                                </span>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                </section>
+
+                <div class="member-profile-editor">
+                    <form class="member-profile-form member-profile-cards cv-editor" id="member-profile-form" action="panel-usuario.php#perfil" method="post" enctype="multipart/form-data" data-profile-form hidden>
+                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                        <input type="hidden" name="profile_action" value="update_profile">
+
+                        <section id="perfil" class="content-section member-panel-section">
+                            <div class="member-panel-heading">
+                                <div class="member-panel-heading-main">
+                                    <div>
                                         <p class="section-kicker">Mi perfil</p>
-                                        <h3>Datos de tu espacio</h3>
-                                        <p class="member-card-note">Identidad publica, ubicacion, contacto e imagenes de tu ficha.</p>
+                                        <h2>Datos de tu espacio</h2>
+                                        <p>Identidad publica, ubicacion, contacto e imagenes de tu ficha.</p>
                                     </div>
-                                    <button type="button" class="button button-secondary member-card-cta" data-card-toggle aria-expanded="false" aria-controls="member-card-body-perfil">Editar perfil</button>
-                                </header>
-                                <div class="member-summary-grid">
-                                    <article class="member-summary-card">
-                                        <span>Nombre artistico</span>
-                                        <strong><?= e($displayName) ?></strong>
+                                </div>
+                                <div class="member-kpi-grid">
+                                    <article class="member-kpi">
+                                        <span>Perfil completo</span>
+                                        <strong><?= e((string) $profileCompletion) ?>%</strong>
                                     </article>
-                                    <article class="member-summary-card">
-                                        <span>Email</span>
-                                        <strong><?= e($user['email'] ?? '') ?></strong>
+                                    <article class="member-kpi">
+                                        <span>Fotografia principal</span>
+                                        <strong><?= $mainPhotoVisiblePath !== '' ? 'Subida' : 'Pendiente' ?></strong>
                                     </article>
-                                    <article class="member-summary-card">
+                                    <article class="member-kpi">
+                                        <span>Entradas de curriculum</span>
+                                        <strong><?= e((string) $totalCvEntries) ?></strong>
+                                    </article>
+                                    <article class="member-kpi">
                                         <span>Tipo de membresia</span>
                                         <strong><?= e($memberStatus) ?></strong>
                                     </article>
                                 </div>
-                                <div class="member-card-body" id="member-card-body-perfil" data-card-body hidden>
+                            </div>
+                            <div class="member-summary-grid">
+                                <article class="member-summary-card">
+                                    <span>Nombre artistico</span>
+                                    <strong><?= e($displayName) ?></strong>
+                                </article>
+                                <article class="member-summary-card">
+                                    <span>Email</span>
+                                    <strong><?= e($user['email'] ?? '') ?></strong>
+                                </article>
+                                <article class="member-summary-card">
+                                    <span>URL publica</span>
+                                    <strong><?= e($memberTypePrefix) ?>/<?= e($publicSlug) ?></strong>
+                                </article>
+                            </div>
                             <fieldset class="cv-fieldset profile-core-fieldset">
 	                                <legend>
 	                                    <span>Perfil publico</span>
@@ -1276,83 +1467,102 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                                     <span>Imprimir estos datos profesionales en PDF</span>
                                 </label>
                             </fieldset>
-                                </div>
-                            </article>
+                        </section>
 
-                            <?php foreach ($cvSectionConfig as $sectionKey => $sectionConfig): ?>
-                                <?php
-                                $sectionSettings = is_array($memberProfile['section_settings'][$sectionKey] ?? null) ? $memberProfile['section_settings'][$sectionKey] : [];
-                                $sectionActive = (bool) ($sectionSettings['active'] ?? true);
-                                $sectionDisplayOrder = (int) ($sectionSettings['order'] ?? ($sectionConfig['default_order'] ?? 1));
-                                $isCustomSection = $sectionKey === 'custom_section';
-                                $sectionTitle = (string) $sectionConfig['title'];
-                                $sectionEntries = is_array($memberProfile[$sectionKey] ?? null) ? array_values($memberProfile[$sectionKey]) : [];
-                                $createLabel = 'Crear ' . mb_strtolower($sectionTitle, 'UTF-8');
-                                ?>
-                                <article class="member-card member-entry-card" data-entry-card="<?= e($sectionKey) ?>">
-                                    <header class="member-card-head">
-                                        <div class="member-card-heading">
+                        <?php foreach ($cvSectionConfig as $sectionKey => $sectionConfig): ?>
+                            <?php
+                            $sectionSettings = is_array($memberProfile['section_settings'][$sectionKey] ?? null) ? $memberProfile['section_settings'][$sectionKey] : [];
+                            $sectionActive = (bool) ($sectionSettings['active'] ?? true);
+                            $sectionDisplayOrder = (int) ($sectionSettings['order'] ?? ($sectionConfig['default_order'] ?? 1));
+                            $isCustomSection = $sectionKey === 'custom_section';
+                            $sectionTitle = (string) $sectionConfig['title'];
+                            $sectionEntries = $cvSectionEntries[$sectionKey];
+                            $sectionMetrics = $cvSectionMetrics[$sectionKey];
+                            $createLabel = 'Crear ' . mb_strtolower($sectionTitle, 'UTF-8');
+                            ?>
+                            <section id="<?= e($cvSectionAnchors[$sectionKey]) ?>" class="content-section member-panel-section member-entry-section" data-entry-card="<?= e($sectionKey) ?>">
+                                <div class="member-panel-heading">
+                                    <div class="member-panel-heading-main">
+                                        <div>
                                             <p class="section-kicker">Curriculum</p>
                                             <?php if ($isCustomSection): ?>
-                                                <h3><input type="text" name="custom_section_title" value="<?= e($sectionTitle) ?>" placeholder="Nombre de la seccion" class="cv-section-title-input" maxlength="100" aria-label="Nombre de la seccion personalizada"></h3>
+                                                <h2><input type="text" name="custom_section_title" value="<?= e($sectionTitle) ?>" placeholder="Nombre de la seccion" class="cv-section-title-input" maxlength="100" aria-label="Nombre de la seccion personalizada"></h2>
                                             <?php else: ?>
-                                                <h3><?= e($sectionTitle) ?></h3>
+                                                <h2><?= e($sectionTitle) ?></h2>
                                             <?php endif; ?>
-                                            <p class="member-card-note"><span data-entry-count><?= e((string) count($sectionEntries)) ?></span> <span data-entry-count-label><?= count($sectionEntries) === 1 ? 'entrada' : 'entradas' ?></span></p>
+                                            <p><?= e($cvSectionNotes[$sectionKey]) ?></p>
                                         </div>
                                         <button type="button" class="button button-primary member-card-cta" data-entry-create="<?= e($sectionKey) ?>"><?= e($createLabel) ?></button>
-                                    </header>
-
-                                    <details class="member-card-settings">
-                                        <summary>Ajustes de la seccion</summary>
-                                        <div class="cv-section-tools">
-                                            <input type="hidden" name="section_settings[<?= e($sectionKey) ?>][active]" value="0">
-                                            <label class="cv-section-toggle">
-                                                <input type="checkbox" name="section_settings[<?= e($sectionKey) ?>][active]" value="1" <?= $sectionActive ? 'checked' : '' ?>>
-                                                Activa en PDF
-                                            </label>
-                                            <label>Orden seccion
-                                                <input name="section_settings[<?= e($sectionKey) ?>][order]" type="number" min="1" step="1" value="<?= e((string) $sectionDisplayOrder) ?>">
-                                            </label>
-                                            <?php if (!empty($sectionConfig['sortable'])): ?>
-                                                <label>Orden entradas
-                                                    <select name="sort_orders[<?= e($sectionKey) ?>]">
-                                                        <?php $sortOrder = normalize_cv_sort_order($memberProfile['sort_orders'][$sectionKey] ?? 'desc'); ?>
-                                                        <option value="desc" <?= $sortOrder === 'desc' ? 'selected' : '' ?>>Mas reciente primero</option>
-                                                        <option value="asc" <?= $sortOrder === 'asc' ? 'selected' : '' ?>>Mas antiguo primero</option>
-                                                        <option value="manual" <?= $sortOrder === 'manual' ? 'selected' : '' ?>>Orden manual</option>
-                                                    </select>
-                                                </label>
-                                            <?php endif; ?>
-                                        </div>
-                                    </details>
-
-                                    <div class="member-entry-list" data-entry-list="<?= e($sectionKey) ?>" data-entry-next="<?= e((string) count($sectionEntries)) ?>">
-                                        <?php foreach ($sectionEntries as $rowIndex => $entry): ?>
-                                            <?= cv_entry_item_markup($sectionKey, $sectionConfig, (string) $rowIndex, is_array($entry) ? $entry : [], $sectionTitle) ?>
-                                        <?php endforeach; ?>
                                     </div>
-
-                                    <div class="member-entry-empty" data-entry-empty <?= $sectionEntries ? 'hidden' : '' ?>>
-                                        <p>Todavia no has creado ninguna entrada en <strong><?= e($sectionTitle) ?></strong>.</p>
-                                        <button type="button" class="button button-secondary" data-entry-create="<?= e($sectionKey) ?>"><?= e($createLabel) ?></button>
+                                    <div class="member-kpi-grid">
+                                        <article class="member-kpi">
+                                            <span>Entradas</span>
+                                            <strong data-kpi="total"><?= e((string) $sectionMetrics['total']) ?></strong>
+                                        </article>
+                                        <article class="member-kpi">
+                                            <span>Activas en el PDF</span>
+                                            <strong data-kpi="active"><?= e((string) $sectionMetrics['active']) ?></strong>
+                                        </article>
+                                        <article class="member-kpi">
+                                            <span>Con imagen</span>
+                                            <strong data-kpi="images"><?= e((string) $sectionMetrics['images']) ?></strong>
+                                        </article>
+                                        <article class="member-kpi">
+                                            <span>Periodo</span>
+                                            <strong data-kpi="period"><?= e($sectionMetrics['period']) ?></strong>
+                                        </article>
                                     </div>
-
-                                    <template data-entry-template="<?= e($sectionKey) ?>"><?= cv_entry_item_markup($sectionKey, $sectionConfig, '__INDEX__', [], $sectionTitle) ?></template>
-                                </article>
-                            <?php endforeach; ?>
-                            </div>
-
-                            <div class="member-entry-backdrop" data-entry-backdrop hidden></div>
-
-                            <div class="member-form-savebar">
-                                <div>
-                                    <strong>Guardar cambios del perfil</strong>
-                                    <span data-savebar-message>Actualiza identidad, datos profesionales y secciones del curriculum.</span>
                                 </div>
-                                <button class="button button-primary member-save-button" type="submit">Guardar cambios</button>
+
+                                <details class="member-card-settings">
+                                    <summary>Ajustes de la seccion</summary>
+                                    <div class="cv-section-tools">
+                                        <input type="hidden" name="section_settings[<?= e($sectionKey) ?>][active]" value="0">
+                                        <label class="cv-section-toggle">
+                                            <input type="checkbox" name="section_settings[<?= e($sectionKey) ?>][active]" value="1" <?= $sectionActive ? 'checked' : '' ?>>
+                                            Activa en PDF
+                                        </label>
+                                        <label>Orden seccion
+                                            <input name="section_settings[<?= e($sectionKey) ?>][order]" type="number" min="1" step="1" value="<?= e((string) $sectionDisplayOrder) ?>">
+                                        </label>
+                                        <?php if (!empty($sectionConfig['sortable'])): ?>
+                                            <label>Orden entradas
+                                                <select name="sort_orders[<?= e($sectionKey) ?>]">
+                                                    <?php $sortOrder = normalize_cv_sort_order($memberProfile['sort_orders'][$sectionKey] ?? 'desc'); ?>
+                                                    <option value="desc" <?= $sortOrder === 'desc' ? 'selected' : '' ?>>Mas reciente primero</option>
+                                                    <option value="asc" <?= $sortOrder === 'asc' ? 'selected' : '' ?>>Mas antiguo primero</option>
+                                                    <option value="manual" <?= $sortOrder === 'manual' ? 'selected' : '' ?>>Orden manual</option>
+                                                </select>
+                                            </label>
+                                        <?php endif; ?>
+                                    </div>
+                                </details>
+
+                                <div class="member-entry-list" data-entry-list="<?= e($sectionKey) ?>" data-entry-next="<?= e((string) count($sectionEntries)) ?>">
+                                    <?php foreach ($sectionEntries as $rowIndex => $entry): ?>
+                                        <?= cv_entry_item_markup($sectionKey, $sectionConfig, (string) $rowIndex, is_array($entry) ? $entry : [], $sectionTitle) ?>
+                                    <?php endforeach; ?>
+                                </div>
+
+                                <div class="member-entry-empty" data-entry-empty <?= $sectionEntries ? 'hidden' : '' ?>>
+                                    <p>Todavia no has creado ninguna entrada en <strong><?= e($sectionTitle) ?></strong>.</p>
+                                    <button type="button" class="button button-secondary" data-entry-create="<?= e($sectionKey) ?>"><?= e($createLabel) ?></button>
+                                </div>
+
+                                <template data-entry-template="<?= e($sectionKey) ?>"><?= cv_entry_item_markup($sectionKey, $sectionConfig, '__INDEX__', [], $sectionTitle) ?></template>
+                            </section>
+                        <?php endforeach; ?>
+
+                        <div class="member-entry-backdrop" data-entry-backdrop hidden></div>
+
+                        <div class="member-form-savebar">
+                            <div>
+                                <strong>Guardar cambios del perfil</strong>
+                                <span data-savebar-message>Actualiza identidad, datos profesionales y secciones del curriculum.</span>
                             </div>
-                        </form>
+                            <button class="button button-primary member-save-button" type="submit">Guardar cambios</button>
+                        </div>
+                    </form>
                         <section class="cv-print-document" aria-label="Curriculum imprimible">
                             <header class="cv-print-header" <?= $cvHeaderStyle !== '' ? 'style="' . e($cvHeaderStyle) . '"' : '' ?>>
                                 <?php if ($mainPhotoVisiblePath !== ''): ?>
@@ -1434,9 +1644,9 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                                 <span>Creado con <strong>consaborflamenco.com</strong></span>
                             </footer>
                         </section>
-                    </div>
-                </section>
+                </div>
 
+                <?php if ($hasWebPage): ?>
                 <section id="pagina-web" class="content-section member-panel-section">
                     <div class="section-heading">
                         <div class="section-heading-content">
@@ -1705,6 +1915,7 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                         </div>
                     </form>
                 </section>
+                <?php endif; ?>
 
                 <section id="tarjeta-miembro" class="content-section member-panel-section">
                     <div class="section-heading">
@@ -1953,32 +2164,14 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
             document.title = originalDocumentTitle;
         });
 
-        // Tarjeta "Mi perfil": el formulario largo vive plegado dentro de la tarjeta.
-        document.querySelectorAll('[data-card-toggle]').forEach((button) => {
-            button.addEventListener('click', () => {
-                const body = button.closest('[data-member-card]')?.querySelector('[data-card-body]');
-                if (!(body instanceof HTMLElement)) {
-                    return;
-                }
-                const willOpen = body.hidden;
-                body.hidden = !willOpen;
-                button.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
-                button.textContent = willOpen ? 'Cerrar edicion' : 'Editar perfil';
-            });
-        });
-
-        // Si el navegador encuentra un campo obligatorio dentro de una tarjeta
-        // plegada no puede enfocarlo y el envio se queda mudo: la desplegamos.
+        // El formulario de perfil abarca varias pantallas del panel (Mi perfil y
+        // cada seccion del curriculum). Si el navegador encuentra un campo
+        // obligatorio en una pantalla que no esta a la vista no puede enfocarlo
+        // y el envio se queda mudo, asi que saltamos a esa pantalla.
         memberProfileForm?.addEventListener('invalid', (event) => {
-            const body = event.target instanceof Element ? event.target.closest('[data-card-body]') : null;
-            if (!(body instanceof HTMLElement) || !body.hidden) {
-                return;
-            }
-            body.hidden = false;
-            const toggle = body.closest('[data-member-card]')?.querySelector('[data-card-toggle]');
-            if (toggle instanceof HTMLElement) {
-                toggle.setAttribute('aria-expanded', 'true');
-                toggle.textContent = 'Cerrar edicion';
+            const section = event.target instanceof Element ? event.target.closest('.member-panel-section') : null;
+            if (section instanceof HTMLElement && !section.classList.contains('active')) {
+                activateMemberPanel(section.id);
             }
         }, true);
 
@@ -2058,27 +2251,64 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
             }
         };
 
+        // Mismo calculo que cv_section_metrics() en PHP, para no recargar la
+        // pagina cada vez que se crea, edita o borra una entrada.
+        const entrySectionMetrics = (items) => {
+            const years = [];
+            let active = 0;
+            let images = 0;
+
+            items.forEach((item) => {
+                const fields = item.querySelector('[data-entry-fields]');
+                if (entryFieldValue(fields, 'is_active') === '1') {
+                    active += 1;
+                }
+                if (entryFieldValue(fields, 'image_path') !== '') {
+                    images += 1;
+                }
+                ['date_start', 'date_end'].forEach((field) => {
+                    const year = Number.parseInt(entryFieldValue(fields, field).slice(0, 4), 10);
+                    if (Number.isInteger(year) && year > 0) {
+                        years.push(year);
+                    }
+                });
+            });
+
+            let period = '—';
+            if (years.length > 0) {
+                const min = Math.min(...years);
+                const max = Math.max(...years);
+                period = min === max ? String(min) : `${min}–${max}`;
+            }
+
+            return { total: items.length, active, images, period };
+        };
+
         const refreshEntryCard = (card) => {
             if (!(card instanceof HTMLElement)) {
                 return;
             }
             const list = card.querySelector('[data-entry-list]');
-            const total = list ? list.querySelectorAll('[data-entry-item]').length : 0;
-            const count = card.querySelector('[data-entry-count]');
-            const countLabel = card.querySelector('[data-entry-count-label]');
+            const items = list ? Array.from(list.querySelectorAll('[data-entry-item]')) : [];
+            const metrics = entrySectionMetrics(items);
             const empty = card.querySelector('[data-entry-empty]');
 
-            if (count instanceof HTMLElement) {
-                count.textContent = String(total);
-            }
-            if (countLabel instanceof HTMLElement) {
-                countLabel.textContent = total === 1 ? 'entrada' : 'entradas';
+            Object.entries(metrics).forEach(([key, value]) => {
+                const node = card.querySelector(`[data-kpi="${key}"]`);
+                if (node instanceof HTMLElement) {
+                    node.textContent = String(value);
+                }
+            });
+
+            const navMetric = document.querySelector(`[data-nav-metric="${card.dataset.entryCard}"]`);
+            if (navMetric instanceof HTMLElement) {
+                navMetric.textContent = metrics.total === 1 ? '1 entrada' : `${metrics.total} entradas`;
             }
             if (empty instanceof HTMLElement) {
-                empty.hidden = total > 0;
+                empty.hidden = metrics.total > 0;
             }
             if (list instanceof HTMLElement) {
-                list.hidden = total === 0;
+                list.hidden = metrics.total === 0;
             }
         };
 
@@ -2143,6 +2373,7 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                 if (item instanceof HTMLElement) {
                     item.classList.remove('is-open');
                     refreshEntryItem(item);
+                    refreshEntryCard(item.closest('[data-entry-card]'));
                 }
             });
             if (entryBackdrop instanceof HTMLElement) {
@@ -2631,22 +2862,30 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
         });
 
         function activateMemberPanel(target) {
-            if (!target) {
+            if (!target || !document.getElementById(target)) {
                 return;
             }
-            document.querySelectorAll('.panel-tab-button').forEach((tab) => tab.classList.toggle('active', tab.dataset.tabTarget === target));
             document.querySelectorAll('[data-panel-link]').forEach((link) => link.classList.toggle('active', link.dataset.panelLink === target));
             document.querySelectorAll('.member-panel-section').forEach((section) => {
-                section.style.display = section.id === target ? 'block' : 'none';
+                section.classList.toggle('active', section.id === target);
             });
-        }
 
-        document.querySelectorAll('.panel-tab-button').forEach((button) => {
-            button.addEventListener('click', () => {
-                const target = button.dataset.tabTarget;
-                activateMemberPanel(target);
-            });
-        });
+            // El formulario de perfil envuelve varias pantallas (Mi perfil y cada
+            // seccion del curriculum): se muestra, con su barra de guardado, solo
+            // cuando la pantalla activa es una de ellas.
+            if (memberProfileForm instanceof HTMLFormElement) {
+                const ownsTarget = document.getElementById(target)?.closest('form') === memberProfileForm;
+                memberProfileForm.hidden = !ownsTarget;
+                if (ownsTarget) {
+                    memberProfileForm.action = 'panel-usuario.php#' + target;
+                }
+            }
+
+            const backLink = document.querySelector('[data-panel-back]');
+            if (backLink instanceof HTMLElement) {
+                backLink.hidden = target === 'inicio';
+            }
+        }
 
         document.querySelectorAll('[data-panel-link]').forEach((link) => {
             link.addEventListener('click', () => {
