@@ -121,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <a class="button button-primary" href="#academia-contacto">Solicitar información</a>
         </section>
 
-        <div class="page-shell">
+        <div class="page-shell page-shell-full">
             <div class="primary-content academia-contenido">
                 <?php
                 // Datos de contacto reales. Se construye la lista antes de pintar

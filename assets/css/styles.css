@@ -1476,6 +1476,17 @@ h3 {
     padding-inline: clamp(16px, 1.7vw, 32px);
 }
 
+/*
+ * Variante de una sola columna, para las paginas que no pintan el rail de
+ * publicidad (`aside.ad-sidebar`). Sin esto la rejilla reservaba igualmente sus
+ * 560px y el contenido quedaba encajonado a la izquierda con medio ancho de
+ * pantalla vacio al lado. Ojo: poner `width: 100%` al primer hijo no arregla
+ * nada, porque el ancho lo manda la pista de la rejilla, no el elemento.
+ */
+.page-shell-full {
+    grid-template-columns: minmax(0, 1fr);
+}
+
 .primary-content {
     min-width: 0;
 }
@@ -9195,6 +9206,10 @@ body.artist-public-body .artist-web-contact-grid {
 .academia-contenido {
     display: grid;
     gap: clamp(20px, 2.6vw, 32px);
+    /* Sin rail de publicidad, el contenedor llega a 1900px y las lineas de texto
+       se hacian incomodas de leer. Se centra con una medida razonable. */
+    width: min(100%, 1240px);
+    margin-inline: auto;
 }
 
 .academia-panel {
@@ -9388,5 +9403,492 @@ body.artist-public-body .artist-web-contact-grid {
     .academia-portada {
         aspect-ratio: 16 / 9;
         max-width: 340px;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   Panel de miembro: cabecera de pagina, tarjetas del perfil y panel lateral de
+   entradas del curriculum.
+   ------------------------------------------------------------------------ */
+
+.member-dashboard-hero-page {
+    width: min(calc(100% - 44px), 1580px);
+    margin: 0 auto clamp(18px, 2.4vw, 30px);
+}
+
+.member-dashboard-hero-page .member-dashboard-identity h1 {
+    max-width: 900px;
+    margin: 6px 0 4px;
+    color: var(--color-white);
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: clamp(2rem, 4vw, 4.1rem);
+    line-height: 0.95;
+}
+
+.member-profile-form.member-profile-cards {
+    display: block;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.member-cards {
+    display: grid;
+    gap: clamp(14px, 1.8vw, 22px);
+}
+
+.member-card {
+    display: grid;
+    gap: 16px;
+    padding: clamp(18px, 2.2vw, 28px);
+    border: 1px solid rgba(17, 17, 20, 0.08);
+    border-radius: 16px;
+    background: rgba(255, 250, 242, 0.96);
+    box-shadow: 0 14px 32px rgba(13, 17, 20, 0.08);
+}
+
+.member-card-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.member-card-heading {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.member-card-heading h3 {
+    margin: 0;
+    color: var(--color-black);
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: clamp(1.4rem, 2.2vw, 2rem);
+    line-height: 1.15;
+}
+
+.member-card-heading .cv-section-title-input {
+    width: min(100%, 420px);
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: 700;
+}
+
+.member-card-note {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.9rem;
+}
+
+.member-card-cta {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.member-card-settings {
+    border: 1px solid rgba(17, 17, 20, 0.08);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.6);
+}
+
+.member-card-settings > summary {
+    padding: 10px 14px;
+    color: var(--color-muted);
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.member-card-settings[open] > summary {
+    border-bottom: 1px solid rgba(17, 17, 20, 0.08);
+}
+
+.member-card-settings .cv-section-tools {
+    padding: 14px;
+}
+
+.member-card-body {
+    display: grid;
+    gap: 18px;
+    padding-top: 4px;
+    border-top: 1px solid rgba(17, 17, 20, 0.08);
+}
+
+.member-card-body[hidden] {
+    display: none;
+}
+
+.member-card-body .cv-fieldset {
+    padding: 18px 0 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.member-card-body .cv-fieldset:hover {
+    border-color: transparent;
+    box-shadow: none;
+}
+
+.member-card-body .cv-fieldset + .cv-fieldset {
+    border-top: 1px solid rgba(17, 17, 20, 0.08);
+}
+
+/* Listado de entradas de una tarjeta del curriculum */
+
+.member-entry-list {
+    display: grid;
+    gap: 10px;
+}
+
+.member-entry-list[hidden] {
+    display: none;
+}
+
+.member-entry-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid rgba(17, 17, 20, 0.08);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.82);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.member-entry-item:hover,
+.member-entry-item.is-open {
+    border-color: rgba(201, 79, 92, 0.32);
+    box-shadow: 0 6px 18px rgba(201, 79, 92, 0.1);
+}
+
+.member-entry-open {
+    display: flex;
+    flex: 1 1 320px;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.member-entry-thumb {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 62px;
+    height: 62px;
+    overflow: hidden;
+    border-radius: 10px;
+    background: rgba(17, 17, 20, 0.06);
+    color: var(--color-muted);
+    font-size: 0.62rem;
+    text-align: center;
+}
+
+.member-entry-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.member-entry-text {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+.member-entry-text strong {
+    color: var(--color-black);
+    font-size: 1rem;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.member-entry-meta {
+    color: var(--color-muted);
+    font-size: 0.84rem;
+}
+
+.member-entry-meta:empty {
+    display: none;
+}
+
+.member-entry-flag {
+    align-self: center;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: rgba(201, 164, 90, 0.18);
+    color: #8a6a1f;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.member-entry-actions {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.member-entry-action {
+    min-height: 34px;
+    padding: 6px 13px;
+    border: 1px solid rgba(17, 17, 20, 0.14);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--color-ink);
+    font-size: 0.82rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.member-entry-action:hover,
+.member-entry-action:focus-visible {
+    border-color: rgba(201, 79, 92, 0.5);
+    background: rgba(201, 79, 92, 0.08);
+    color: var(--color-red);
+}
+
+.member-entry-action-danger:hover,
+.member-entry-action-danger:focus-visible {
+    border-color: rgba(164, 52, 66, 0.6);
+    background: rgba(164, 52, 66, 0.12);
+    color: #8d2532;
+}
+
+.member-entry-empty {
+    display: grid;
+    justify-items: start;
+    gap: 12px;
+    padding: 20px;
+    border: 1px dashed rgba(17, 17, 20, 0.16);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.member-entry-empty[hidden] {
+    display: none;
+}
+
+.member-entry-empty p {
+    margin: 0;
+    color: var(--color-muted);
+}
+
+/* Panel lateral derecho: crear, ver y editar una entrada */
+
+.member-entry-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 140;
+    background: rgba(10, 12, 16, 0.52);
+}
+
+.member-entry-backdrop[hidden] {
+    display: none;
+}
+
+body.member-entry-drawer-open {
+    overflow: hidden;
+}
+
+.member-entry-fields {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 150;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    width: min(560px, 100%);
+    background: var(--color-warm);
+    box-shadow: -24px 0 60px rgba(10, 12, 16, 0.3);
+}
+
+.member-entry-fields[hidden] {
+    display: none;
+}
+
+.member-entry-drawer-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 20px;
+    background: linear-gradient(135deg, rgba(19, 18, 24, 0.97), rgba(46, 23, 25, 0.95));
+    color: var(--color-white);
+}
+
+.member-entry-drawer-kicker {
+    margin: 0;
+    color: #ff8a96;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.member-entry-drawer-head h4 {
+    margin: 4px 0 0;
+    color: var(--color-white);
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 1.5rem;
+    line-height: 1.15;
+}
+
+.member-entry-drawer-close {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--color-white);
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.member-entry-drawer-close:hover,
+.member-entry-drawer-close:focus-visible {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.member-entry-drawer-body {
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.member-entry-form {
+    display: grid;
+    gap: 16px;
+}
+
+.member-entry-form[hidden] {
+    display: none;
+}
+
+.member-entry-form .cv-entry-image-field {
+    display: grid;
+    gap: 8px;
+}
+
+.member-entry-form .cv-entry-image-box {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    max-width: 240px;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    border: 1px solid rgba(17, 17, 20, 0.1);
+    border-radius: 10px;
+    background: rgba(17, 17, 20, 0.05);
+    color: var(--color-muted);
+    font-size: 0.78rem;
+}
+
+.member-entry-form .cv-entry-image-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.member-entry-form .cv-entry-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    padding-top: 14px;
+    border-top: 1px solid rgba(17, 17, 20, 0.08);
+}
+
+.member-entry-preview {
+    display: grid;
+    gap: 12px;
+}
+
+.member-entry-preview[hidden] {
+    display: none;
+}
+
+.member-entry-preview-image {
+    width: 100%;
+    max-height: 260px;
+    object-fit: cover;
+    border-radius: 12px;
+}
+
+.member-entry-preview h5 {
+    margin: 0;
+    color: var(--color-black);
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 1.4rem;
+    line-height: 1.2;
+}
+
+.member-entry-preview-meta {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.9rem;
+}
+
+.member-entry-preview-text {
+    color: var(--color-ink);
+    line-height: 1.7;
+}
+
+.member-entry-preview-empty,
+.member-entry-preview-flag {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.88rem;
+    font-style: italic;
+}
+
+.member-entry-drawer-foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 20px;
+    border-top: 1px solid rgba(17, 17, 20, 0.1);
+    background: rgba(255, 255, 255, 0.92);
+}
+
+.member-entry-drawer-foot .button[hidden] {
+    display: none;
+}
+
+@media (max-width: 700px) {
+    .member-entry-fields {
+        width: 100%;
+    }
+
+    .member-entry-item {
+        align-items: flex-start;
+    }
+
+    .member-entry-actions {
+        width: 100%;
+    }
+
+    .member-entry-action {
+        flex: 1 1 auto;
     }
 }

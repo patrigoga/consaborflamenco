@@ -255,6 +255,134 @@ function cv_print_sections(array $profile, array $sectionConfig): array
     return $sections;
 }
 
+/**
+ * Etiqueta corta con fechas y lugar de una entrada, para el listado de la
+ * tarjeta. Se replica en JavaScript al editar sin recargar la pagina.
+ */
+function cv_entry_meta_label(array $entry): string
+{
+    $dates = implode(' — ', array_filter([
+        cv_print_date((string) ($entry['date_start'] ?? '')),
+        cv_print_date((string) ($entry['date_end'] ?? '')),
+    ], static fn (string $value): bool => $value !== ''));
+
+    return implode(' · ', array_filter([
+        $dates,
+        clean_text((string) ($entry['location'] ?? '')),
+    ], static fn (string $value): bool => $value !== ''));
+}
+
+/**
+ * Panel lateral de una entrada del curriculum: cabecera, campos del formulario,
+ * vista de solo lectura y pie con las acciones. Vive dentro del formulario de
+ * perfil, asi que se envia con el resto del panel aunque se muestre flotando.
+ *
+ * $rowIndex llega como numero para las entradas guardadas y como marcador
+ * __INDEX__ para la plantilla que clona el panel al crear una nueva.
+ */
+function cv_entry_fields_markup(string $sectionKey, array $sectionConfig, string $rowIndex, array $entry, string $sectionTitle): string
+{
+    $entryImagePath = member_visible_asset_path((string) ($entry['image_path'] ?? ''));
+    $prefix = $sectionKey . '[' . $rowIndex . ']';
+    $isActive = (bool) ($entry['is_active'] ?? true);
+    ob_start();
+    ?>
+    <div class="member-entry-fields" data-entry-fields data-entry-mode="edit" hidden>
+        <header class="member-entry-drawer-head">
+            <div>
+                <p class="member-entry-drawer-kicker"><?= e($sectionTitle) ?></p>
+                <h4 data-entry-drawer-title>Editar entrada</h4>
+            </div>
+            <button type="button" class="member-entry-drawer-close" data-entry-close aria-label="Cerrar panel">&times;</button>
+        </header>
+        <div class="member-entry-drawer-body">
+            <div class="member-entry-preview" data-entry-preview hidden></div>
+            <div class="member-entry-form">
+                <?php if (!empty($sectionConfig['allows_image'])): ?>
+                    <label class="cv-entry-image-field">
+                        Imagen de la entrada
+                        <span class="cv-entry-image-box">
+                            <img class="cv-entry-image-preview" <?= $entryImagePath !== '' ? 'src="' . e($entryImagePath) . '"' : '' ?> alt="Imagen de la entrada" loading="lazy" data-cv-image-preview <?= $entryImagePath === '' ? 'hidden' : '' ?>>
+                            <span data-cv-image-placeholder <?= $entryImagePath !== '' ? 'hidden' : '' ?>>Sin imagen</span>
+                        </span>
+                        <input type="hidden" name="<?= e($prefix) ?>[image_path]" value="<?= e($entryImagePath) ?>" data-entry-field="image_path">
+                        <input name="<?= e($prefix) ?>[image]" type="file" accept="image/jpeg,image/png,image/webp" data-cv-image-input>
+                        <small>Se guarda automaticamente al seleccionar.</small>
+                    </label>
+                <?php endif; ?>
+                <?php foreach ($sectionConfig['fields'] as $fieldName => $fieldLabel): ?>
+                    <?php if ($fieldName === 'description'): ?>
+                        <div class="cv-editor-field cv-entry-description-field">
+                            <span class="field-label"><?= e($fieldLabel) ?></span>
+                            <div class="rich-text-toolbar" data-editor-toolbar></div>
+                            <div class="rich-text-editor" contenteditable="true" data-rich-editor data-entry-field="description"><?= $entry['description'] ?? '' ?></div>
+                            <textarea name="<?= e($prefix) ?>[description]" rows="5" hidden><?= e((string) ($entry['description'] ?? '')) ?></textarea>
+                        </div>
+                    <?php else: ?>
+                        <label class="<?= $fieldName === 'category' ? 'cv-entry-category-field' : '' ?>">
+                            <?= e($fieldLabel) ?>
+                            <input name="<?= e($prefix) ?>[<?= e($fieldName) ?>]" type="<?= str_starts_with($fieldName, 'date_') ? 'date' : 'text' ?>" value="<?= e((string) ($entry[$fieldName] ?? '')) ?>" data-entry-field="<?= e($fieldName) ?>">
+                        </label>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+                <div class="cv-entry-controls">
+                    <label class="visibility-toggle">
+                        <input type="checkbox" name="<?= e($prefix) ?>[is_active]" value="1" <?= $isActive ? 'checked' : '' ?> data-default-checked="1" data-entry-field="is_active">
+                        <span>Articulo activo en PDF</span>
+                    </label>
+                    <label>Orden
+                        <input name="<?= e($prefix) ?>[display_order]" type="number" min="1" step="1" value="<?= e((string) ($entry['display_order'] ?? '')) ?>" data-entry-field="display_order">
+                    </label>
+                </div>
+            </div>
+        </div>
+        <footer class="member-entry-drawer-foot">
+            <button type="button" class="button button-secondary" data-entry-close>Cerrar</button>
+            <button type="button" class="button button-secondary" data-entry-to-edit hidden>Editar</button>
+            <button type="submit" class="button button-primary" data-entry-submit>Guardar cambios</button>
+        </footer>
+    </div>
+    <?php
+
+    return (string) ob_get_clean();
+}
+
+/**
+ * Fila del listado de una tarjeta: resumen visible mas el panel lateral con los
+ * campos, que permanece oculto hasta que se abre.
+ */
+function cv_entry_item_markup(string $sectionKey, array $sectionConfig, string $rowIndex, array $entry, string $sectionTitle): string
+{
+    $entryImagePath = member_visible_asset_path((string) ($entry['image_path'] ?? ''));
+    $entryTitle = clean_text((string) ($entry['category'] ?? ''));
+    $entryMeta = cv_entry_meta_label($entry);
+    $isActive = (bool) ($entry['is_active'] ?? true);
+    ob_start();
+    ?>
+    <article class="member-entry-item" data-entry-item>
+        <button type="button" class="member-entry-open" data-entry-edit>
+            <span class="member-entry-thumb">
+                <img <?= $entryImagePath !== '' ? 'src="' . e($entryImagePath) . '"' : '' ?> alt="" loading="lazy" data-entry-thumb-image <?= $entryImagePath === '' ? 'hidden' : '' ?>>
+                <span data-entry-thumb-placeholder <?= $entryImagePath !== '' ? 'hidden' : '' ?>>Sin imagen</span>
+            </span>
+            <span class="member-entry-text">
+                <strong data-entry-title><?= e($entryTitle !== '' ? $entryTitle : 'Entrada sin titulo') ?></strong>
+                <span class="member-entry-meta" data-entry-meta><?= e($entryMeta) ?></span>
+            </span>
+            <span class="member-entry-flag" data-entry-flag <?= $isActive ? 'hidden' : '' ?>>Oculta en el PDF</span>
+        </button>
+        <div class="member-entry-actions">
+            <button type="button" class="member-entry-action" data-entry-view>Ver</button>
+            <button type="button" class="member-entry-action" data-entry-edit>Editar</button>
+            <button type="button" class="member-entry-action member-entry-action-danger" data-entry-delete>Borrar</button>
+        </div>
+        <?= cv_entry_fields_markup($sectionKey, $sectionConfig, $rowIndex, $entry, $sectionTitle) ?>
+    </article>
+    <?php
+
+    return (string) ob_get_clean();
+}
+
 function web_gallery_uploaded_file(array $files, int $index): ?array
 {
     if (!isset($files['error'][$index])) {
@@ -925,10 +1053,32 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
 <body>
     <?php page_header(); ?>
     <main>
-        <section class="page-intro" data-ad-category="GENERAL">
-            <p class="section-kicker">Área privada</p>
-            <h1>Panel de miembro</h1>
-            <p>Bienvenido/a, <?= e($userName) ?>. Desde aquí configurarás tu perfil, tarjeta de miembro y espacios de banner.</p>
+        <section class="member-dashboard-hero member-dashboard-hero-page" aria-label="Tu espacio en Con Sabor Flamenco" data-ad-category="GENERAL">
+            <div class="member-dashboard-identity">
+                <button type="button" class="member-dashboard-photo-edit" data-main-photo-trigger aria-label="Editar fotografia principal">
+                    <?php if ($mainPhotoVisiblePath !== ''): ?>
+                        <img src="<?= e($mainPhotoVisiblePath) ?>" alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview>
+                    <?php else: ?>
+                        <img alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview hidden>
+                        <div class="member-dashboard-photo-placeholder" data-main-photo-placeholder><?= e(strtoupper(substr($displayName, 0, 1))) ?></div>
+                    <?php endif; ?>
+                    <span>Editar imagen</span>
+                </button>
+                <div>
+                    <span><?= e($memberTypeLabel) ?></span>
+                    <h1><?= e($displayName) ?></h1>
+                    <p><?= e($memberProfile['city']) ?><?= $memberProfile['city'] && $memberProfile['province'] ? ', ' : '' ?><?= e($memberProfile['province']) ?></p>
+                </div>
+            </div>
+            <div class="member-dashboard-actions">
+                <a class="member-card-qr-link member-dashboard-qr-link" href="<?= e($memberCardPublicUrl) ?>" target="_blank" rel="noopener" data-member-card-link data-card-url-base="<?= e($memberCardPublicUrlBase) ?>">
+                    <img src="<?= e($memberCardQrUrl) ?>" alt="Codigo QR para ver la tarjeta de miembro" loading="lazy" data-member-card-qr data-qr-base="<?= e($memberCardQrBase) ?>">
+                    <span>
+                        <strong>QR tarjeta</strong>
+                        <small>Ver / imprimir</small>
+                    </span>
+                </a>
+            </div>
         </section>
 
         <section class="member-panel">
@@ -972,34 +1122,6 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                     <button type="button" class="tab-button panel-tab-button" data-tab-target="banners">Banners</button>
                     <button type="button" class="tab-button panel-tab-button" data-tab-target="seguridad">Seguridad</button>
                 </div>
-                <section class="member-dashboard-hero" aria-label="Resumen del espacio">
-                    <div class="member-dashboard-identity">
-                        <button type="button" class="member-dashboard-photo-edit" data-main-photo-trigger aria-label="Editar fotografia principal">
-                            <?php if ($mainPhotoVisiblePath !== ''): ?>
-                                <img src="<?= e($mainPhotoVisiblePath) ?>" alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview>
-                            <?php else: ?>
-                                <img alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview hidden>
-                                <div class="member-dashboard-photo-placeholder" data-main-photo-placeholder><?= e(strtoupper(substr($displayName, 0, 1))) ?></div>
-                            <?php endif; ?>
-                            <span>Editar imagen</span>
-                        </button>
-                        <div>
-                            <span><?= e($memberTypeLabel) ?></span>
-                            <h2><?= e($displayName) ?></h2>
-                            <p><?= e($memberProfile['city']) ?><?= $memberProfile['city'] && $memberProfile['province'] ? ', ' : '' ?><?= e($memberProfile['province']) ?></p>
-                        </div>
-                    </div>
-                    <div class="member-dashboard-actions">
-                        <a class="member-card-qr-link member-dashboard-qr-link" href="<?= e($memberCardPublicUrl) ?>" target="_blank" rel="noopener" data-member-card-link data-card-url-base="<?= e($memberCardPublicUrlBase) ?>">
-                            <img src="<?= e($memberCardQrUrl) ?>" alt="Codigo QR para ver la tarjeta de miembro" loading="lazy" data-member-card-qr data-qr-base="<?= e($memberCardQrBase) ?>">
-                            <span>
-                                <strong>QR tarjeta</strong>
-                                <small>Ver / imprimir</small>
-                            </span>
-                        </a>
-                    </div>
-                </section>
-
                 <?php if ($profileErrors || $profileMessages): ?>
                     <div class="member-panel-alerts">
                         <?php if ($profileErrors): ?>
@@ -1016,24 +1138,35 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                 <?php endif; ?>
 
                 <section id="perfil" class="content-section member-panel-section active">
-                    <div class="member-summary-grid">
-                        <article class="member-summary-card">
-                            <span>Nombre artistico</span>
-                            <strong><?= e($displayName) ?></strong>
-                        </article>
-                        <article class="member-summary-card">
-                            <span>Email</span>
-                            <strong><?= e($user['email'] ?? '') ?></strong>
-                        </article>
-                        <article class="member-summary-card">
-                            <span>Tipo de membresia</span>
-                            <strong><?= e($memberStatus) ?></strong>
-                        </article>
-                    </div>
                     <div class="member-profile-editor">
-                        <form class="member-profile-form cv-editor" id="member-profile-form" action="panel-usuario.php#perfil" method="post" enctype="multipart/form-data">
+                        <form class="member-profile-form member-profile-cards cv-editor" id="member-profile-form" action="panel-usuario.php#perfil" method="post" enctype="multipart/form-data">
                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="profile_action" value="update_profile">
+                            <div class="member-cards">
+                            <article class="member-card" data-member-card="perfil">
+                                <header class="member-card-head">
+                                    <div class="member-card-heading">
+                                        <p class="section-kicker">Mi perfil</p>
+                                        <h3>Datos de tu espacio</h3>
+                                        <p class="member-card-note">Identidad publica, ubicacion, contacto e imagenes de tu ficha.</p>
+                                    </div>
+                                    <button type="button" class="button button-secondary member-card-cta" data-card-toggle aria-expanded="false" aria-controls="member-card-body-perfil">Editar perfil</button>
+                                </header>
+                                <div class="member-summary-grid">
+                                    <article class="member-summary-card">
+                                        <span>Nombre artistico</span>
+                                        <strong><?= e($displayName) ?></strong>
+                                    </article>
+                                    <article class="member-summary-card">
+                                        <span>Email</span>
+                                        <strong><?= e($user['email'] ?? '') ?></strong>
+                                    </article>
+                                    <article class="member-summary-card">
+                                        <span>Tipo de membresia</span>
+                                        <strong><?= e($memberStatus) ?></strong>
+                                    </article>
+                                </div>
+                                <div class="member-card-body" id="member-card-body-perfil" data-card-body hidden>
                             <fieldset class="cv-fieldset profile-core-fieldset">
 	                                <legend>
 	                                    <span>Perfil publico</span>
@@ -1143,6 +1276,8 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                                     <span>Imprimir estos datos profesionales en PDF</span>
                                 </label>
                             </fieldset>
+                                </div>
+                            </article>
 
                             <?php foreach ($cvSectionConfig as $sectionKey => $sectionConfig): ?>
                                 <?php
@@ -1150,11 +1285,26 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                                 $sectionActive = (bool) ($sectionSettings['active'] ?? true);
                                 $sectionDisplayOrder = (int) ($sectionSettings['order'] ?? ($sectionConfig['default_order'] ?? 1));
                                 $isCustomSection = $sectionKey === 'custom_section';
-                                $sectionTitle = $sectionConfig['title'];
+                                $sectionTitle = (string) $sectionConfig['title'];
+                                $sectionEntries = is_array($memberProfile[$sectionKey] ?? null) ? array_values($memberProfile[$sectionKey]) : [];
+                                $createLabel = 'Crear ' . mb_strtolower($sectionTitle, 'UTF-8');
                                 ?>
-                                <fieldset class="cv-fieldset cv-repeat-section">
-                                    <div class="cv-section-heading">
-                                        <legend><span>Seccion</span><?php if ($isCustomSection): ?><input type="text" name="custom_section_title" value="<?= e($sectionTitle) ?>" placeholder="Nombre de la seccion" class="cv-section-title-input"><?php else: ?><?= e($sectionTitle) ?><?php endif; ?></legend>
+                                <article class="member-card member-entry-card" data-entry-card="<?= e($sectionKey) ?>">
+                                    <header class="member-card-head">
+                                        <div class="member-card-heading">
+                                            <p class="section-kicker">Curriculum</p>
+                                            <?php if ($isCustomSection): ?>
+                                                <h3><input type="text" name="custom_section_title" value="<?= e($sectionTitle) ?>" placeholder="Nombre de la seccion" class="cv-section-title-input" maxlength="100" aria-label="Nombre de la seccion personalizada"></h3>
+                                            <?php else: ?>
+                                                <h3><?= e($sectionTitle) ?></h3>
+                                            <?php endif; ?>
+                                            <p class="member-card-note"><span data-entry-count><?= e((string) count($sectionEntries)) ?></span> <span data-entry-count-label><?= count($sectionEntries) === 1 ? 'entrada' : 'entradas' ?></span></p>
+                                        </div>
+                                        <button type="button" class="button button-primary member-card-cta" data-entry-create="<?= e($sectionKey) ?>"><?= e($createLabel) ?></button>
+                                    </header>
+
+                                    <details class="member-card-settings">
+                                        <summary>Ajustes de la seccion</summary>
                                         <div class="cv-section-tools">
                                             <input type="hidden" name="section_settings[<?= e($sectionKey) ?>][active]" value="0">
                                             <label class="cv-section-toggle">
@@ -1175,72 +1325,25 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
                                                 </label>
                                             <?php endif; ?>
                                         </div>
-                                    </div>
-                                    <?php if (!empty($sectionConfig['requires_title_description'])): ?>
-                                        <p class="field-help cv-section-note">Titulo y descripcion son obligatorios cuando anades una entrada a esta seccion.</p>
-                                    <?php endif; ?>
-                                    <div class="cv-repeat-list" data-repeat-list="<?= e($sectionKey) ?>">
-                                    <?php $sectionRows = !empty($memberProfile[$sectionKey]) ? $memberProfile[$sectionKey] : [[]]; ?>
-                                    <?php foreach ($sectionRows as $rowIndex => $entry): ?>
-                                        <?php $entry = is_array($memberProfile[$sectionKey][$rowIndex] ?? null) ? $memberProfile[$sectionKey][$rowIndex] : []; ?>
-                                        <?php $entryImagePath = member_visible_asset_path((string) ($entry['image_path'] ?? '')); ?>
-                                        <div class="cv-repeat-row <?= !empty($sectionConfig['allows_image']) ? 'cv-repeat-row-with-media' : '' ?>">
-                                            <div class="cv-entry-controls">
-                                                <label class="visibility-toggle">
-                                                    <input type="checkbox" name="<?= e($sectionKey) ?>[<?= e((string) $rowIndex) ?>][is_active]" value="1" <?= ((bool) ($entry['is_active'] ?? true)) ? 'checked' : '' ?> data-default-checked="1">
-                                                    <span>Articulo activo en PDF</span>
-                                                </label>
-                                                <label>Orden
-                                                    <input name="<?= e($sectionKey) ?>[<?= e((string) $rowIndex) ?>][display_order]" type="number" min="1" step="1" value="<?= e((string) ($entry['display_order'] ?? ($rowIndex + 1))) ?>">
-                                                </label>
-                                            </div>
-                                            <?php if (!empty($sectionConfig['allows_image'])): ?>
-                                                <label class="cv-entry-image-field">
-                                                    Imagen de la entrada
-                                                    <span class="cv-entry-image-box">
-                                                        <img class="cv-entry-image-preview" src="<?= e($entryImagePath) ?>" alt="Imagen guardada de <?= e($sectionConfig['title']) ?>" loading="lazy" data-cv-image-preview <?= $entryImagePath === '' ? 'hidden' : '' ?>>
-                                                        <span data-cv-image-placeholder <?= $entryImagePath !== '' ? 'hidden' : '' ?>>Sin imagen</span>
-                                                    </span>
-                                                    <input type="hidden" name="<?= e($sectionKey) ?>[<?= e((string) $rowIndex) ?>][image_path]" value="<?= e($entryImagePath) ?>">
-                                                    <input name="<?= e($sectionKey) ?>[<?= e((string) $rowIndex) ?>][image]" type="file" accept="image/jpeg,image/png,image/webp" data-cv-image-input>
-                                                    <small>Se guarda automaticamente al seleccionar.</small>
-                                                </label>
-                                            <?php endif; ?>
-                                            <?php foreach ($sectionConfig['fields'] as $fieldName => $fieldLabel): ?>
-                                                <?php
-                                                $fieldClass = match ($fieldName) {
-                                                    'category' => 'cv-entry-category-field',
-                                                    'description' => 'cv-entry-description-field',
-                                                    default => '',
-                                                };
-                                                ?>
-                                                <?php if ($fieldName === 'description'): ?>
-                                                    <div class="cv-editor-field <?= e($fieldClass) ?>">
-                                                        <span class="field-label"><?= e($fieldLabel) ?></span>
-                                                        <div class="rich-text-toolbar" data-editor-toolbar></div>
-                                                        <div class="rich-text-editor" contenteditable="true" data-rich-editor><?= $entry['description'] ?? '' ?></div>
-                                                        <textarea name="<?= e($sectionKey) ?>[<?= e((string) $rowIndex) ?>][<?= e($fieldName) ?>]" rows="5" hidden><?= e((string) ($entry[$fieldName] ?? '')) ?></textarea>
-                                                    </div>
-                                                <?php else: ?>
-                                                    <label class="<?= e($fieldClass) ?>">
-                                                        <?= e($fieldLabel) ?>
-                                                        <input name="<?= e($sectionKey) ?>[<?= e((string) $rowIndex) ?>][<?= e($fieldName) ?>]" type="<?= str_starts_with($fieldName, 'date_') ? 'date' : 'text' ?>" value="<?= e((string) ($entry[$fieldName] ?? '')) ?>">
-                                                    </label>
-                                                <?php endif; ?>
-                                            <?php endforeach; ?>
-                                        </div>
-                                    <?php endforeach; ?>
-                                    </div>
-                                    <button class="button button-secondary cv-add-row" type="button" data-repeat-add="<?= e($sectionKey) ?>">Añadir <?= e(strtolower($sectionConfig['title'])) ?></button>
-                                </fieldset>
-                            <?php endforeach; ?>
+                                    </details>
 
-                            <fieldset class="cv-fieldset">
-                                <legend>Notas privadas</legend>
-                                <label for="private_notes">Notas internas que no se publican
-                                    <textarea id="private_notes" name="private_notes" rows="4" maxlength="1200" placeholder="Objetivos, contactos pendientes, condiciones, preferencias o informacion que no quieras publicar."><?= e($memberProfile['private_notes']) ?></textarea>
-                                </label>
-                            </fieldset>
+                                    <div class="member-entry-list" data-entry-list="<?= e($sectionKey) ?>" data-entry-next="<?= e((string) count($sectionEntries)) ?>">
+                                        <?php foreach ($sectionEntries as $rowIndex => $entry): ?>
+                                            <?= cv_entry_item_markup($sectionKey, $sectionConfig, (string) $rowIndex, is_array($entry) ? $entry : [], $sectionTitle) ?>
+                                        <?php endforeach; ?>
+                                    </div>
+
+                                    <div class="member-entry-empty" data-entry-empty <?= $sectionEntries ? 'hidden' : '' ?>>
+                                        <p>Todavia no has creado ninguna entrada en <strong><?= e($sectionTitle) ?></strong>.</p>
+                                        <button type="button" class="button button-secondary" data-entry-create="<?= e($sectionKey) ?>"><?= e($createLabel) ?></button>
+                                    </div>
+
+                                    <template data-entry-template="<?= e($sectionKey) ?>"><?= cv_entry_item_markup($sectionKey, $sectionConfig, '__INDEX__', [], $sectionTitle) ?></template>
+                                </article>
+                            <?php endforeach; ?>
+                            </div>
+
+                            <div class="member-entry-backdrop" data-entry-backdrop hidden></div>
 
                             <div class="member-form-savebar">
                                 <div>
@@ -1850,52 +1953,333 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
             document.title = originalDocumentTitle;
         });
 
-        document.querySelectorAll('[data-repeat-add]').forEach((button) => {
+        // Tarjeta "Mi perfil": el formulario largo vive plegado dentro de la tarjeta.
+        document.querySelectorAll('[data-card-toggle]').forEach((button) => {
             button.addEventListener('click', () => {
-                const section = button.dataset.repeatAdd;
-                const list = document.querySelector(`[data-repeat-list="${section}"]`);
-                const firstRow = list?.querySelector('.cv-repeat-row');
-                if (!list || !firstRow) {
+                const body = button.closest('[data-member-card]')?.querySelector('[data-card-body]');
+                if (!(body instanceof HTMLElement)) {
                     return;
                 }
-
-                const nextIndex = list.querySelectorAll('.cv-repeat-row').length;
-                const row = firstRow.cloneNode(true);
-                row.querySelectorAll('[data-cv-image-preview]').forEach((image) => {
-                    image.removeAttribute('src');
-                    image.hidden = true;
-                });
-                row.querySelectorAll('[data-cv-image-placeholder]').forEach((placeholder) => {
-                    placeholder.hidden = false;
-                });
-                row.querySelectorAll('input, textarea, select').forEach((input) => {
-                    if (input.name) {
-                        input.name = input.name.replace(/\[\d+\]/, `[${nextIndex}]`);
-                    }
-                    if (input instanceof HTMLInputElement && input.type === 'checkbox') {
-                        input.checked = input.dataset.defaultChecked !== '0';
-                        return;
-                    }
-                    if (input instanceof HTMLInputElement && input.type === 'number' && input.name.includes('[display_order]')) {
-                        input.value = String(nextIndex + 1);
-                        return;
-                    }
-                    input.value = '';
-                });
-                const richEditor = row.querySelector('[data-rich-editor]');
-                const textarea = row.querySelector('textarea[hidden]');
-                if (richEditor && textarea) {
-                    richEditor.innerHTML = '';
-                    textarea.value = '';
-                }
-                row.querySelectorAll('[data-editor-toolbar]').forEach((toolbar) => {
-                    toolbar.innerHTML = '';
-                    delete toolbar.dataset.editorReady;
-                });
-                list.appendChild(row);
-                initializeRichTextEditors(row);
+                const willOpen = body.hidden;
+                body.hidden = !willOpen;
+                button.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+                button.textContent = willOpen ? 'Cerrar edicion' : 'Editar perfil';
             });
         });
+
+        // Si el navegador encuentra un campo obligatorio dentro de una tarjeta
+        // plegada no puede enfocarlo y el envio se queda mudo: la desplegamos.
+        memberProfileForm?.addEventListener('invalid', (event) => {
+            const body = event.target instanceof Element ? event.target.closest('[data-card-body]') : null;
+            if (!(body instanceof HTMLElement) || !body.hidden) {
+                return;
+            }
+            body.hidden = false;
+            const toggle = body.closest('[data-member-card]')?.querySelector('[data-card-toggle]');
+            if (toggle instanceof HTMLElement) {
+                toggle.setAttribute('aria-expanded', 'true');
+                toggle.textContent = 'Cerrar edicion';
+            }
+        }, true);
+
+        // Tarjetas del curriculum: listado de entradas y panel lateral derecho
+        // para verlas, crearlas y editarlas. Los campos siguen dentro del
+        // formulario de perfil, asi que se guardan con el resto del panel.
+        const entryBackdrop = document.querySelector('[data-entry-backdrop]');
+
+        const entryFieldValue = (fields, field) => {
+            const node = fields?.querySelector(`[data-entry-field="${field}"]`);
+            if (!(node instanceof HTMLElement)) {
+                return '';
+            }
+            if (node.hasAttribute('data-rich-editor')) {
+                return node.innerHTML.trim();
+            }
+            if (node instanceof HTMLInputElement && node.type === 'checkbox') {
+                return node.checked ? '1' : '';
+            }
+            return String(node.value ?? '').trim();
+        };
+
+        const formatEntryDate = (value) => {
+            const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+            return match ? `${match[3]}/${match[2]}/${match[1]}` : value;
+        };
+
+        const entryMetaLabel = (fields) => {
+            const dates = [
+                formatEntryDate(entryFieldValue(fields, 'date_start')),
+                formatEntryDate(entryFieldValue(fields, 'date_end')),
+            ].filter(Boolean).join(' — ');
+
+            return [dates, entryFieldValue(fields, 'location')].filter(Boolean).join(' · ');
+        };
+
+        const escapeEntryText = (value) => String(value).replace(/[&<>"']/g, (char) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;',
+        }[char]));
+
+        const refreshEntryItem = (item) => {
+            if (!(item instanceof HTMLElement)) {
+                return;
+            }
+            const fields = item.querySelector('[data-entry-fields]');
+            const title = item.querySelector('[data-entry-title]');
+            const meta = item.querySelector('[data-entry-meta]');
+            const flag = item.querySelector('[data-entry-flag]');
+            const thumbImage = item.querySelector('[data-entry-thumb-image]');
+            const thumbPlaceholder = item.querySelector('[data-entry-thumb-placeholder]');
+            const imagePath = entryFieldValue(fields, 'image_path');
+
+            if (title instanceof HTMLElement) {
+                title.textContent = entryFieldValue(fields, 'category') || 'Entrada sin titulo';
+            }
+            if (meta instanceof HTMLElement) {
+                meta.textContent = entryMetaLabel(fields);
+            }
+            if (flag instanceof HTMLElement) {
+                flag.hidden = entryFieldValue(fields, 'is_active') === '1';
+            }
+            if (thumbImage instanceof HTMLImageElement) {
+                if (imagePath) {
+                    thumbImage.src = imagePath;
+                    thumbImage.hidden = false;
+                } else {
+                    thumbImage.removeAttribute('src');
+                    thumbImage.hidden = true;
+                }
+            }
+            if (thumbPlaceholder instanceof HTMLElement) {
+                thumbPlaceholder.hidden = imagePath !== '';
+            }
+        };
+
+        const refreshEntryCard = (card) => {
+            if (!(card instanceof HTMLElement)) {
+                return;
+            }
+            const list = card.querySelector('[data-entry-list]');
+            const total = list ? list.querySelectorAll('[data-entry-item]').length : 0;
+            const count = card.querySelector('[data-entry-count]');
+            const countLabel = card.querySelector('[data-entry-count-label]');
+            const empty = card.querySelector('[data-entry-empty]');
+
+            if (count instanceof HTMLElement) {
+                count.textContent = String(total);
+            }
+            if (countLabel instanceof HTMLElement) {
+                countLabel.textContent = total === 1 ? 'entrada' : 'entradas';
+            }
+            if (empty instanceof HTMLElement) {
+                empty.hidden = total > 0;
+            }
+            if (list instanceof HTMLElement) {
+                list.hidden = total === 0;
+            }
+        };
+
+        const entryPreviewMarkup = (fields) => {
+            const imagePath = entryFieldValue(fields, 'image_path');
+            const meta = entryMetaLabel(fields);
+            const description = entryFieldValue(fields, 'description');
+            const blocks = [];
+
+            if (imagePath) {
+                blocks.push(`<img class="member-entry-preview-image" src="${escapeEntryText(imagePath)}" alt="">`);
+            }
+            blocks.push(`<h5>${escapeEntryText(entryFieldValue(fields, 'category') || 'Entrada sin titulo')}</h5>`);
+            if (meta) {
+                blocks.push(`<p class="member-entry-preview-meta">${escapeEntryText(meta)}</p>`);
+            }
+            blocks.push(description
+                ? `<div class="member-entry-preview-text">${description}</div>`
+                : '<p class="member-entry-preview-empty">Esta entrada todavia no tiene descripcion.</p>');
+            if (entryFieldValue(fields, 'is_active') !== '1') {
+                blocks.push('<p class="member-entry-preview-flag">Esta entrada no se imprime en el curriculum PDF.</p>');
+            }
+
+            return blocks.join('');
+        };
+
+        const setEntryDrawerMode = (fields, mode) => {
+            const isView = mode === 'view';
+            const preview = fields.querySelector('[data-entry-preview]');
+            const entryForm = fields.querySelector('.member-entry-form');
+            const editButton = fields.querySelector('[data-entry-to-edit]');
+            const submitButton = fields.querySelector('[data-entry-submit]');
+            const drawerTitle = fields.querySelector('[data-entry-drawer-title]');
+
+            fields.dataset.entryMode = isView ? 'view' : 'edit';
+            if (preview instanceof HTMLElement) {
+                preview.hidden = !isView;
+                if (isView) {
+                    preview.innerHTML = entryPreviewMarkup(fields);
+                }
+            }
+            if (entryForm instanceof HTMLElement) {
+                entryForm.hidden = isView;
+            }
+            if (editButton instanceof HTMLElement) {
+                editButton.hidden = !isView;
+            }
+            if (submitButton instanceof HTMLElement) {
+                submitButton.hidden = isView;
+            }
+            if (drawerTitle instanceof HTMLElement) {
+                drawerTitle.textContent = isView
+                    ? 'Vista de la entrada'
+                    : (fields.dataset.entryNew === '1' ? 'Nueva entrada' : 'Editar entrada');
+            }
+        };
+
+        const closeEntryDrawer = () => {
+            document.querySelectorAll('[data-entry-fields]:not([hidden])').forEach((fields) => {
+                fields.hidden = true;
+                const item = fields.closest('[data-entry-item]');
+                if (item instanceof HTMLElement) {
+                    item.classList.remove('is-open');
+                    refreshEntryItem(item);
+                }
+            });
+            if (entryBackdrop instanceof HTMLElement) {
+                entryBackdrop.hidden = true;
+            }
+            document.body.classList.remove('member-entry-drawer-open');
+        };
+
+        const openEntryDrawer = (item, mode) => {
+            if (!(item instanceof HTMLElement)) {
+                return;
+            }
+            const fields = item.querySelector('[data-entry-fields]');
+            if (!(fields instanceof HTMLElement)) {
+                return;
+            }
+
+            closeEntryDrawer();
+            setEntryDrawerMode(fields, mode);
+            fields.hidden = false;
+            item.classList.add('is-open');
+            if (entryBackdrop instanceof HTMLElement) {
+                entryBackdrop.hidden = false;
+            }
+            document.body.classList.add('member-entry-drawer-open');
+            fields.scrollTop = 0;
+
+            if (mode !== 'view') {
+                const firstField = fields.querySelector('input[type="text"], input[type="date"]');
+                if (firstField instanceof HTMLElement) {
+                    window.setTimeout(() => firstField.focus(), 60);
+                }
+            }
+        };
+
+        const createEntry = (sectionKey) => {
+            const card = document.querySelector(`[data-entry-card="${sectionKey}"]`);
+            const list = card?.querySelector('[data-entry-list]');
+            const template = card?.querySelector(`[data-entry-template="${sectionKey}"]`);
+            if (!(card instanceof HTMLElement) || !(list instanceof HTMLElement) || !(template instanceof HTMLTemplateElement)) {
+                return;
+            }
+
+            const nextIndex = Number.parseInt(list.dataset.entryNext || '0', 10) || 0;
+            const item = template.content.cloneNode(true).querySelector('[data-entry-item]');
+            if (!(item instanceof HTMLElement)) {
+                return;
+            }
+
+            item.querySelectorAll('[name]').forEach((input) => {
+                input.name = input.name.replace('__INDEX__', String(nextIndex));
+            });
+            const order = item.querySelector('[data-entry-field="display_order"]');
+            if (order instanceof HTMLInputElement) {
+                order.value = String(list.querySelectorAll('[data-entry-item]').length + 1);
+            }
+            const fields = item.querySelector('[data-entry-fields]');
+            if (fields instanceof HTMLElement) {
+                fields.dataset.entryNew = '1';
+            }
+
+            list.appendChild(item);
+            list.dataset.entryNext = String(nextIndex + 1);
+            initializeRichTextEditors(item);
+            refreshEntryItem(item);
+            refreshEntryCard(card);
+            openEntryDrawer(item, 'edit');
+            markProfilePendingSave('Completa la entrada nueva y pulsa Guardar cambios.');
+        };
+
+        const deleteEntry = (item) => {
+            const card = item.closest('[data-entry-card]');
+            const title = item.querySelector('[data-entry-title]')?.textContent?.trim() || 'esta entrada';
+            if (!window.confirm(`¿Seguro que quieres borrar "${title}"? Se eliminara al guardar los cambios.`)) {
+                return;
+            }
+
+            closeEntryDrawer();
+            item.remove();
+            refreshEntryCard(card);
+            markProfilePendingSave('Entrada eliminada. Pulsa Guardar cambios para confirmarlo.');
+        };
+
+        document.addEventListener('click', (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) {
+                return;
+            }
+
+            const createButton = target.closest('[data-entry-create]');
+            if (createButton instanceof HTMLElement) {
+                createEntry(createButton.dataset.entryCreate || '');
+                return;
+            }
+
+            if (target.closest('[data-entry-close]') || target.closest('[data-entry-backdrop]')) {
+                closeEntryDrawer();
+                return;
+            }
+
+            const toEditButton = target.closest('[data-entry-to-edit]');
+            if (toEditButton) {
+                const fields = toEditButton.closest('[data-entry-fields]');
+                if (fields instanceof HTMLElement) {
+                    setEntryDrawerMode(fields, 'edit');
+                }
+                return;
+            }
+
+            const deleteButton = target.closest('[data-entry-delete]');
+            if (deleteButton) {
+                const item = deleteButton.closest('[data-entry-item]');
+                if (item instanceof HTMLElement) {
+                    deleteEntry(item);
+                }
+                return;
+            }
+
+            const viewButton = target.closest('[data-entry-view]');
+            if (viewButton) {
+                openEntryDrawer(viewButton.closest('[data-entry-item]'), 'view');
+                return;
+            }
+
+            const editButton = target.closest('[data-entry-edit]');
+            if (editButton) {
+                openEntryDrawer(editButton.closest('[data-entry-item]'), 'edit');
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeEntryDrawer();
+            }
+        });
+
+        document.querySelectorAll('[data-entry-card]').forEach((card) => refreshEntryCard(card));
 
         document.addEventListener('change', (event) => {
             const input = event.target;

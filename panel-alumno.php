@@ -58,8 +58,8 @@ $matriculasActivas = array_filter($matriculas, static fn (array $m): bool => $m[
             <p><?= e((string) $alumno['academia_nombre']) ?></p>
         </section>
 
-        <div class="page-shell">
-            <div class="primary-content" style="width:100%;">
+        <div class="page-shell page-shell-full">
+            <div class="primary-content">
                 <div class="member-panel-tabs" role="tablist" aria-label="Secciones del panel de alumno">
                     <?php foreach ($sections as $key => $label): ?>
                         <a class="tab-button<?= $activeSection === $key ? ' active' : '' ?>" href="panel-alumno.php?section=<?= e($key) ?>"><?= e($label) ?></a>

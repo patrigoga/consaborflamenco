@@ -249,8 +249,8 @@ if ($isResponsable) {
             <p>Rol: <?= e($rol === 'RESPONSABLE' ? 'Responsable' : 'Profesor') ?> · Estado de la academia: <span class="status-pill <?= e(admin_badge_class((string) ($academia['estado'] ?? ''))) ?>"><?= e((string) ($academia['estado'] ?? '')) ?></span></p>
         </section>
 
-        <div class="page-shell">
-            <div class="primary-content" style="width:100%;">
+        <div class="page-shell page-shell-full">
+            <div class="primary-content">
                 <div class="member-panel-tabs" role="tablist" aria-label="Secciones del panel de academia">
                     <?php foreach ($sections as $key => $label): ?>
                         <a class="tab-button<?= $activeSection === $key ? ' active' : '' ?>" href="<?= e(academia_section_url($key)) ?>"><?= e($label) ?></a>
