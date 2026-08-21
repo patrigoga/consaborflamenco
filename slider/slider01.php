@@ -4,8 +4,8 @@
     </div>
     <div class="story-slide-copy">
         <p class="story-slide-kicker">Comunidad flamenca</p>
-        <h2>Un espacio para conectar el flamenco</h2>
-        <p>Artistas, academias, tablaos, penas, eventos y servicios unidos en consaborflamenco.com.</p>
+        <h2>Tu espacio web para el flamenco</h2>
+        <p>Webs para artistas de cante, baile y guitarra. Recíbelo listo para completar tus datos, personalízalo fácilmente y forma parte de la comunidad flamenca.</p>
         <div class="story-slide-buttons">
             <a class="story-chip chip-red" href="artistas.php"><svg class="story-chip-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5a4 4 0 1 1 0 8 4 4 0 0 1 0-8ZM5 21c1.4-4 12.6-4 14 0"/></svg>Artistas</a>
             <a class="story-chip chip-blue" href="academias.php"><svg class="story-chip-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10l8-5 8 5M6 10v8h12v-8M9 18v-5h6v5"/></svg>Academias</a>
