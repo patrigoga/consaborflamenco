@@ -1,6 +1,6 @@
 <article class="story-slide is-active" data-story-slide aria-hidden="false">
     <div class="story-slide-media story-slide-media-artwork">
-        <img src="assets/images/slider/slider01.png" alt="Ilustracion de un cantaor, un bailaor y un guitarrista flamencos" width="1017" height="787" loading="eager" fetchpriority="high">
+        <img src="assets/images/slider/slider011.png" alt="Ilustracion de un cantaor, un bailaor y un guitarrista flamencos" width="1017" height="787" loading="eager" fetchpriority="high">
     </div>
     <div class="story-slide-copy">
         <p class="story-slide-kicker">Comunidad flamenca</p>
