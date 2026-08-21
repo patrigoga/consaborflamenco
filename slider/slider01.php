@@ -12,7 +12,7 @@ $sliderBannerImage = 'assets/images/slider/tu-web-tu-arte-tu-legado.webp';
 <?php else: ?>
 <article class="story-slide is-active" data-story-slide aria-hidden="false">
     <div class="story-slide-media">
-        <img src="assets/images/slider/comunidad-flamenca-esquema.svg" alt="Esquema de comunidad flamenca en Con Sabor Flamenco" width="960" height="720" loading="lazy">
+        <img src="assets/images/slider/slider01.png" alt="Esquema de comunidad flamenca en Con Sabor Flamenco" width="960" height="720" loading="lazy">
     </div>
     <div class="story-slide-copy">
         <p class="story-slide-kicker">Comunidad flamenca</p>
