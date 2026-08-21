@@ -10364,3 +10364,24 @@ body.member-entry-drawer-open {
         grid-template-columns: minmax(0, 1fr);
     }
 }
+
+/*
+ * Slide a sangre: para piezas que ya llevan dentro su titular y sus iconos, sin
+ * columna de texto al lado. Se usa "contain" y no "cover" porque el banner es
+ * mas cuadrado (2.5:1) que la caja del slider (hasta 3.5:1) y recortar le
+ * comeria el titular por arriba y los iconos por abajo; las bandas laterales
+ * caen sobre fondo oscuro y no se notan.
+ */
+.story-slide-full {
+    display: block;
+    padding: 0;
+    overflow: hidden;
+}
+
+.story-slide-full img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+}

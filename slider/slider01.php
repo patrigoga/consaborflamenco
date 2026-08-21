@@ -1,3 +1,15 @@
+<?php
+// El banner ya trae su propio titular, texto e iconos, asi que este slide va a
+// sangre: sin columna de copy al lado, que duplicaria el mensaje. Mientras la
+// imagen no este subida se mantiene el slide anterior para no dejar la portada
+// con una imagen rota.
+$sliderBannerImage = 'assets/images/slider/tu-web-tu-arte-tu-legado.webp';
+?>
+<?php if (is_file(__DIR__ . '/../' . $sliderBannerImage)): ?>
+<article class="story-slide story-slide-full is-active" data-story-slide aria-hidden="false">
+    <img src="<?= e($sliderBannerImage) ?>" alt="Tu web, tu arte, tu legado. Paginas web profesionales para artistas, academias y penas flamencas." width="2000" height="790" loading="eager" fetchpriority="high">
+</article>
+<?php else: ?>
 <article class="story-slide is-active" data-story-slide aria-hidden="false">
     <div class="story-slide-media">
         <img src="assets/images/slider/comunidad-flamenca-esquema.svg" alt="Esquema de comunidad flamenca en Con Sabor Flamenco" width="960" height="720" loading="lazy">
@@ -14,3 +26,4 @@
         </div>
     </div>
 </article>
+<?php endif; ?>
