@@ -1193,7 +1193,42 @@ foreach ($cvSectionConfig as $sectionKey => $sectionConfig) {
 }
 $totalCvEntries = array_sum(array_column($cvSectionMetrics, 'total'));
 
-$webBlocksWithContent = count(array_filter([$webSlides, $webGallery, $webVideos, $webEvents, $webNews]));
+// Un slide cuenta como creado cuando tiene imagen o algun texto: la estructura
+// reserva siempre tres huecos, pero vacios no son contenido.
+$webSlidesFilled = count(array_filter(
+    $webSlides,
+    static fn ($slide): bool => is_array($slide) && implode('', array_map('strval', $slide)) !== ''
+));
+$webBlocksWithContent = count(array_filter([
+    $webSlidesFilled,
+    count($webGallery),
+    count($webVideos),
+    count($webEvents),
+    count($webNews),
+]));
+
+/**
+ * Cabecera de una pantalla de la web publica, con su contador y la vuelta al
+ * hub. Misma composicion que el resto de pantallas del panel.
+ */
+function web_section_heading(string $title, string $note, int $total, string $one, string $many): string
+{
+    ob_start();
+    ?>
+    <div class="member-panel-heading">
+        <div class="member-panel-heading-main">
+            <div>
+                <p class="section-kicker">Mi pagina web</p>
+                <h2><?= e($title) ?></h2>
+                <p><?= e($note) ?></p>
+            </div>
+            <span class="member-heading-count"><?= e($total . ' ' . ($total === 1 ? $one : $many)) ?></span>
+        </div>
+    </div>
+    <?php
+
+    return (string) ob_get_clean();
+}
 
 /**
  * Iconos de las tarjetas del panel. Trazo simple sobre la rejilla de 24 del
@@ -1267,14 +1302,21 @@ if ($hasWebPage) {
 $panelWebCards = [];
 if ($hasWebPage) {
     $webUnit = static fn (int $total, string $one, string $many): string => $total . ' ' . ($total === 1 ? $one : $many);
-    $panelWebCards = [
-        ['target' => 'inicio-articulos', 'icon' => 'inicio', 'title' => 'Inicio', 'metric' => $webUnit($introMetrics['total'], 'articulo', 'articulos'), 'metric_section' => $introSectionKey],
-        ['target' => 'pagina-web', 'focus' => 'web-galeria', 'icon' => 'galeria', 'title' => 'Galeria', 'metric' => $webUnit(count($webGallery), 'foto', 'fotos')],
-        ['target' => 'pagina-web', 'focus' => 'web-videos', 'icon' => 'video', 'title' => 'Videos', 'metric' => $webUnit(count($webVideos), 'video', 'videos')],
-        ['target' => 'pagina-web', 'focus' => 'web-eventos', 'icon' => 'agenda', 'title' => 'Agenda', 'metric' => $webUnit(count($webEvents), 'evento', 'eventos')],
-        ['target' => 'pagina-web', 'focus' => 'web-actualidad', 'icon' => 'actualidad', 'title' => 'Actualidad', 'metric' => $webUnit(count($webNews), 'entrada', 'entradas')],
-        ['target' => 'pagina-web', 'focus' => 'web-contacto', 'icon' => 'contacto', 'title' => 'Contacto', 'metric' => $webUnit(count($webContactFields), 'dato', 'datos')],
+
+    // Un unico juego de tarjetas: lo usa el hub de "Mi pagina web" y tambien el
+    // bloque "Contenido de tu web" de la portada, para no describir lo mismo
+    // en dos sitios distintos.
+    $webSectionCards = [
+        ['target' => 'inicio-articulos', 'icon' => 'inicio', 'title' => 'Inicio', 'note' => 'La presentacion que abre tu web, debajo de la cabecera.', 'metric' => $webUnit($introMetrics['total'], 'articulo', 'articulos'), 'metric_section' => $introSectionKey],
+        ['target' => 'web-slider', 'icon' => 'galeria', 'title' => 'Slider de cabecera', 'note' => 'Las imagenes principales de la cabecera de tu microweb.', 'metric' => $webUnit($webSlidesFilled, 'cabecera', 'cabeceras')],
+        ['target' => 'web-galeria', 'icon' => 'galeria', 'title' => 'Galeria', 'note' => 'Las fotografias que quieres mostrar publicamente.', 'metric' => $webUnit(count($webGallery), 'fotografia', 'fotografias')],
+        ['target' => 'web-videos', 'icon' => 'video', 'title' => 'Videos', 'note' => 'Tus videos publicos de YouTube, Vimeo u otra plataforma.', 'metric' => $webUnit(count($webVideos), 'video', 'videos')],
+        ['target' => 'web-eventos', 'icon' => 'agenda', 'title' => 'Agenda', 'note' => 'Actuaciones, cursos, festivales y proximos eventos.', 'metric' => $webUnit(count($webEvents), 'evento', 'eventos')],
+        ['target' => 'web-actualidad', 'icon' => 'actualidad', 'title' => 'Actualidad', 'note' => 'Noticias, comunicados y novedades de tu actividad.', 'metric' => $webUnit(count($webNews), 'publicacion', 'publicaciones')],
+        ['target' => 'web-redes', 'icon' => 'contacto', 'title' => 'Redes sociales', 'note' => 'Los enlaces sociales de la cabecera de tu microweb.', 'metric' => $webUnit(count(array_filter($webSocialLinks)), 'red configurada', 'redes configuradas')],
+        ['target' => 'web-contacto', 'icon' => 'contacto', 'title' => 'Contacto', 'note' => 'Que datos de contacto se muestran en tu web.', 'metric' => $webUnit(count($webContactFields), 'dato visible', 'datos visibles')],
     ];
+    $panelWebCards = $webSectionCards;
 }
 
 $panelAccountCards = [
@@ -1418,7 +1460,7 @@ function panel_tile_markup(array $card, string $size = 'lg'): string
                 </section>
 
                 <div class="member-profile-editor">
-                    <form class="member-profile-form member-profile-cards cv-editor" id="member-profile-form" action="panel-usuario.php#perfil" method="post" enctype="multipart/form-data" data-profile-form hidden>
+                    <form class="member-profile-form member-profile-cards cv-editor" id="member-profile-form" action="panel-usuario.php#perfil" method="post" enctype="multipart/form-data" data-profile-form data-panel-form hidden>
                         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="profile_action" value="update_profile">
 
@@ -1940,28 +1982,55 @@ function panel_tile_markup(array $card, string $size = 'lg'): string
                 </div>
 
                 <?php if ($hasWebPage): ?>
+                <?php /* Hub de la web publica: una tarjeta por bloque, con el mismo
+                         lenguaje que "Mi curriculum". Cada tarjeta abre su pantalla. */ ?>
                 <section id="pagina-web" class="content-section member-panel-section">
-                    <div class="section-heading">
-                        <div class="section-heading-content">
-                            <p class="section-kicker">Pagina web</p>
-                            <h2>Web de una sola pagina</h2>
-                            <p>Configura los bloques que apareceran en tu pagina publica. El menu solo mostrara las secciones que tengan contenido guardado.</p>
+                    <div class="member-panel-heading">
+                        <div class="member-panel-heading-main">
+                            <div>
+                                <p class="section-kicker">Mi pagina web</p>
+                                <h2>Mi pagina web</h2>
+                                <p>Gestiona el contenido que aparece en tu espacio publico de Con Sabor Flamenco. Cada bloque solo sale en la web cuando tiene contenido guardado.</p>
+                            </div>
+                            <a class="button button-primary" href="<?= e($publicProfileUrl) ?>" target="_blank" rel="noopener">Ver mi web</a>
                         </div>
-                        <a class="section-enter-link" href="<?= e($publicProfileUrl) ?>" target="_blank" rel="noopener">Ver pagina publica</a>
+                        <div class="member-kpi-grid">
+                            <article class="member-kpi">
+                                <span>Bloques con contenido</span>
+                                <strong><?= e((string) $webBlocksWithContent) ?></strong>
+                            </article>
+                            <article class="member-kpi">
+                                <span>Fotografias</span>
+                                <strong><?= e((string) count($webGallery)) ?></strong>
+                            </article>
+                            <article class="member-kpi">
+                                <span>Eventos</span>
+                                <strong><?= e((string) count($webEvents)) ?></strong>
+                            </article>
+                            <article class="member-kpi">
+                                <span>Redes</span>
+                                <strong><?= e((string) count(array_filter($webSocialLinks))) ?></strong>
+                            </article>
+                        </div>
                     </div>
+
                     <a class="public-url-cta member-web-public-url" href="<?= e($publicProfileUrl) ?>" target="_blank" rel="noopener" data-public-url-cta>
                         <span>URL publica de tu pagina web</span>
                         <strong data-public-url-text><?= e($publicProfileUrl) ?></strong>
                     </a>
 
-                    <form class="member-profile-form member-web-form" action="panel-usuario.php#pagina-web" method="post" enctype="multipart/form-data">
-                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                        <input type="hidden" name="profile_action" value="update_web_page">
+                    <div class="member-tile-grid member-tile-grid-md">
+                        <?php foreach ($webSectionCards as $card): ?><?= panel_tile_markup($card, 'md') ?><?php endforeach; ?>
+                    </div>
+                </section>
 
-                        <div class="member-website-grid">
+                <form class="member-profile-form member-web-form" action="panel-usuario.php#pagina-web" method="post" enctype="multipart/form-data" data-panel-form hidden>
+                    <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                    <input type="hidden" name="profile_action" value="update_web_page">
+
+                        <section id="web-slider" class="content-section member-panel-section">
+                            <?= web_section_heading('Slider de cabecera', 'Las imagenes principales de la cabecera de tu microweb. El titulo, la descripcion y el boton solo apareceran cuando tengan contenido.', $webSlidesFilled, 'cabecera', 'cabeceras') ?>
                             <article class="member-config-card">
-                                <h3>Slider de cabecera</h3>
-                                <p>Configura hasta 3 imagenes. El titulo, descripcion y boton solo apareceran cuando tengan contenido.</p>
                                 <input type="hidden" name="web_header_title" value="<?= e((string) ($webPage['header_title'] ?? '')) ?>">
                                 <input type="hidden" name="web_header_subtitle" value="<?= e((string) ($webPage['header_subtitle'] ?? '')) ?>">
                                 <?php for ($slideIndex = 0; $slideIndex < 3; $slideIndex++): ?>
@@ -1998,7 +2067,11 @@ function panel_tile_markup(array $card, string $size = 'lg'): string
                                 <?php endfor; ?>
                             </article>
 
-                            <article class="member-config-card" id="web-galeria">
+                            </section>
+
+                        <section id="web-galeria" class="content-section member-panel-section">
+                            <?= web_section_heading('Galeria', 'Anade y organiza las fotografias que quieres mostrar publicamente.', count($webGallery), 'fotografia', 'fotografias') ?>
+                            <article class="member-config-card">
                                 <h3>Galeria</h3>
                                 <p>Sube hasta 9 imagenes. Si no hay imagenes, la seccion Galeria no aparecera en la web publica.</p>
                                 <div class="website-gallery-grid">
@@ -2018,7 +2091,11 @@ function panel_tile_markup(array $card, string $size = 'lg'): string
                                 </label>
                             </article>
 
-                            <article class="member-config-card" id="web-videos">
+                            </section>
+
+                        <section id="web-videos" class="content-section member-panel-section">
+                            <?= web_section_heading('Videos', 'Enlaces de YouTube, Vimeo u otra plataforma para tu seccion de videos.', count($webVideos), 'video', 'videos') ?>
+                            <article class="member-config-card">
                                 <h3>Videos</h3>
                                 <p>Anade enlaces de YouTube, Vimeo u otra plataforma. Si no hay videos, la seccion Videos no aparecera en la web publica.</p>
                                 <div class="website-simple-repeat-list">
@@ -2043,7 +2120,11 @@ function panel_tile_markup(array $card, string $size = 'lg'): string
                                 </div>
                             </article>
 
-                            <article class="member-config-card" id="web-eventos">
+                            </section>
+
+                        <section id="web-eventos" class="content-section member-panel-section">
+                            <?= web_section_heading('Agenda', 'Actuaciones, cursos, festivales y proximos eventos.', count($webEvents), 'evento', 'eventos') ?>
+                            <article class="member-config-card">
                                 <div class="card-header">
                                     <div>
                                         <h3>Eventos</h3>
@@ -2121,7 +2202,11 @@ function panel_tile_markup(array $card, string $size = 'lg'): string
                                 </div>
                             </article>
 
-                            <article class="member-config-card" id="web-actualidad">
+                            </section>
+
+                        <section id="web-actualidad" class="content-section member-panel-section">
+                            <?= web_section_heading('Actualidad', 'Noticias, comunicados y novedades de tu actividad.', count($webNews), 'publicacion', 'publicaciones') ?>
+                            <article class="member-config-card">
                                 <h3>Actualidad</h3>
                                 <p>Publica noticias, comunicados o novedades. Si no hay elementos, la seccion Actualidad no aparecera en la web publica.</p>
                                 <div class="website-simple-repeat-list">
@@ -2167,7 +2252,11 @@ function panel_tile_markup(array $card, string $size = 'lg'): string
                                 </div>
                             </article>
 
-                            <article class="member-config-card social-networks-card" id="web-redes-sociales">
+                            </section>
+
+                        <section id="web-redes" class="content-section member-panel-section">
+                            <?= web_section_heading('Redes sociales', 'Los enlaces sociales que apareceran en la cabecera de tu microweb.', count(array_filter($webSocialLinks)), 'red configurada', 'redes configuradas') ?>
+                            <article class="member-config-card social-networks-card">
                                 <div class="card-header">
                                     <div>
                                         <h3>Redes sociales</h3>
@@ -2191,7 +2280,11 @@ function panel_tile_markup(array $card, string $size = 'lg'): string
                                 </p>
                             </article>
 
-                            <article class="member-config-card" id="web-contacto">
+                            </section>
+
+                        <section id="web-contacto" class="content-section member-panel-section">
+                            <?= web_section_heading('Contacto', 'Que datos de contacto se muestran en tu web publica.', count($webContactFields), 'dato visible', 'datos visibles') ?>
+                            <article class="member-config-card">
                                 <h3>Contacto</h3>
                                 <p>Elige que datos se mostraran. Si no seleccionas ningun dato con contenido, Contacto no aparecera en el menu publico.</p>
                                 <div class="website-contact-options">
@@ -2201,13 +2294,16 @@ function panel_tile_markup(array $card, string $size = 'lg'): string
                                     <label><input type="checkbox" name="web_contact_fields[]" value="instagram" <?= in_array('instagram', $webContactFields, true) ? 'checked' : '' ?>> Instagram</label>
                                 </div>
                             </article>
-                        </div>
+                        </section>
 
-                        <div class="cv-editor-actions">
-                            <button class="button button-primary" type="submit">Guardar pagina web</button>
+                        <div class="member-form-savebar member-web-savebar">
+                            <div>
+                                <strong>Guardar la pagina web</strong>
+                                <span>Los cambios de todos los bloques se guardan juntos.</span>
+                            </div>
+                            <button class="button button-primary member-save-button" type="submit">Guardar pagina web</button>
                         </div>
-                    </form>
-                </section>
+                </form>
                 <?php endif; ?>
 
                 <section id="tarjeta-miembro" class="content-section member-panel-section">
@@ -3225,6 +3321,14 @@ function panel_tile_markup(array $card, string $size = 'lg'): string
             experiencia: ['curriculum', 'Mi curriculum'],
             premios: ['curriculum', 'Mi curriculum'],
             'seccion-personalizada': ['curriculum', 'Mi curriculum'],
+            'inicio-articulos': ['pagina-web', 'Mi pagina web'],
+            'web-slider': ['pagina-web', 'Mi pagina web'],
+            'web-galeria': ['pagina-web', 'Mi pagina web'],
+            'web-videos': ['pagina-web', 'Mi pagina web'],
+            'web-eventos': ['pagina-web', 'Mi pagina web'],
+            'web-actualidad': ['pagina-web', 'Mi pagina web'],
+            'web-redes': ['pagina-web', 'Mi pagina web'],
+            'web-contacto': ['pagina-web', 'Mi pagina web'],
         };
 
         function syncPanelBreadcrumb(target) {
@@ -3257,15 +3361,15 @@ function panel_tile_markup(array $card, string $size = 'lg'): string
                 section.classList.toggle('active', section.id === target);
             });
 
-            // El formulario de perfil envuelve varias pantallas (Mi perfil y cada
-            // seccion del curriculum): se muestra, con su barra de guardado, solo
-            // cuando la pantalla activa es una de ellas.
-            if (memberProfileForm instanceof HTMLFormElement) {
-                const ownsTarget = document.getElementById(target)?.closest('form') === memberProfileForm;
-                memberProfileForm.hidden = !ownsTarget;
-                if (ownsTarget) {
-                    memberProfileForm.action = 'panel-usuario.php#' + target;
-                }
+            // Cada formulario envuelve varias pantallas (el de perfil, Mi perfil y
+            // las del curriculum; el de la web, sus bloques). Solo se muestra, con
+            // su barra de guardado, el que contiene la pantalla activa.
+            const owningForm = document.getElementById(target)?.closest('form[data-panel-form]') ?? null;
+            document.querySelectorAll('form[data-panel-form]').forEach((panelForm) => {
+                panelForm.hidden = panelForm !== owningForm;
+            });
+            if (owningForm instanceof HTMLFormElement) {
+                owningForm.action = 'panel-usuario.php#' + target;
             }
 
             syncPanelBreadcrumb(target);

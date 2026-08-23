@@ -10059,12 +10059,15 @@ body.member-entry-drawer-open {
 
 /* Indicadores de cada pantalla */
 
+/* Los indicadores abren la pantalla: se colocan por delante del titular con
+   `order`, sin tocar el marcado de cada seccion. */
 .member-kpi-grid {
     display: grid;
+    order: -1;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 12px;
-    padding-top: clamp(14px, 1.8vw, 20px);
-    border-top: 1px solid rgba(255, 250, 242, 0.12);
+    padding-bottom: clamp(14px, 1.8vw, 20px);
+    border-bottom: 1px solid rgba(255, 250, 242, 0.12);
 }
 
 .member-kpi {
@@ -10074,6 +10077,28 @@ body.member-entry-drawer-open {
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.06);
+}
+
+/* Un tinte suave distinto por posicion, para distinguirlos de un vistazo sin
+   recurrir a colores planos que romperian la sobriedad del panel. */
+.member-kpi:nth-child(4n + 1) {
+    border-color: rgba(201, 79, 92, 0.28);
+    background: rgba(201, 79, 92, 0.14);
+}
+
+.member-kpi:nth-child(4n + 2) {
+    border-color: rgba(201, 164, 90, 0.28);
+    background: rgba(201, 164, 90, 0.13);
+}
+
+.member-kpi:nth-child(4n + 3) {
+    border-color: rgba(95, 143, 184, 0.3);
+    background: rgba(95, 143, 184, 0.15);
+}
+
+.member-kpi:nth-child(4n + 4) {
+    border-color: rgba(126, 179, 143, 0.28);
+    background: rgba(126, 179, 143, 0.13);
 }
 
 .member-kpi span {
@@ -10831,4 +10856,35 @@ body.member-entry-drawer-open {
         opacity: 1;
         transform: none;
     }
+}
+
+/* Hub de "Mi pagina web": cada bloque tiene ya su propia pantalla, asi que la
+   tarjeta de configuracion ocupa el ancho completo en lugar de compartir la
+   rejilla con las demas. */
+
+.member-heading-count {
+    flex: 0 0 auto;
+    align-self: center;
+    padding: 7px 15px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 250, 242, 0.16);
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 250, 242, 0.82);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.member-web-form > .member-panel-section > .member-config-card {
+    width: 100%;
+}
+
+.member-web-savebar {
+    margin-top: 18px;
+}
+
+.member-web-public-url {
+    margin-bottom: clamp(14px, 1.8vw, 20px);
 }
