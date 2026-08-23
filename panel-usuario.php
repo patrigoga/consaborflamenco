@@ -104,6 +104,17 @@ $cvSectionConfig = [
         'allows_image' => true,
         'default_order' => 2,
     ],
+    // Premios: la clave 'awards' ya existia en el perfil sin pantalla que la
+    // usara, asi que solo hace falta declararla como una seccion mas.
+    'awards' => [
+        'title' => 'Premios y reconocimientos',
+        'public_field' => 'awards',
+        'fields' => ['category' => 'Premio o reconocimiento', 'description' => 'Descripcion', 'date_start' => 'Fecha', 'location' => 'Entidad que lo concede'],
+        'sortable' => true,
+        'requires_title_description' => false,
+        'allows_image' => true,
+        'default_order' => 3,
+    ],
     'custom_section' => [
         'title' => $memberProfile['custom_section_title'] ?? 'Seccion personalizada',
         'public_field' => 'custom_section',
@@ -111,7 +122,7 @@ $cvSectionConfig = [
         'sortable' => true,
         'requires_title_description' => false,
         'allows_image' => true,
-        'default_order' => 3,
+        'default_order' => 4,
         'allow_title_edit' => true,
     ],
 ];
@@ -1153,16 +1164,19 @@ $cvHeaderStyle = $cvHeaderVisibleBackground !== ''
 $cvSectionAnchors = [
     'education' => 'formacion',
     'experience' => 'experiencia',
+    'awards' => 'premios',
     'custom_section' => 'seccion-personalizada',
 ];
 $cvSectionNotes = [
     'education' => 'Titulos, cursos y maestros con los que te has formado.',
     'experience' => 'Companias, tablaos, giras y trabajos que has firmado.',
+    'awards' => 'Premios, distinciones y reconocimientos recibidos.',
     'custom_section' => 'Un apartado libre para lo que no encaja en los anteriores.',
 ];
 $cvSectionImages = [
     'education' => 'assets/images/community/academia-flamenca.webp',
     'experience' => 'assets/images/community/evento-flamenco.webp',
+    'awards' => 'assets/images/member-cards/pegatina-con-sabor-flamenco.png',
     'custom_section' => 'assets/images/community/pena-flamenca.webp',
 ];
 $introEntries = is_array($memberProfile[$introSectionKey] ?? null) ? array_values($memberProfile[$introSectionKey]) : [];
@@ -1179,85 +1193,133 @@ foreach ($cvSectionConfig as $sectionKey => $sectionConfig) {
 }
 $totalCvEntries = array_sum(array_column($cvSectionMetrics, 'total'));
 
-$panelNavCards = [
+$webBlocksWithContent = count(array_filter([$webSlides, $webGallery, $webVideos, $webEvents, $webNews]));
+
+/**
+ * Iconos de las tarjetas del panel. Trazo simple sobre la rejilla de 24 del
+ * resto del sitio, sin dependencias ni ficheros nuevos.
+ */
+function panel_icon(string $name): string
+{
+    $paths = [
+        'perfil'    => '<circle cx="12" cy="8.5" r="3.7"/><path d="M4.8 20.2c1-3.7 4-5.6 7.2-5.6s6.2 1.9 7.2 5.6"/>',
+        'curriculum'=> '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 16h6"/>',
+        'web'       => '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.6 2.4 14.4 0 17M12 3.5c-2.4 2.6-2.4 14.4 0 17"/>',
+        'ver'       => '<path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+        'inicio'    => '<path d="M4 6h16M4 12h10M4 18h7"/>',
+        'galeria'   => '<rect x="3.5" y="5" width="17" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m4.5 17 4.7-4.3 3.4 3 2.6-2.2 4.3 3.9"/>',
+        'video'     => '<rect x="3" y="6" width="12.5" height="12" rx="2"/><path d="m16.5 13.2 4.5 3V7.8l-4.5 3z"/>',
+        'agenda'    => '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+        'actualidad'=> '<path d="M5 5h11v14H5z"/><path d="M16 9h3v8a2 2 0 0 1-2 2"/><path d="M8 9h5M8 13h5M8 16h3"/>',
+        'contacto'  => '<rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="m3.6 7 8.4 6 8.4-6"/>',
+        'tarjeta'   => '<rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3 10h18M7 14.5h4"/>',
+        'banners'   => '<path d="M4 6h16v7H4z"/><path d="M8 13v5l4-2.4 4 2.4v-5"/>',
+        'servicios' => '<path d="m12 3.6 2.4 5 5.5.8-4 3.9.9 5.4-4.8-2.5-4.8 2.5.9-5.4-4-3.9 5.5-.8z"/>',
+        'seguridad' => '<rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8.4 10.5V8a3.6 3.6 0 0 1 7.2 0v2.5"/>',
+        'academia'  => '<path d="m3.5 9 8.5-4.5L20.5 9 12 13.5z"/><path d="M7 11v4.5c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5V11"/>',
+    ];
+
+    return '<svg class="member-tile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        . ($paths[$name] ?? $paths['perfil']) . '</svg>';
+}
+
+/**
+ * Portada del panel en tres bloques. Las herramientas principales primero, los
+ * contenidos de la web despues y por ultimo los servicios y la cuenta.
+ */
+$panelPrimaryCards = [
     [
         'target' => 'perfil',
+        'icon' => 'perfil',
         'title' => 'Mi perfil',
-        'note' => 'Identidad publica, ubicacion, contacto e imagenes de tu ficha.',
-        'image' => $mainPhotoVisiblePath !== '' ? $mainPhotoVisiblePath : 'assets/images/community/artista-bailaora.webp',
-        'metric' => $profileCompletion . '% completo',
+        'note' => 'Gestiona tus datos personales, identidad artistica, fotografia, ubicacion y contacto.',
+        'metric' => 'Perfil completo ' . $profileCompletion . '%',
+    ],
+    [
+        'target' => 'curriculum',
+        'icon' => 'curriculum',
+        'title' => 'Mi curriculum',
+        'note' => 'Configura tu curriculum artistico, formacion, experiencia, premios y trayectoria profesional.',
+        'metric' => $totalCvEntries === 1 ? '1 entrada' : $totalCvEntries . ' entradas',
+        'metric_id' => 'curriculum-total',
     ],
 ];
 if ($hasWebPage) {
-    $panelNavCards[] = [
-        'target' => 'inicio-articulos',
-        'title' => 'Inicio',
-        'note' => 'La presentacion que abre tu web publica, justo debajo de la cabecera.',
-        'image' => 'assets/images/flamenco-header-art-con-microfono.png',
-        'metric' => $introMetrics['total'] === 1 ? '1 articulo' : $introMetrics['total'] . ' articulos',
-        'metric_section' => $introSectionKey,
-    ];
-}
-foreach ($cvSectionConfig as $sectionKey => $sectionConfig) {
-    $panelNavCards[] = [
-        'target' => $cvSectionAnchors[$sectionKey],
-        'title' => (string) $sectionConfig['title'],
-        'note' => $cvSectionNotes[$sectionKey],
-        'image' => $cvSectionImages[$sectionKey],
-        'metric' => $cvSectionMetrics[$sectionKey]['total'] === 1 ? '1 entrada' : $cvSectionMetrics[$sectionKey]['total'] . ' entradas',
-        'metric_section' => $sectionKey,
-    ];
-}
-if ($hasWebPage) {
-    $webBlocksWithContent = count(array_filter([
-        $webSlides,
-        $webGallery,
-        $webVideos,
-        $webEvents,
-        $webNews,
-    ]));
-    $panelNavCards[] = [
+    $panelPrimaryCards[] = [
         'target' => 'pagina-web',
-        'title' => 'Pagina web',
-        'note' => 'Los bloques de tu web publica de una sola pagina.',
-        'image' => 'assets/images/slider/presencia-web-flamenca.svg',
+        'icon' => 'web',
+        'title' => 'Mi pagina web',
+        'note' => 'Gestiona todo el contenido publico de tu espacio en Con Sabor Flamenco.',
         'metric' => $webBlocksWithContent === 1 ? '1 bloque con contenido' : $webBlocksWithContent . ' bloques con contenido',
     ];
+    $panelPrimaryCards[] = [
+        'href' => $publicProfileUrl,
+        'external' => true,
+        'icon' => 'ver',
+        'title' => 'Ver mi web',
+        'note' => 'Accede directamente a tu microweb publica, tal y como la ve el visitante.',
+        'metric' => $memberTypePrefix . '/' . $publicSlug,
+    ];
 }
-$panelNavCards[] = [
-    'target' => 'tarjeta-miembro',
-    'title' => 'Tarjeta de miembro',
-    'note' => 'Tu carnet digital, su diseno y el QR para compartirlo.',
-    'image' => 'assets/images/member-cards/tarjeta-bailaora.png',
-    'metric' => $memberStatus,
-];
-$panelNavCards[] = [
-    'target' => 'banners',
-    'title' => 'Banners',
-    'note' => 'Espacios publicitarios contratables en tu provincia.',
-    'image' => 'assets/images/flamenco-header-art.png',
-];
-$panelNavCards[] = [
-    'target' => 'seguridad',
-    'title' => 'Seguridad',
-    'note' => 'Contrasena de acceso y cierre de sesion.',
-    'image' => 'assets/images/auth/acceso-flamenco.png',
+
+// Atajos a cada bloque de la web. No son pantallas nuevas: llevan al bloque
+// correspondiente dentro de "Mi pagina web", que se guarda de una sola vez.
+$panelWebCards = [];
+if ($hasWebPage) {
+    $webUnit = static fn (int $total, string $one, string $many): string => $total . ' ' . ($total === 1 ? $one : $many);
+    $panelWebCards = [
+        ['target' => 'inicio-articulos', 'icon' => 'inicio', 'title' => 'Inicio', 'metric' => $webUnit($introMetrics['total'], 'articulo', 'articulos'), 'metric_section' => $introSectionKey],
+        ['target' => 'pagina-web', 'focus' => 'web-galeria', 'icon' => 'galeria', 'title' => 'Galeria', 'metric' => $webUnit(count($webGallery), 'foto', 'fotos')],
+        ['target' => 'pagina-web', 'focus' => 'web-videos', 'icon' => 'video', 'title' => 'Videos', 'metric' => $webUnit(count($webVideos), 'video', 'videos')],
+        ['target' => 'pagina-web', 'focus' => 'web-eventos', 'icon' => 'agenda', 'title' => 'Agenda', 'metric' => $webUnit(count($webEvents), 'evento', 'eventos')],
+        ['target' => 'pagina-web', 'focus' => 'web-actualidad', 'icon' => 'actualidad', 'title' => 'Actualidad', 'metric' => $webUnit(count($webNews), 'entrada', 'entradas')],
+        ['target' => 'pagina-web', 'focus' => 'web-contacto', 'icon' => 'contacto', 'title' => 'Contacto', 'metric' => $webUnit(count($webContactFields), 'dato', 'datos')],
+    ];
+}
+
+$panelAccountCards = [
+    ['target' => 'tarjeta-miembro', 'icon' => 'tarjeta', 'title' => 'Tarjeta de miembro', 'note' => 'Tu carnet digital y el QR para compartirlo.', 'metric' => $memberStatus],
+    ['target' => 'banners', 'icon' => 'banners', 'title' => 'Banners', 'note' => 'Espacios publicitarios contratables en tu provincia.'],
+    ['href' => 'servicios.php', 'external' => true, 'icon' => 'servicios', 'title' => 'Servicios', 'note' => 'Servicios digitales de Con Sabor Flamenco.'],
+    ['target' => 'seguridad', 'icon' => 'seguridad', 'title' => 'Seguridad', 'note' => 'Contrasena de acceso y ajustes de la cuenta.'],
 ];
 if ($academiaPanelLink) {
-    $panelNavCards[] = [
-        'href' => 'panel-academia.php',
-        'title' => 'Mi academia',
-        'note' => 'Alumnos, profesores, cursos, grupos y matriculas.',
-        'image' => 'assets/images/slider/comunidad-flamenca-esquema.svg',
-    ];
+    $panelAccountCards[] = ['href' => 'panel-academia.php', 'icon' => 'academia', 'title' => 'Mi academia', 'note' => 'Alumnos, profesores, cursos, grupos y matriculas.'];
 }
 if ($alumnoPanelLink) {
-    $panelNavCards[] = [
-        'href' => 'panel-alumno.php',
-        'title' => 'Mis clases',
-        'note' => 'Los cursos en los que estas matriculado.',
-        'image' => 'assets/images/auth/registro-flamenco.png',
-    ];
+    $panelAccountCards[] = ['href' => 'panel-alumno.php', 'icon' => 'academia', 'title' => 'Mis clases', 'note' => 'Los cursos en los que estas matriculado.'];
+}
+
+/**
+ * Tarjeta de la portada. `href` la convierte en enlace externo al panel;
+ * `focus` desplaza hasta un bloque concreto de la pantalla de destino.
+ */
+function panel_tile_markup(array $card, string $size = 'lg'): string
+{
+    $isExternal = !empty($card['external']) || isset($card['href']);
+    $href = $isExternal ? (string) $card['href'] : '#' . $card['target'];
+    ob_start();
+    ?>
+    <a class="member-tile member-tile-<?= e($size) ?>"
+       href="<?= e($href) ?>"
+       <?= $isExternal ? '' : 'data-panel-link="' . e((string) $card['target']) . '"' ?>
+       <?= isset($card['focus']) ? 'data-panel-focus="' . e((string) $card['focus']) . '"' : '' ?>
+       <?= !empty($card['external']) ? 'target="_blank" rel="noopener"' : '' ?>>
+        <span class="member-tile-badge"><?= panel_icon((string) ($card['icon'] ?? 'perfil')) ?></span>
+        <span class="member-tile-body">
+            <strong><?= e((string) $card['title']) ?></strong>
+            <?php if (!empty($card['note'])): ?>
+                <span class="member-tile-note"><?= e((string) $card['note']) ?></span>
+            <?php endif; ?>
+        </span>
+        <?php if (isset($card['metric']) && $card['metric'] !== ''): ?>
+            <span class="member-tile-metric"<?= isset($card['metric_section']) ? ' data-nav-metric="' . e((string) $card['metric_section']) . '"' : '' ?><?= isset($card['metric_id']) ? ' data-panel-metric="' . e((string) $card['metric_id']) . '"' : '' ?>><?= e((string) $card['metric']) ?></span>
+        <?php endif; ?>
+        <span class="member-tile-go" aria-hidden="true"><?= $isExternal ? 'Abrir' : 'Gestionar' ?> &rarr;</span>
+    </a>
+    <?php
+
+    return (string) ob_get_clean();
 }
 ?>
 <!DOCTYPE html>
@@ -1281,6 +1343,15 @@ if ($alumnoPanelLink) {
                     <span><?= e($memberTypeLabel) ?></span>
                     <h1><?= e($displayName) ?></h1>
                     <p><?= e($memberProfile['city']) ?><?= $memberProfile['city'] && $memberProfile['province'] ? ', ' : '' ?><?= e($memberProfile['province']) ?></p>
+                    <?php /* Datos que antes vivian en la barra lateral. */ ?>
+                    <ul class="member-dashboard-meta">
+                        <li><?= e($memberStatus) ?></li>
+                        <li>Nº <?= e($memberNumber) ?></li>
+                        <li class="member-dashboard-progress">
+                            <span>Perfil <?= e((string) $profileCompletion) ?>%</span>
+                            <span class="member-dashboard-bar" aria-hidden="true"><i style="width: <?= e((string) $profileCompletion) ?>%"></i></span>
+                        </li>
+                    </ul>
                 </div>
             </div>
             <div class="member-dashboard-actions">
@@ -1295,48 +1366,14 @@ if ($alumnoPanelLink) {
         </section>
 
         <section class="member-panel">
-            <aside class="member-sidebar" aria-label="Menú del panel de miembro">
-                <div class="member-sidebar-card">
-                    <span class="profile-avatar profile-avatar-large">
-                        <?php if ($mainPhotoVisiblePath !== ''): ?>
-                            <img src="<?= e($mainPhotoVisiblePath) ?>" alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview>
-                        <?php else: ?>
-                            <img alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview hidden>
-                            <span class="profile-avatar-initial" data-main-photo-placeholder><?= e(strtoupper(substr($displayName, 0, 1))) ?></span>
-                        <?php endif; ?>
-                    </span>
-                    <strong><?= e($displayName) ?></strong>
-                    <span><?= e($memberStatus) ?> · Nº <?= e($memberNumber) ?></span>
-                </div>
-                <div class="member-sidebar-progress" aria-label="Estado del perfil">
-                    <div>
-                        <span>Perfil completo</span>
-                        <strong><?= e((string) $profileCompletion) ?>%</strong>
-                    </div>
-                    <meter min="0" max="100" value="<?= e((string) $profileCompletion) ?>"><?= e((string) $profileCompletion) ?>%</meter>
-                </div>
-                <button class="member-sidebar-print" type="button" onclick="window.print()">Imprimir curriculum PDF</button>
-                <nav class="member-sidebar-nav">
-                    <?php /* "Panel" y no "Inicio": el apartado Inicio es el de la web publica. */ ?>
-                    <a class="active" href="#inicio" data-panel-link="inicio">Panel</a>
-                    <a href="#perfil" data-panel-link="perfil">Mi perfil</a>
-                    <?php if ($hasWebPage): ?><a href="#inicio-articulos" data-panel-link="inicio-articulos">Inicio</a><?php endif; ?>
-                    <?php foreach ($cvSectionConfig as $sectionKey => $sectionConfig): ?>
-                        <a href="#<?= e($cvSectionAnchors[$sectionKey]) ?>" data-panel-link="<?= e($cvSectionAnchors[$sectionKey]) ?>"><?= e((string) $sectionConfig['title']) ?></a>
-                    <?php endforeach; ?>
-                    <?php if ($hasWebPage): ?><a href="#pagina-web" data-panel-link="pagina-web">Pagina web</a><?php endif; ?>
-                    <a href="#tarjeta-miembro" data-panel-link="tarjeta-miembro">Tarjeta de miembro</a>
-                    <a href="#banners" data-panel-link="banners">Banners</a>
-                    <a href="#seguridad" data-panel-link="seguridad">Seguridad</a>
-                    <?php if ($academiaPanelLink): ?><a href="panel-academia.php">Mi academia</a><?php endif; ?>
-                    <?php if ($alumnoPanelLink): ?><a href="panel-alumno.php">Mis clases</a><?php endif; ?>
-                </nav>
-            </aside>
-
             <div class="member-panel-content">
-                <p class="member-panel-back" data-panel-back hidden>
+                <?php /* Sin barra lateral: la orientacion la dan la portada de
+                        tarjetas y estas migas, que nombran la pantalla actual. */ ?>
+                <nav class="member-panel-back" data-panel-back aria-label="Migas de pan" hidden>
                     <a href="#inicio" data-panel-link="inicio">&larr; Volver al panel</a>
-                </p>
+                    <span class="member-panel-crumb" data-panel-crumb-parent hidden></span>
+                    <span class="member-panel-crumb" data-panel-crumb></span>
+                </nav>
                 <?php if ($profileErrors || $profileMessages): ?>
                     <div class="member-panel-alerts">
                         <?php if ($profileErrors): ?>
@@ -1353,33 +1390,30 @@ if ($alumnoPanelLink) {
                 <?php endif; ?>
 
                 <section id="inicio" class="content-section member-panel-section active">
-                    <div class="member-panel-heading">
-                        <div class="member-panel-heading-main">
-                            <div>
-                                <p class="section-kicker">Tu panel</p>
-                                <h2>¿Que quieres hacer hoy?</h2>
-                                <p>Cada tarjeta abre una pantalla del panel. Puedes volver aqui en cualquier momento.</p>
+                    <header class="member-home-intro">
+                        <p class="section-kicker">Tu panel</p>
+                        <h2>¿Que quieres hacer hoy?</h2>
+                        <p>Gestiona tu perfil, curriculum, pagina web y servicios desde un unico lugar.</p>
+                    </header>
+
+                    <div class="member-tile-grid member-tile-grid-lg">
+                        <?php foreach ($panelPrimaryCards as $card): ?><?= panel_tile_markup($card) ?><?php endforeach; ?>
+                    </div>
+
+                    <?php if ($panelWebCards): ?>
+                        <div class="member-home-group">
+                            <h3 class="member-home-group-title">Contenido de tu web</h3>
+                            <div class="member-tile-grid member-tile-grid-sm">
+                                <?php foreach ($panelWebCards as $card): ?><?= panel_tile_markup($card, 'sm') ?><?php endforeach; ?>
                             </div>
                         </div>
-                    </div>
-                    <div class="member-nav-grid">
-                        <?php foreach ($panelNavCards as $navCard): ?>
-                            <?php $navIsExternal = isset($navCard['href']); ?>
-                            <a class="member-nav-card"
-                               href="<?= e($navIsExternal ? $navCard['href'] : '#' . $navCard['target']) ?>"
-                               <?= $navIsExternal ? '' : 'data-panel-link="' . e($navCard['target']) . '"' ?>>
-                                <span class="member-nav-card-media">
-                                    <img src="<?= e($navCard['image']) ?>" alt="" loading="lazy">
-                                </span>
-                                <span class="member-nav-card-body">
-                                    <strong><?= e($navCard['title']) ?></strong>
-                                    <span class="member-nav-card-note"><?= e($navCard['note']) ?></span>
-                                    <?php if (isset($navCard['metric'])): ?>
-                                        <span class="member-nav-card-metric"<?= isset($navCard['metric_section']) ? ' data-nav-metric="' . e($navCard['metric_section']) . '"' : '' ?>><?= e($navCard['metric']) ?></span>
-                                    <?php endif; ?>
-                                </span>
-                            </a>
-                        <?php endforeach; ?>
+                    <?php endif; ?>
+
+                    <div class="member-home-group">
+                        <h3 class="member-home-group-title">Servicios y cuenta</h3>
+                        <div class="member-tile-grid member-tile-grid-md">
+                            <?php foreach ($panelAccountCards as $card): ?><?= panel_tile_markup($card, 'md') ?><?php endforeach; ?>
+                        </div>
                     </div>
                 </section>
 
@@ -1416,20 +1450,23 @@ if ($alumnoPanelLink) {
                                     </article>
                                 </div>
                             </div>
-                            <div class="member-summary-grid">
-                                <article class="member-summary-card">
-                                    <span>Nombre artistico</span>
-                                    <strong><?= e($displayName) ?></strong>
-                                </article>
-                                <article class="member-summary-card">
-                                    <span>Email</span>
-                                    <strong><?= e($user['email'] ?? '') ?></strong>
-                                </article>
-                                <article class="member-summary-card">
-                                    <span>URL publica</span>
-                                    <strong><?= e($memberTypePrefix) ?>/<?= e($publicSlug) ?></strong>
-                                </article>
-                            </div>
+                            <?php /* Cada bloque muestra un resumen y despliega bajo demanda el
+                                     formulario que ya existia, sin cambiar ningun campo. */ ?>
+                            <article class="member-detail" data-detail>
+                                <header class="member-detail-head">
+                                    <div class="member-detail-summary">
+                                        <p class="member-detail-kicker">Identidad artistica</p>
+                                        <dl>
+                                            <div><dt>Nombre publico</dt><dd><?= e($displayName) ?></dd></div>
+                                            <div><dt>Cuenta</dt><dd><?= e((string) ($user['name'] ?? '—')) ?></dd></div>
+                                            <div><dt>Especialidad</dt><dd><?= e($memberProfile['artistic_headline'] !== '' ? $memberProfile['artistic_headline'] : '—') ?></dd></div>
+                                            <div><dt>Tipo de espacio</dt><dd><?= e($memberTypeLabel) ?></dd></div>
+                                            <div><dt>URL publica</dt><dd><?= e($memberTypePrefix) ?>/<?= e($publicSlug) ?></dd></div>
+                                        </dl>
+                                    </div>
+                                    <button type="button" class="button button-secondary" data-detail-toggle aria-expanded="false">Editar</button>
+                                </header>
+                                <div class="member-detail-form" data-detail-form hidden>
                             <fieldset class="cv-fieldset profile-core-fieldset">
 	                                <legend>
 	                                    <span>Perfil publico</span>
@@ -1481,64 +1518,184 @@ if ($alumnoPanelLink) {
 	                                    </div>
 	                                </div>
 	                            </fieldset>
+                                </div>
+                            </article>
 
-                            <fieldset class="cv-fieldset profile-data-fieldset">
-                                <legend>
-                                    <span>Datos visibles</span>
-                                    <strong>Perfil e imagen</strong>
-                                    <em>Ubicacion, contacto y recursos visuales para mantener tu presencia publica cuidada.</em>
-                                </legend>
-                                <div class="form-grid-three">
-                                    <label for="city">Ciudad
-                                        <input id="city" name="city" type="text" value="<?= e($memberProfile['city']) ?>" required>
-                                    </label>
-                                    <label for="province">Provincia
-                                        <input id="province" name="province" type="text" value="<?= e($memberProfile['province']) ?>" required>
-                                    </label>
-                                    <label for="birth_place">Lugar de origen
-                                        <input id="birth_place" name="birth_place" type="text" value="<?= e($memberProfile['birth_place']) ?>">
-                                    </label>
+                            <article class="member-detail" data-detail>
+                                <header class="member-detail-head">
+                                    <div class="member-detail-summary">
+                                        <p class="member-detail-kicker">Ubicacion y contacto</p>
+                                        <dl>
+                                            <div><dt>Localidad</dt><dd><?= e($memberProfile['city'] !== '' ? $memberProfile['city'] : '—') ?></dd></div>
+                                            <div><dt>Provincia</dt><dd><?= e($memberProfile['province'] !== '' ? $memberProfile['province'] : '—') ?></dd></div>
+                                            <div><dt>Email</dt><dd><?= e((string) ($user['email'] ?? '—')) ?></dd></div>
+                                            <div><dt>Telefono</dt><dd><?= e($memberProfile['phone'] !== '' ? $memberProfile['phone'] : '—') ?></dd></div>
+                                        </dl>
+                                    </div>
+                                    <button type="button" class="button button-secondary" data-detail-toggle aria-expanded="false">Editar</button>
+                                </header>
+                                <div class="member-detail-form" data-detail-form hidden>
+                                    <fieldset class="cv-fieldset profile-data-fieldset">
+                                        <legend>
+                                            <span>Datos visibles</span>
+                                            <strong>Ubicacion y contacto</strong>
+                                            <em>Donde estas y como pueden localizarte desde tu ficha publica.</em>
+                                        </legend>
+                                        <div class="form-grid-three">
+                                            <label for="city">Ciudad
+                                                <input id="city" name="city" type="text" value="<?= e($memberProfile['city']) ?>" required>
+                                            </label>
+                                            <label for="province">Provincia
+                                                <input id="province" name="province" type="text" value="<?= e($memberProfile['province']) ?>" required>
+                                            </label>
+                                            <label for="birth_place">Lugar de origen
+                                                <input id="birth_place" name="birth_place" type="text" value="<?= e($memberProfile['birth_place']) ?>">
+                                            </label>
+                                        </div>
+                                        <div class="form-grid-three">
+                                            <label for="phone">Telefono / WhatsApp
+                                                <input id="phone" name="phone" type="text" value="<?= e($memberProfile['phone']) ?>">
+                                            </label>
+                                            <label for="website_url">Web
+                                                <input id="website_url" name="website_url" type="url" value="<?= e($memberProfile['website_url']) ?>" placeholder="https://...">
+                                            </label>
+                                            <label for="instagram_url">Instagram
+                                                <input id="instagram_url" name="instagram_url" type="url" value="<?= e($memberProfile['instagram_url']) ?>" placeholder="https://instagram.com/...">
+                                            </label>
+                                        </div>
+                                    </fieldset>
                                 </div>
-                                <div class="form-grid-three">
-                                    <label for="years_active">Anos de trayectoria
-                                        <input id="years_active" name="years_active" type="text" value="<?= e($memberProfile['years_active']) ?>" placeholder="Ej. Desde 2012">
-                                    </label>
-                                    <label for="availability">Disponibilidad
-                                        <input id="availability" name="availability" type="text" value="<?= e($memberProfile['availability']) ?>" placeholder="Clases, tablaos, festivales, eventos...">
-                                    </label>
-                                    <label for="phone">Telefono / WhatsApp
-                                        <input id="phone" name="phone" type="text" value="<?= e($memberProfile['phone']) ?>">
-                                    </label>
+                            </article>
+
+                            <article class="member-detail" data-detail>
+                                <header class="member-detail-head">
+                                    <div class="member-detail-summary">
+                                        <p class="member-detail-kicker">Trayectoria y disponibilidad</p>
+                                        <dl>
+                                            <div><dt>Trayectoria</dt><dd><?= e($memberProfile['years_active'] !== '' ? $memberProfile['years_active'] : '—') ?></dd></div>
+                                            <div><dt>Disponibilidad</dt><dd><?= e($memberProfile['availability'] !== '' ? $memberProfile['availability'] : '—') ?></dd></div>
+                                        </dl>
+                                    </div>
+                                    <button type="button" class="button button-secondary" data-detail-toggle aria-expanded="false">Editar</button>
+                                </header>
+                                <div class="member-detail-form" data-detail-form hidden>
+                                    <fieldset class="cv-fieldset">
+                                        <legend>
+                                            <span>Datos visibles</span>
+                                            <strong>Trayectoria y disponibilidad</strong>
+                                            <em>Se muestran en tu ficha publica y, si lo activas, en el curriculum PDF.</em>
+                                        </legend>
+                                        <div class="form-grid-two">
+                                            <label for="years_active">Anos de trayectoria
+                                                <input id="years_active" name="years_active" type="text" value="<?= e($memberProfile['years_active']) ?>" placeholder="Ej. Desde 2012">
+                                            </label>
+                                            <label for="availability">Disponibilidad
+                                                <input id="availability" name="availability" type="text" value="<?= e($memberProfile['availability']) ?>" placeholder="Clases, tablaos, festivales, eventos...">
+                                            </label>
+                                        </div>
+                                    </fieldset>
                                 </div>
-                                <div class="form-grid-two">
-                                    <label for="website_url">Web
-                                        <input id="website_url" name="website_url" type="url" value="<?= e($memberProfile['website_url']) ?>" placeholder="https://...">
-                                    </label>
-                                    <label for="instagram_url">Instagram
-                                        <input id="instagram_url" name="instagram_url" type="url" value="<?= e($memberProfile['instagram_url']) ?>" placeholder="https://instagram.com/...">
-                                    </label>
+                            </article>
+
+                            <article class="member-detail member-detail-photo">
+                                <header class="member-detail-head">
+                                    <div class="member-detail-summary">
+                                        <p class="member-detail-kicker">Imagen de perfil</p>
+                                        <div class="member-detail-photo-row">
+                                            <span class="member-detail-thumb">
+                                                <?php if ($mainPhotoVisiblePath !== ''): ?>
+                                                    <img src="<?= e($mainPhotoVisiblePath) ?>" alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview>
+                                                <?php else: ?>
+                                                    <img alt="Fotografia principal de <?= e($displayName) ?>" loading="lazy" data-main-photo-preview hidden>
+                                                    <span data-main-photo-placeholder>Sin foto</span>
+                                                <?php endif; ?>
+                                            </span>
+                                            <p class="field-help">Cada espacio debe tener al menos una fotografia principal. JPG, PNG o WebP, maximo 5 MB. Se guarda automaticamente al seleccionarla.</p>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="button button-secondary" data-main-photo-trigger>Cambiar imagen</button>
+                                </header>
+                                <input id="main_photo" name="main_photo" type="file" accept="image/jpeg,image/png,image/webp" data-main-photo-input hidden>
+                            </article>
+                        </section>
+
+                        <?php /* Hub del curriculum: no duplica ninguna pantalla, solo agrupa
+                                 las secciones, los ajustes del PDF y la impresion. */ ?>
+                        <section id="curriculum" class="content-section member-panel-section">
+                            <div class="member-panel-heading">
+                                <div class="member-panel-heading-main">
+                                    <div>
+                                        <p class="section-kicker">Mi curriculum</p>
+                                        <h2>Curriculum artistico</h2>
+                                        <p>Formacion, experiencia, premios y trayectoria. Se imprime en PDF con el diseno que configures aqui.</p>
+                                    </div>
+                                    <button class="button button-primary" type="button" onclick="window.print()">Descargar PDF</button>
                                 </div>
-                                <div class="main-photo-field">
-                                    <label for="main_photo">Fotografia principal</label>
-                                    <input id="main_photo" name="main_photo" type="file" accept="image/jpeg,image/png,image/webp" data-main-photo-input hidden>
-                                    <p class="field-help">Haz clic sobre la imagen de la cabecera para cambiarla.</p>
-                                    <p class="field-help">Al seleccionar una imagen, se guarda automaticamente.</p>
+                                <div class="member-kpi-grid">
+                                    <article class="member-kpi">
+                                        <span>Entradas</span>
+                                        <strong data-panel-metric="curriculum-total"><?= e((string) $totalCvEntries) ?></strong>
+                                    </article>
+                                    <article class="member-kpi">
+                                        <span>Secciones</span>
+                                        <strong><?= e((string) count($cvSectionConfig)) ?></strong>
+                                    </article>
+                                    <article class="member-kpi">
+                                        <span>Fondo de cabecera</span>
+                                        <strong><?= $cvHeaderBackground !== '' ? 'Personalizado' : 'Por defecto' ?></strong>
+                                    </article>
                                 </div>
-                                <p class="field-help">Cada espacio debe tener al menos una fotografia principal. JPG, PNG o WebP, maximo 5 MB.</p>
-                                <label class="cv-header-background-field" for="cv_header_image">Fondo de cabecera del curriculum PDF
-                                    <span class="cv-header-background-preview" <?= $cvHeaderVisibleBackground !== '' ? 'style="background-image: linear-gradient(135deg, rgba(17, 17, 20, 0.72), rgba(32, 56, 71, 0.68)), url(' . e($cvHeaderVisibleBackground) . ');"' : '' ?>>
-                                        <strong><?= $cvHeaderBackground !== '' ? 'Fondo actual' : 'Sin fondo personalizado' ?></strong>
-                                        <em>Cambiar fondo</em>
-                                    </span>
-                                    <input id="cv_header_image" name="cv_header_image" type="file" accept="image/jpeg,image/png,image/webp" hidden>
-                                </label>
-                                <p class="field-help">El fondo de cabecera tambien se guarda automaticamente al seleccionarlo.</p>
-                                <label class="visibility-toggle compact-toggle">
-                                    <input type="hidden" name="print_professional_data" value="0">
-                                    <input type="checkbox" name="print_professional_data" value="1" <?= !empty($memberProfile['print_professional_data']) ? 'checked' : '' ?>>
-                                    <span>Imprimir estos datos profesionales en PDF</span>
-                                </label>
-                            </fieldset>
+                            </div>
+
+                            <div class="member-tile-grid member-tile-grid-md">
+                                <?php foreach ($cvSectionConfig as $sectionKey => $sectionConfig): ?>
+                                    <?= panel_tile_markup([
+                                        'target' => $cvSectionAnchors[$sectionKey],
+                                        'icon' => 'curriculum',
+                                        'title' => (string) $sectionConfig['title'],
+                                        'note' => $cvSectionNotes[$sectionKey],
+                                        'metric' => $cvSectionMetrics[$sectionKey]['total'] === 1 ? '1 entrada' : $cvSectionMetrics[$sectionKey]['total'] . ' entradas',
+                                        'metric_section' => $sectionKey,
+                                    ], 'md') ?>
+                                <?php endforeach; ?>
+                            </div>
+
+                            <article class="member-detail" data-detail>
+                                <header class="member-detail-head">
+                                    <div class="member-detail-summary">
+                                        <p class="member-detail-kicker">Diseno del PDF</p>
+                                        <dl>
+                                            <div><dt>Fondo de cabecera</dt><dd><?= $cvHeaderBackground !== '' ? 'Personalizado' : 'Sin fondo personalizado' ?></dd></div>
+                                            <div><dt>Datos profesionales</dt><dd><?= !empty($memberProfile['print_professional_data']) ? 'Se imprimen' : 'No se imprimen' ?></dd></div>
+                                        </dl>
+                                    </div>
+                                    <button type="button" class="button button-secondary" data-detail-toggle aria-expanded="false">Editar</button>
+                                </header>
+                                <div class="member-detail-form" data-detail-form hidden>
+                                    <fieldset class="cv-fieldset">
+                                        <legend>
+                                            <span>Curriculum</span>
+                                            <strong>Diseno del PDF</strong>
+                                            <em>Portada y datos que se imprimen al descargar el curriculum.</em>
+                                        </legend>
+                                        <label class="cv-header-background-field" for="cv_header_image">Fondo de cabecera del curriculum PDF
+                                            <span class="cv-header-background-preview" <?= $cvHeaderVisibleBackground !== '' ? 'style="background-image: linear-gradient(135deg, rgba(17, 17, 20, 0.72), rgba(32, 56, 71, 0.68)), url(' . e($cvHeaderVisibleBackground) . ');"' : '' ?>>
+                                                <strong><?= $cvHeaderBackground !== '' ? 'Fondo actual' : 'Sin fondo personalizado' ?></strong>
+                                                <em>Cambiar fondo</em>
+                                            </span>
+                                            <input id="cv_header_image" name="cv_header_image" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+                                        </label>
+                                        <p class="field-help">El fondo de cabecera se guarda automaticamente al seleccionarlo.</p>
+                                        <label class="visibility-toggle compact-toggle">
+                                            <input type="hidden" name="print_professional_data" value="0">
+                                            <input type="checkbox" name="print_professional_data" value="1" <?= !empty($memberProfile['print_professional_data']) ? 'checked' : '' ?>>
+                                            <span>Imprimir trayectoria, disponibilidad, web e Instagram en el PDF</span>
+                                        </label>
+                                    </fieldset>
+                                </div>
+                            </article>
+
+                            <p class="field-help">La vista previa es el propio PDF: al pulsar <strong>Descargar PDF</strong> se abre el dialogo de impresion del navegador con el curriculum ya maquetado.</p>
                         </section>
 
                         <?php if ($hasWebPage): ?>
@@ -1841,7 +1998,7 @@ if ($alumnoPanelLink) {
                                 <?php endfor; ?>
                             </article>
 
-                            <article class="member-config-card">
+                            <article class="member-config-card" id="web-galeria">
                                 <h3>Galeria</h3>
                                 <p>Sube hasta 9 imagenes. Si no hay imagenes, la seccion Galeria no aparecera en la web publica.</p>
                                 <div class="website-gallery-grid">
@@ -1861,7 +2018,7 @@ if ($alumnoPanelLink) {
                                 </label>
                             </article>
 
-                            <article class="member-config-card">
+                            <article class="member-config-card" id="web-videos">
                                 <h3>Videos</h3>
                                 <p>Anade enlaces de YouTube, Vimeo u otra plataforma. Si no hay videos, la seccion Videos no aparecera en la web publica.</p>
                                 <div class="website-simple-repeat-list">
@@ -1964,7 +2121,7 @@ if ($alumnoPanelLink) {
                                 </div>
                             </article>
 
-                            <article class="member-config-card">
+                            <article class="member-config-card" id="web-actualidad">
                                 <h3>Actualidad</h3>
                                 <p>Publica noticias, comunicados o novedades. Si no hay elementos, la seccion Actualidad no aparecera en la web publica.</p>
                                 <div class="website-simple-repeat-list">
@@ -2034,7 +2191,7 @@ if ($alumnoPanelLink) {
                                 </p>
                             </article>
 
-                            <article class="member-config-card">
+                            <article class="member-config-card" id="web-contacto">
                                 <h3>Contacto</h3>
                                 <p>Elige que datos se mostraran. Si no seleccionas ningun dato con contenido, Contacto no aparecera en el menu publico.</p>
                                 <div class="website-contact-options">
@@ -2305,9 +2462,22 @@ if ($alumnoPanelLink) {
         // obligatorio en una pantalla que no esta a la vista no puede enfocarlo
         // y el envio se queda mudo, asi que saltamos a esa pantalla.
         memberProfileForm?.addEventListener('invalid', (event) => {
-            const section = event.target instanceof Element ? event.target.closest('.member-panel-section') : null;
+            if (!(event.target instanceof Element)) {
+                return;
+            }
+            const section = event.target.closest('.member-panel-section');
             if (section instanceof HTMLElement && !section.classList.contains('active')) {
                 activateMemberPanel(section.id);
+            }
+            // El campo tambien puede estar en un bloque de perfil sin desplegar.
+            const detailForm = event.target.closest('[data-detail-form]');
+            if (detailForm instanceof HTMLElement && detailForm.hidden) {
+                detailForm.hidden = false;
+                const toggle = detailForm.closest('[data-detail]')?.querySelector('[data-detail-toggle]');
+                if (toggle instanceof HTMLElement) {
+                    toggle.setAttribute('aria-expanded', 'true');
+                    toggle.textContent = 'Cerrar';
+                }
             }
         }, true);
 
@@ -3047,6 +3217,37 @@ if ($alumnoPanelLink) {
             });
         });
 
+        // Sin barra lateral, las migas son la unica referencia de donde estas:
+        // se rellenan con el titulo de la pantalla y, cuando cuelga de otra, con
+        // el de su pantalla madre.
+        const panelSectionParents = {
+            formacion: ['curriculum', 'Mi curriculum'],
+            experiencia: ['curriculum', 'Mi curriculum'],
+            premios: ['curriculum', 'Mi curriculum'],
+            'seccion-personalizada': ['curriculum', 'Mi curriculum'],
+        };
+
+        function syncPanelBreadcrumb(target) {
+            const backLink = document.querySelector('[data-panel-back]');
+            const crumb = document.querySelector('[data-panel-crumb]');
+            const parentCrumb = document.querySelector('[data-panel-crumb-parent]');
+            if (!(backLink instanceof HTMLElement)) {
+                return;
+            }
+
+            backLink.hidden = target === 'inicio';
+            if (crumb instanceof HTMLElement) {
+                const heading = document.querySelector(`#${CSS.escape(target)} h2`);
+                crumb.textContent = heading instanceof HTMLElement ? heading.textContent.trim() : '';
+            }
+            if (parentCrumb instanceof HTMLElement) {
+                const parent = panelSectionParents[target];
+                parentCrumb.hidden = !parent;
+                parentCrumb.textContent = parent ? parent[1] : '';
+                parentCrumb.dataset.panelParent = parent ? parent[0] : '';
+            }
+        }
+
         function activateMemberPanel(target) {
             if (!target || !document.getElementById(target)) {
                 return;
@@ -3067,15 +3268,49 @@ if ($alumnoPanelLink) {
                 }
             }
 
-            const backLink = document.querySelector('[data-panel-back]');
-            if (backLink instanceof HTMLElement) {
-                backLink.hidden = target === 'inicio';
-            }
+            syncPanelBreadcrumb(target);
         }
 
         document.querySelectorAll('[data-panel-link]').forEach((link) => {
             link.addEventListener('click', () => {
                 activateMemberPanel(link.dataset.panelLink);
+
+                // Atajos de "Contenido de tu web": la pantalla es la misma, asi
+                // que ademas hay que llevar la vista hasta el bloque pedido.
+                const focusId = link.dataset.panelFocus;
+                if (focusId) {
+                    const focusTarget = document.getElementById(focusId);
+                    if (focusTarget instanceof HTMLElement) {
+                        window.requestAnimationFrame(() => {
+                            focusTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            focusTarget.classList.add('is-focused');
+                            window.setTimeout(() => focusTarget.classList.remove('is-focused'), 1600);
+                        });
+                    }
+                }
+            });
+        });
+
+        // Migas de pan: el segundo nivel devuelve a su pantalla madre.
+        document.querySelector('[data-panel-crumb-parent]')?.addEventListener('click', (event) => {
+            const parent = event.currentTarget.dataset.panelParent;
+            if (parent) {
+                activateMemberPanel(parent);
+            }
+        });
+
+        // Bloques de "Mi perfil" y "Diseno del PDF": el resumen esta siempre a la
+        // vista y el formulario, que es el de siempre, se despliega al editar.
+        document.querySelectorAll('[data-detail-toggle]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const body = button.closest('[data-detail]')?.querySelector('[data-detail-form]');
+                if (!(body instanceof HTMLElement)) {
+                    return;
+                }
+                const willOpen = body.hidden;
+                body.hidden = !willOpen;
+                button.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+                button.textContent = willOpen ? 'Cerrar' : 'Editar';
             });
         });
 

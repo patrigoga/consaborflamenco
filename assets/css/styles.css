@@ -10353,7 +10353,8 @@ body.member-entry-drawer-open {
  * sobre blanco.
  */
 .member-entry-empty .button-secondary,
-.member-entry-drawer-foot .button-secondary {
+.member-entry-drawer-foot .button-secondary,
+.member-detail .button-secondary {
     color: var(--color-ink);
     border-color: rgba(17, 24, 39, 0.3);
     background: rgba(17, 24, 39, 0.06);
@@ -10361,8 +10362,10 @@ body.member-entry-drawer-open {
 
 .member-entry-empty .button-secondary:hover,
 .member-entry-drawer-foot .button-secondary:hover,
+.member-detail .button-secondary:hover,
 .member-entry-empty .button-secondary:focus-visible,
-.member-entry-drawer-foot .button-secondary:focus-visible {
+.member-entry-drawer-foot .button-secondary:focus-visible,
+.member-detail .button-secondary:focus-visible {
     border-color: rgba(17, 24, 39, 0.45);
     background: rgba(17, 24, 39, 0.12);
 }
@@ -10374,5 +10377,458 @@ body.member-entry-drawer-open {
 
     .member-settings-grid {
         grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* ==========================================================================
+   Panel de miembro: portada sin barra lateral.
+   Tarjetas planas, mucho aire y los colores de marca solo como acento.
+   ========================================================================== */
+
+.member-panel {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.member-dashboard-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 18px;
+    margin: 14px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.member-dashboard-meta li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255, 250, 242, 0.72);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.member-dashboard-meta li + li::before {
+    content: "";
+    width: 3px;
+    height: 3px;
+    margin-right: 10px;
+    border-radius: 999px;
+    background: rgba(255, 250, 242, 0.35);
+}
+
+.member-dashboard-bar {
+    display: block;
+    width: 90px;
+    height: 4px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255, 250, 242, 0.16);
+}
+
+.member-dashboard-bar i {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--color-red), var(--color-gold));
+}
+
+/* Portada */
+
+.member-home-intro {
+    display: grid;
+    gap: 8px;
+    margin-bottom: clamp(22px, 3vw, 38px);
+}
+
+.member-home-intro .section-kicker {
+    margin: 0;
+    color: #ff8a96;
+}
+
+.member-home-intro h2 {
+    margin: 0;
+    color: var(--color-white);
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: clamp(2rem, 3.6vw, 3.2rem);
+    line-height: 1.03;
+}
+
+.member-home-intro p:not(.section-kicker) {
+    max-width: 62ch;
+    margin: 0;
+    color: rgba(255, 250, 242, 0.62);
+    font-size: 1rem;
+    line-height: 1.7;
+}
+
+.member-home-group {
+    margin-top: clamp(28px, 4vw, 52px);
+}
+
+/*
+ * El fondo de la pagina pasa de negro a crema con el scroll, asi que estos
+ * rotulos caen unas veces sobre oscuro y otras sobre claro. Se resuelven con
+ * una pastilla oscura propia en lugar de fiar el contraste a lo que haya
+ * detras.
+ */
+.member-home-group-title {
+    display: inline-block;
+    margin: 0 0 14px;
+    padding: 6px 15px;
+    border-radius: 999px;
+    background: rgba(17, 17, 20, 0.58);
+    color: rgba(255, 250, 242, 0.88);
+    font-family: "Inter", Arial, sans-serif;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.member-tile-grid {
+    display: grid;
+    gap: clamp(12px, 1.4vw, 18px);
+}
+
+.member-tile-grid-lg {
+    grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+}
+
+.member-tile-grid-md {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.member-tile-grid-sm {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.member-tile {
+    display: grid;
+    align-content: start;
+    gap: 12px;
+    padding: clamp(18px, 2vw, 26px);
+    border: 1px solid rgba(17, 17, 20, 0.06);
+    border-radius: 18px;
+    background: rgba(255, 250, 242, 0.97);
+    box-shadow: 0 1px 2px rgba(13, 17, 20, 0.04);
+    color: var(--color-ink);
+    text-decoration: none;
+    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.member-tile:hover,
+.member-tile:focus-visible {
+    transform: translateY(-2px);
+    border-color: rgba(201, 79, 92, 0.24);
+    box-shadow: 0 12px 28px rgba(13, 17, 20, 0.09);
+}
+
+.member-tile-badge {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: rgba(201, 79, 92, 0.09);
+    color: var(--color-red);
+}
+
+.member-tile-icon {
+    width: 21px;
+    height: 21px;
+}
+
+.member-tile-body {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+
+.member-tile-body strong {
+    color: var(--color-black);
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 1.32rem;
+    font-weight: 700;
+    line-height: 1.18;
+}
+
+.member-tile-note {
+    color: var(--color-muted);
+    font-size: 0.89rem;
+    line-height: 1.6;
+}
+
+.member-tile-metric {
+    justify-self: start;
+    color: var(--color-muted);
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.member-tile-go {
+    color: var(--color-red);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+.member-tile:hover .member-tile-go,
+.member-tile:focus-visible .member-tile-go {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* En las cuatro tarjetas principales la accion se ve siempre: son el punto de
+   entrada del panel y no deben depender de que el raton pase por encima. */
+.member-tile-lg .member-tile-go {
+    opacity: 1;
+    transform: none;
+}
+
+/* Tarjetas medianas y pequenas: menos peso, misma familia */
+
+.member-tile-md {
+    gap: 10px;
+    padding: clamp(16px, 1.7vw, 20px);
+    border-radius: 16px;
+}
+
+.member-tile-md .member-tile-body strong {
+    font-size: 1.12rem;
+}
+
+.member-tile-sm {
+    grid-template-columns: 34px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 14px;
+}
+
+.member-tile-sm .member-tile-badge {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+}
+
+.member-tile-sm .member-tile-icon {
+    width: 18px;
+    height: 18px;
+}
+
+.member-tile-sm .member-tile-body strong {
+    font-family: "Inter", Arial, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.member-tile-sm .member-tile-metric {
+    grid-column: 2;
+    margin-top: -4px;
+}
+
+.member-tile-sm .member-tile-go {
+    display: none;
+}
+
+/* Bloques de detalle: resumen visible, formulario bajo demanda */
+
+.member-detail {
+    display: grid;
+    gap: 0;
+    margin-bottom: 14px;
+    padding: clamp(16px, 2vw, 24px);
+    border: 1px solid rgba(17, 17, 20, 0.06);
+    border-radius: 18px;
+    background: rgba(255, 250, 242, 0.97);
+    box-shadow: 0 1px 2px rgba(13, 17, 20, 0.04);
+}
+
+.member-detail-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+/* Ocupa el hueco que deja el boton: sin esto el item flexible se encoge al
+   minimo de la rejilla del resumen y los datos salen en una sola columna. */
+.member-detail-summary {
+    display: grid;
+    flex: 1 1 320px;
+    gap: 10px;
+    min-width: 0;
+}
+
+.member-detail-kicker {
+    margin: 0;
+    color: var(--color-red);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.member-detail-summary dl {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 10px 22px;
+    margin: 0;
+}
+
+.member-detail-summary dl > div {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.member-detail-summary dt {
+    color: var(--color-muted);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.member-detail-summary dd {
+    margin: 0;
+    color: var(--color-black);
+    font-size: 0.98rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.member-detail-form {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(17, 17, 20, 0.08);
+}
+
+.member-detail-form[hidden] {
+    display: none;
+}
+
+.member-detail-form .cv-fieldset {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.member-detail-form .cv-fieldset:hover {
+    border-color: transparent;
+    box-shadow: none;
+}
+
+.member-detail-photo-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.member-detail-thumb {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 64px;
+    height: 64px;
+    overflow: hidden;
+    border-radius: 12px;
+    background: rgba(17, 17, 20, 0.06);
+    color: var(--color-muted);
+    font-size: 0.66rem;
+}
+
+.member-detail-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.member-detail-thumb img[hidden] {
+    display: none;
+}
+
+/* Migas de pan */
+
+.member-panel-back {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.member-panel-crumb {
+    color: rgba(255, 250, 242, 0.62);
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.member-panel-crumb:empty {
+    display: none;
+}
+
+.member-panel-crumb::before {
+    content: "/";
+    margin-right: 10px;
+    color: rgba(255, 250, 242, 0.28);
+}
+
+.member-panel-crumb[data-panel-crumb-parent] {
+    color: rgba(255, 250, 242, 0.8);
+    cursor: pointer;
+}
+
+.member-panel-crumb[data-panel-crumb-parent]:hover {
+    color: var(--color-white);
+    text-decoration: underline;
+}
+
+.member-panel-crumb[hidden] {
+    display: none;
+}
+
+/* Bloque de la web al que se acaba de saltar desde la portada */
+
+.member-config-card.is-focused {
+    outline: 2px solid rgba(201, 79, 92, 0.55);
+    outline-offset: 4px;
+    transition: outline-color 0.5s ease;
+}
+
+@media (max-width: 900px) {
+    .member-tile-grid-lg,
+    .member-tile-grid-md {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .member-tile-grid-lg,
+    .member-tile-grid-md,
+    .member-tile-grid-sm {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .member-detail-head {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .member-detail-head .button {
+        width: 100%;
+    }
+
+    .member-tile-go {
+        opacity: 1;
+        transform: none;
     }
 }
