@@ -194,6 +194,18 @@ $artistLocation = trim(clean_text((string) ($profile['city'] ?? '')) . (((string
 $artistIntro = clean_text((string) (($profile['short_description'] ?? '') ?: ($profile['cv_summary'] ?? '') ?: ($profile['availability'] ?? '')));
 $legacyHeroImage = artist_public_media_url(clean_text((string) (($webPage['header_image_path'] ?? '') ?: ($profile['cv_header_image_path'] ?? '') ?: ($profile['main_photo_path'] ?? ''))));
 $mainPhoto = artist_public_media_url(clean_text((string) ($profile['main_photo_path'] ?? '')));
+// Bloque Inicio: solo los articulos marcados como visibles, ordenados por el
+// campo Orden de menor a mayor. usort es estable desde PHP 8.0, asi que los que
+// comparten orden conservan el que tienen guardado en el perfil.
+$introArticles = array_values(array_filter(
+    is_array($profile['intro_articles'] ?? null) ? $profile['intro_articles'] : [],
+    static fn ($article): bool => is_array($article) && (bool) ($article['is_active'] ?? true)
+));
+usort(
+    $introArticles,
+    static fn (array $a, array $b): int => ((int) ($a['display_order'] ?? 0)) <=> ((int) ($b['display_order'] ?? 0))
+);
+
 $gallery = array_values(array_filter(array_map(
     static fn ($path): string => artist_public_media_url(clean_text((string) $path)),
     array_slice(is_array($webPage['gallery'] ?? null) ? $webPage['gallery'] : [], 0, 9)
@@ -297,6 +309,9 @@ if (in_array('instagram', $contactFields, true) && !empty($profile['instagram_ur
 }
 
 $publicSections = [];
+if ($introArticles) {
+    $publicSections['inicio'] = 'Inicio';
+}
 if ($gallery) {
     $publicSections['galeria'] = 'Galería';
 }
@@ -417,7 +432,7 @@ $shareText = $displayName . ' — Galería';
 
 <header class="ms-topbar" data-topbar>
     <div class="ms-shell ms-topbar-inner">
-        <a class="ms-brand" href="#inicio">
+        <a class="ms-brand" href="#portada">
             <?php if ($menuImage !== ''): ?>
                 <img src="<?= e($menuImage) ?>" alt="<?= e($menuImageIsProfile ? 'Foto de perfil de ' . $displayName : 'Imagen de cabecera de ' . $displayName) ?>" loading="eager">
             <?php endif; ?>
@@ -443,7 +458,8 @@ $shareText = $displayName . ' — Galería';
 </header>
 
 <main id="contenido">
-    <section id="inicio" class="ms-hero" data-hero>
+    <?php /* El ancla #inicio pasa al bloque de presentacion; la cabecera es #portada. */ ?>
+    <section id="portada" class="ms-hero" data-hero>
         <?php foreach ($heroSlides as $slideIndex => $slide): ?>
             <?php $slideImage = (string) ($slide['image'] ?? $defaultHeroImage); ?>
             <div class="ms-hero-slide<?= $slideIndex === 0 ? ' is-active' : '' ?>"
@@ -487,6 +503,61 @@ $shareText = $displayName . ' — Galería';
             </div>
         <?php endif; ?>
     </section>
+
+    <?php if ($introArticles): ?>
+        <?php $introHasSteps = count($introArticles) > 1; ?>
+        <section id="inicio" class="ms-section">
+            <?php artist_render_section_band('Inicio'); ?>
+            <div class="ms-shell">
+                <div class="ms-intro" data-intro<?= $introHasSteps ? ' data-intro-slider' : '' ?>>
+                    <?php foreach ($introArticles as $introIndex => $article): ?>
+                        <?php
+                        $introImage = clean_text((string) ($article['image_path'] ?? ''));
+                        $introImage = $introImage !== '' ? artist_public_media_url($introImage) : '';
+                        $introYear = clean_text((string) ($article['year'] ?? ''));
+                        $introTitle = clean_text((string) ($article['title'] ?? ''));
+                        $introBody = clean_html_text((string) ($article['description'] ?? ''));
+                        ?>
+                        <article class="ms-intro-slide<?= $introImage !== '' ? ' ms-intro-slide-media' : '' ?><?= $introIndex === 0 ? ' is-active' : '' ?>"
+                                 data-intro-slide
+                                 <?= $introIndex === 0 ? '' : 'aria-hidden="true"' ?>>
+                            <?php if ($introImage !== ''): ?>
+                                <div class="ms-intro-media">
+                                    <img src="<?= e($introImage) ?>" alt="<?= e($introTitle !== '' ? $introTitle : 'Imagen de la trayectoria de ' . $displayName) ?>" loading="<?= $introIndex === 0 ? 'eager' : 'lazy' ?>">
+                                </div>
+                            <?php endif; ?>
+                            <div class="ms-intro-body">
+                                <?php if ($introYear !== ''): ?>
+                                    <p class="ms-intro-year"><?= e($introYear) ?></p>
+                                <?php endif; ?>
+                                <?php if ($introTitle !== ''): ?>
+                                    <h3 class="ms-intro-title"><?= e($introTitle) ?></h3>
+                                <?php endif; ?>
+                                <?php if ($introBody !== ''): ?>
+                                    <div class="ms-intro-text"><?= $introBody ?></div>
+                                <?php endif; ?>
+                            </div>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+
+                <?php if ($introHasSteps): ?>
+                    <div class="ms-intro-controls">
+                        <button type="button" class="ms-intro-arrow" data-intro-prev>&larr;&nbsp; Anterior</button>
+                        <div class="ms-intro-dots" role="tablist" aria-label="Articulos de presentacion">
+                            <?php foreach ($introArticles as $introIndex => $article): ?>
+                                <button type="button"
+                                        class="<?= $introIndex === 0 ? 'is-active' : '' ?>"
+                                        data-intro-dot="<?= e((string) $introIndex) ?>"
+                                        aria-label="Ver articulo <?= e((string) ($introIndex + 1)) ?> de <?= e((string) count($introArticles)) ?>"></button>
+                            <?php endforeach; ?>
+                        </div>
+                        <button type="button" class="ms-intro-arrow" data-intro-next>Siguiente &nbsp;&rarr;</button>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </section>
+    <?php endif; ?>
 
     <?php if ($gallery): ?>
         <?php
@@ -700,7 +771,7 @@ $shareText = $displayName . ' — Galería';
 <footer class="ms-footer">
     <div class="ms-shell">
         <nav class="ms-footer-nav" aria-label="Secciones de <?= e($displayName) ?>">
-            <a href="#inicio">Inicio</a>
+            <a href="#portada">Portada</a>
             <?php foreach ($publicSections as $sectionId => $sectionLabel): ?>
                 <a href="#<?= e($sectionId) ?>"><?= e($sectionLabel) ?></a>
             <?php endforeach; ?>
@@ -760,6 +831,42 @@ $shareText = $displayName . ' — Galería';
         };
         dots.forEach((dot, i) => dot.addEventListener('click', () => { show(i); restart(); }));
         restart();
+    }
+
+    /* --- Inicio: presentacion por articulos ------------------------------- */
+    const introTrack = document.querySelector('[data-intro-slider]');
+    if (introTrack) {
+        const introSlides = Array.from(introTrack.querySelectorAll('[data-intro-slide]'));
+        const introDots = Array.from(document.querySelectorAll('[data-intro-dot]'));
+        const introPrev = document.querySelector('[data-intro-prev]');
+        const introNext = document.querySelector('[data-intro-next]');
+        let introCurrent = 0;
+
+        // No hace falta fijar el alto: los articulos comparten la misma celda de
+        // la rejilla, asi que en escritorio el bloque ya mide lo que el mas largo
+        // y no da un salto al cambiar. En movil solo cuenta el visible.
+        const showIntro = (next) => {
+            introCurrent = (next + introSlides.length) % introSlides.length;
+            introSlides.forEach((slide, index) => {
+                const isCurrent = index === introCurrent;
+                slide.classList.toggle('is-active', isCurrent);
+                if (isCurrent) {
+                    slide.removeAttribute('aria-hidden');
+                } else {
+                    slide.setAttribute('aria-hidden', 'true');
+                }
+            });
+            introDots.forEach((dot, index) => dot.classList.toggle('is-active', index === introCurrent));
+        };
+
+        introPrev?.addEventListener('click', () => showIntro(introCurrent - 1));
+        introNext?.addEventListener('click', () => showIntro(introCurrent + 1));
+        introDots.forEach((dot, index) => dot.addEventListener('click', () => showIntro(index)));
+
+        introTrack.addEventListener('keydown', (event) => {
+            if (event.key === 'ArrowLeft') { showIntro(introCurrent - 1); }
+            if (event.key === 'ArrowRight') { showIntro(introCurrent + 1); }
+        });
     }
 
     /* --- Aparicion progresiva -------------------------------------------- */

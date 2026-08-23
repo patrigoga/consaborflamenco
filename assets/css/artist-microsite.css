@@ -1694,3 +1694,228 @@ body.artist-public-body.ms-js [data-reveal].is-visible {
         display: none;
     }
 }
+
+/* ==========================================================================
+   Inicio â€” presentacion editorial por articulos, justo debajo del hero.
+   Los articulos se apilan en la misma celda de una rejilla y solo uno esta
+   visible: asi el bloque no salta de alto al pasar de uno a otro y no hace
+   falta desplazar una pista horizontal.
+   ========================================================================== */
+
+.ms-intro {
+    display: grid;
+}
+
+.ms-intro-slide {
+    grid-area: 1 / 1;
+    display: grid;
+    gap: clamp(22px, 3vw, 48px);
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(14px);
+    transition:
+        opacity 520ms var(--ms-ease),
+        transform 520ms var(--ms-ease),
+        visibility 0s linear 520ms;
+    pointer-events: none;
+}
+
+.ms-intro-slide.is-active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition-delay: 0s;
+    pointer-events: auto;
+}
+
+/* Con imagen, dos columnas: la imagen se lleva algo menos de la mitad. Sin
+   imagen no hay columna reservada, el texto ocupa el ancho util. */
+.ms-intro-slide-media {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+}
+
+.ms-intro-media {
+    overflow: hidden;
+    border: 1px solid var(--ms-line);
+    border-radius: 3px;
+    background: var(--ms-panel);
+}
+
+.ms-intro-media img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-height: 520px;
+    object-fit: cover;
+}
+
+.ms-intro-body {
+    display: grid;
+    align-content: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+/* Sin imagen el texto no debe cruzar toda la pantalla: por encima de unos 75
+   caracteres por linea se lee peor. */
+.ms-intro-slide:not(.ms-intro-slide-media) .ms-intro-body {
+    max-width: 72ch;
+}
+
+.ms-intro-year {
+    margin: 0;
+    color: var(--ms-gold);
+    font-size: clamp(0.78rem, 0.74rem + 0.2vw, 0.88rem);
+    font-weight: 700;
+    letter-spacing: 0.28em;
+}
+
+.ms-intro-title {
+    margin: 0;
+    color: var(--ms-ink);
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: clamp(1.9rem, 1.3rem + 2.2vw, 3.4rem);
+    font-weight: 700;
+    line-height: 1.06;
+    letter-spacing: -0.01em;
+}
+
+.ms-intro-text {
+    color: var(--ms-ink-soft);
+    font-size: clamp(1rem, 0.97rem + 0.16vw, 1.08rem);
+    line-height: 1.8;
+}
+
+.ms-intro-text > :first-child {
+    margin-top: 0;
+}
+
+.ms-intro-text > :last-child {
+    margin-bottom: 0;
+}
+
+.ms-intro-text a {
+    color: var(--ms-red-light);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+/* Controles: discretos, alineados con el resto del micrositio. */
+.ms-intro-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: clamp(26px, 3vw, 44px);
+    padding-top: clamp(18px, 2vw, 26px);
+    border-top: 1px solid var(--ms-line);
+}
+
+.ms-intro-arrow {
+    padding: 11px 20px;
+    border: 1px solid var(--ms-line-strong);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--ms-ink-soft);
+    font-family: inherit;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 300ms var(--ms-ease), border-color 300ms var(--ms-ease), background 300ms var(--ms-ease);
+}
+
+.ms-intro-arrow:hover,
+.ms-intro-arrow:focus-visible {
+    color: var(--ms-ink);
+    border-color: var(--ms-gold);
+    background: rgba(201, 164, 90, 0.1);
+}
+
+.ms-intro-dots {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.ms-intro-dots button {
+    width: 9px;
+    height: 9px;
+    padding: 0;
+    border: 1px solid var(--ms-line-strong);
+    border-radius: 999px;
+    background: transparent;
+    cursor: pointer;
+    transition: background 300ms var(--ms-ease), border-color 300ms var(--ms-ease), transform 300ms var(--ms-ease);
+}
+
+.ms-intro-dots button:hover {
+    border-color: var(--ms-gold);
+}
+
+.ms-intro-dots button.is-active {
+    border-color: var(--ms-gold);
+    background: var(--ms-gold);
+    transform: scale(1.2);
+}
+
+@media (max-width: 900px) {
+    .ms-intro-slide-media {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ms-intro-media img {
+        max-height: 340px;
+    }
+}
+
+@media (max-width: 720px) {
+    /* En escritorio los articulos se apilan y el bloque mide lo que el mas
+       largo, asi que el fundido no mueve nada. En movil eso dejaria un hueco
+       enorme bajo los articulos cortos, asi que solo ocupa sitio el visible y
+       el cambio es directo. */
+    .ms-intro-slide {
+        display: none;
+        gap: 18px;
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+        pointer-events: auto;
+    }
+
+    .ms-intro-slide.is-active {
+        display: grid;
+    }
+
+    .ms-intro-media img {
+        max-height: 260px;
+    }
+
+    .ms-intro-controls {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 14px;
+    }
+
+    .ms-intro-arrow {
+        flex: 1 1 auto;
+        min-width: 132px;
+        padding: 12px 14px;
+        text-align: center;
+    }
+
+    .ms-intro-dots {
+        order: -1;
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ms-intro-slide {
+        transition-duration: 1ms;
+        transform: none;
+    }
+}

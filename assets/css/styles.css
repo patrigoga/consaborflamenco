@@ -8179,11 +8179,13 @@ body.artist-public-body .artist-web-contact-grid {
     .member-profile-preview,
     .member-profile-form,
     .member-panel-back,
-    #inicio,
-    #pagina-web,
-    #tarjeta-miembro,
-    #banners,
-    #seguridad,
+    /* Acotados al panel: #inicio y #contacto tambien existen en el micrositio
+       publico del artista, que carga esta misma hoja. */
+    .member-panel-content #inicio,
+    .member-panel-content #pagina-web,
+    .member-panel-content #tarjeta-miembro,
+    .member-panel-content #banners,
+    .member-panel-content #seguridad,
     .site-footer,
     .province-modal {
         display: none !important;

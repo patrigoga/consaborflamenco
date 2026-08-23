@@ -66,6 +66,25 @@ $publicFieldOptions = [
     'education' => 'Formacion',
     'experience' => 'Experiencia',
 ];
+/**
+ * Bloque "Inicio" de la microweb: se gestiona con el mismo listado y panel
+ * lateral que las secciones del curriculum, pero se guarda aparte porque no
+ * forma parte del PDF ni tiene ajustes de seccion.
+ */
+$introSectionKey = 'intro_articles';
+$introSectionTitle = 'Inicio';
+$introSectionConfig = [
+    'title' => $introSectionTitle,
+    'fields' => ['title' => 'Titulo', 'year' => 'Año', 'description' => 'Descripcion'],
+    'field_types' => ['year' => 'number'],
+    'allows_image' => true,
+    'summary_title' => 'title',
+    'summary_meta' => ['year'],
+    'active_label' => 'Visible en la web publica',
+    'hidden_label' => 'Oculto en la web',
+    'toggle_action' => true,
+];
+
 $cvSectionConfig = [
     'education' => [
         'title' => 'Formacion',
@@ -279,7 +298,8 @@ function cv_section_metrics(array $entries): array
         if (clean_text((string) ($entry['image_path'] ?? '')) !== '') {
             $withImage++;
         }
-        foreach (['date_start', 'date_end'] as $dateField) {
+        // El bloque Inicio guarda un ano suelto en lugar de un par de fechas.
+        foreach (['date_start', 'date_end', 'year'] as $dateField) {
             $year = (int) substr(clean_text((string) ($entry[$dateField] ?? '')), 0, 4);
             if ($year > 0) {
                 $years[] = $year;
@@ -301,11 +321,21 @@ function cv_section_metrics(array $entries): array
 }
 
 /**
- * Etiqueta corta con fechas y lugar de una entrada, para el listado de la
- * tarjeta. Se replica en JavaScript al editar sin recargar la pagina.
+ * Etiqueta corta de una entrada para el listado de la tarjeta. Por defecto usa
+ * el par de fechas y el lugar del curriculum; las secciones que se resumen con
+ * otros campos (el bloque Inicio, por ejemplo) lo indican en su configuracion.
+ * El mismo calculo se repite en JavaScript al editar sin recargar la pagina.
  */
-function cv_entry_meta_label(array $entry): string
+function cv_entry_meta_label(array $entry, array $sectionConfig = []): string
 {
+    $metaFields = is_array($sectionConfig['summary_meta'] ?? null) ? $sectionConfig['summary_meta'] : [];
+    if ($metaFields !== []) {
+        return implode(' · ', array_filter(
+            array_map(static fn (string $field): string => clean_text((string) ($entry[$field] ?? '')), $metaFields),
+            static fn (string $value): bool => $value !== ''
+        ));
+    }
+
     $dates = implode(' — ', array_filter([
         cv_print_date((string) ($entry['date_start'] ?? '')),
         cv_print_date((string) ($entry['date_end'] ?? '')),
@@ -364,16 +394,20 @@ function cv_entry_fields_markup(string $sectionKey, array $sectionConfig, string
                             <textarea name="<?= e($prefix) ?>[description]" rows="5" hidden><?= e((string) ($entry['description'] ?? '')) ?></textarea>
                         </div>
                     <?php else: ?>
-                        <label class="<?= $fieldName === 'category' ? 'cv-entry-category-field' : '' ?>">
+                        <?php
+                        $fieldType = (string) ($sectionConfig['field_types'][$fieldName] ?? (str_starts_with($fieldName, 'date_') ? 'date' : 'text'));
+                        $fieldExtra = $fieldType === 'number' ? ' min="1900" max="2999" step="1" inputmode="numeric"' : '';
+                        ?>
+                        <label class="<?= $fieldName === ($sectionConfig['summary_title'] ?? 'category') ? 'cv-entry-category-field' : '' ?>">
                             <?= e($fieldLabel) ?>
-                            <input name="<?= e($prefix) ?>[<?= e($fieldName) ?>]" type="<?= str_starts_with($fieldName, 'date_') ? 'date' : 'text' ?>" value="<?= e((string) ($entry[$fieldName] ?? '')) ?>" data-entry-field="<?= e($fieldName) ?>">
+                            <input name="<?= e($prefix) ?>[<?= e($fieldName) ?>]" type="<?= e($fieldType) ?>"<?= $fieldExtra ?> value="<?= e((string) ($entry[$fieldName] ?? '')) ?>" data-entry-field="<?= e($fieldName) ?>">
                         </label>
                     <?php endif; ?>
                 <?php endforeach; ?>
                 <div class="cv-entry-controls">
                     <label class="visibility-toggle">
                         <input type="checkbox" name="<?= e($prefix) ?>[is_active]" value="1" <?= $isActive ? 'checked' : '' ?> data-default-checked="1" data-entry-field="is_active">
-                        <span>Articulo activo en PDF</span>
+                        <span><?= e((string) ($sectionConfig['active_label'] ?? 'Articulo activo en PDF')) ?></span>
                     </label>
                     <label>Orden
                         <input name="<?= e($prefix) ?>[display_order]" type="number" min="1" step="1" value="<?= e((string) ($entry['display_order'] ?? '')) ?>" data-entry-field="display_order">
@@ -398,13 +432,16 @@ function cv_entry_fields_markup(string $sectionKey, array $sectionConfig, string
  */
 function cv_entry_item_markup(string $sectionKey, array $sectionConfig, string $rowIndex, array $entry, string $sectionTitle): string
 {
+    $titleField = (string) ($sectionConfig['summary_title'] ?? 'category');
+    $hiddenLabel = (string) ($sectionConfig['hidden_label'] ?? 'Oculta en el PDF');
+    $metaFields = is_array($sectionConfig['summary_meta'] ?? null) ? $sectionConfig['summary_meta'] : [];
     $entryImagePath = member_visible_asset_path((string) ($entry['image_path'] ?? ''));
-    $entryTitle = clean_text((string) ($entry['category'] ?? ''));
-    $entryMeta = cv_entry_meta_label($entry);
+    $entryTitle = clean_text((string) ($entry[$titleField] ?? ''));
+    $entryMeta = cv_entry_meta_label($entry, $sectionConfig);
     $isActive = (bool) ($entry['is_active'] ?? true);
     ob_start();
     ?>
-    <article class="member-entry-item" data-entry-item>
+    <article class="member-entry-item" data-entry-item data-entry-title-field="<?= e($titleField) ?>" data-entry-meta-fields="<?= e(implode(',', $metaFields)) ?>" data-entry-hidden-label="<?= e($hiddenLabel) ?>">
         <button type="button" class="member-entry-open" data-entry-edit>
             <span class="member-entry-thumb">
                 <img <?= $entryImagePath !== '' ? 'src="' . e($entryImagePath) . '"' : '' ?> alt="" loading="lazy" data-entry-thumb-image <?= $entryImagePath === '' ? 'hidden' : '' ?>>
@@ -414,11 +451,14 @@ function cv_entry_item_markup(string $sectionKey, array $sectionConfig, string $
                 <strong data-entry-title><?= e($entryTitle !== '' ? $entryTitle : 'Entrada sin titulo') ?></strong>
                 <span class="member-entry-meta" data-entry-meta><?= e($entryMeta) ?></span>
             </span>
-            <span class="member-entry-flag" data-entry-flag <?= $isActive ? 'hidden' : '' ?>>Oculta en el PDF</span>
+            <span class="member-entry-flag" data-entry-flag <?= $isActive ? 'hidden' : '' ?>><?= e($hiddenLabel) ?></span>
         </button>
         <div class="member-entry-actions">
             <button type="button" class="member-entry-action" data-entry-view>Ver</button>
             <button type="button" class="member-entry-action" data-entry-edit>Editar</button>
+            <?php if (!empty($sectionConfig['toggle_action'])): ?>
+                <button type="button" class="member-entry-action" data-entry-toggle><?= $isActive ? 'Ocultar' : 'Mostrar' ?></button>
+            <?php endif; ?>
             <button type="button" class="member-entry-action member-entry-action-danger" data-entry-delete>Borrar</button>
         </div>
         <?= cv_entry_fields_markup($sectionKey, $sectionConfig, $rowIndex, $entry, $sectionTitle) ?>
@@ -750,6 +790,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($profileAction, ['update_p
             $memberProfile['custom_section_title'] = $customSectionTitle;
         }
         $entryMediaOptions = ['requires_title_description' => false, 'allows_image' => true];
+
+        // Articulos del bloque Inicio. Se reconstruyen siempre a partir de lo que
+        // llega en el POST, que es de este usuario y solo de este usuario: el
+        // perfil se lee de la sesion, nunca de un id del formulario, asi que no
+        // hay forma de tocar los articulos de otro miembro manipulando indices.
+        $memberProfile[$introSectionKey] = clean_cv_entries(
+            $_POST,
+            $introSectionKey,
+            array_keys($introSectionConfig['fields']),
+            $entryMediaOptions + ['title' => $introSectionTitle],
+            is_array($memberProfile[$introSectionKey] ?? null) ? $memberProfile[$introSectionKey] : [],
+            $_FILES,
+            $profileErrors
+        );
+        $memberProfile[$introSectionKey] = sort_cv_entries($memberProfile[$introSectionKey], 'manual');
+
         foreach ($cvSectionConfig as $sectionKey => $sectionConfig) {
             $memberProfile[$sectionKey] = clean_cv_entries(
                 $_POST,
@@ -790,7 +846,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($profileAction, ['update_p
             $profileErrors[] = 'La fotografia se ha subido al servidor, pero no se ha podido confirmar su ruta en la base de datos.';
         }
 
-        if ($profileAction === 'update_profile' && !cv_curriculum_images_persisted($user, $memberProfile, $cvSectionConfig)) {
+        if ($profileAction === 'update_profile' && !cv_curriculum_images_persisted($user, $memberProfile, $cvSectionConfig + [$introSectionKey => $introSectionConfig])) {
             $profileErrors[] = 'Una o varias imagenes del curriculum se han subido, pero no se han podido confirmar en la base de datos.';
         }
 
@@ -1109,6 +1165,10 @@ $cvSectionImages = [
     'experience' => 'assets/images/community/evento-flamenco.webp',
     'custom_section' => 'assets/images/community/pena-flamenca.webp',
 ];
+$introEntries = is_array($memberProfile[$introSectionKey] ?? null) ? array_values($memberProfile[$introSectionKey]) : [];
+$introMetrics = cv_section_metrics($introEntries);
+$introVisibleCount = $introMetrics['active'];
+
 $cvSectionEntries = [];
 $cvSectionMetrics = [];
 foreach ($cvSectionConfig as $sectionKey => $sectionConfig) {
@@ -1128,6 +1188,16 @@ $panelNavCards = [
         'metric' => $profileCompletion . '% completo',
     ],
 ];
+if ($hasWebPage) {
+    $panelNavCards[] = [
+        'target' => 'inicio-articulos',
+        'title' => 'Inicio',
+        'note' => 'La presentacion que abre tu web publica, justo debajo de la cabecera.',
+        'image' => 'assets/images/flamenco-header-art-con-microfono.png',
+        'metric' => $introMetrics['total'] === 1 ? '1 articulo' : $introMetrics['total'] . ' articulos',
+        'metric_section' => $introSectionKey,
+    ];
+}
 foreach ($cvSectionConfig as $sectionKey => $sectionConfig) {
     $panelNavCards[] = [
         'target' => $cvSectionAnchors[$sectionKey],
@@ -1247,8 +1317,10 @@ if ($alumnoPanelLink) {
                 </div>
                 <button class="member-sidebar-print" type="button" onclick="window.print()">Imprimir curriculum PDF</button>
                 <nav class="member-sidebar-nav">
-                    <a class="active" href="#inicio" data-panel-link="inicio">Inicio</a>
+                    <?php /* "Panel" y no "Inicio": el apartado Inicio es el de la web publica. */ ?>
+                    <a class="active" href="#inicio" data-panel-link="inicio">Panel</a>
                     <a href="#perfil" data-panel-link="perfil">Mi perfil</a>
+                    <?php if ($hasWebPage): ?><a href="#inicio-articulos" data-panel-link="inicio-articulos">Inicio</a><?php endif; ?>
                     <?php foreach ($cvSectionConfig as $sectionKey => $sectionConfig): ?>
                         <a href="#<?= e($cvSectionAnchors[$sectionKey]) ?>" data-panel-link="<?= e($cvSectionAnchors[$sectionKey]) ?>"><?= e((string) $sectionConfig['title']) ?></a>
                     <?php endforeach; ?>
@@ -1468,6 +1540,54 @@ if ($alumnoPanelLink) {
                                 </label>
                             </fieldset>
                         </section>
+
+                        <?php if ($hasWebPage): ?>
+                        <section id="inicio-articulos" class="content-section member-panel-section member-entry-section" data-entry-card="<?= e($introSectionKey) ?>" data-entry-noun="articulo">
+                            <div class="member-panel-heading">
+                                <div class="member-panel-heading-main">
+                                    <div>
+                                        <p class="section-kicker">Web publica</p>
+                                        <h2>Inicio</h2>
+                                        <p>La presentacion que abre tu web, justo debajo de la cabecera: trayectoria, hitos, formacion o proyectos, un articulo por cada momento.</p>
+                                    </div>
+                                    <button type="button" class="button button-primary member-card-cta" data-entry-create="<?= e($introSectionKey) ?>">+ Crear articulo</button>
+                                </div>
+                                <div class="member-kpi-grid">
+                                    <article class="member-kpi">
+                                        <span>Articulos</span>
+                                        <strong data-kpi="total"><?= e((string) $introMetrics['total']) ?></strong>
+                                    </article>
+                                    <article class="member-kpi">
+                                        <span>Visibles en la web</span>
+                                        <strong data-kpi="active"><?= e((string) $introMetrics['active']) ?></strong>
+                                    </article>
+                                    <article class="member-kpi">
+                                        <span>Con imagen</span>
+                                        <strong data-kpi="images"><?= e((string) $introMetrics['images']) ?></strong>
+                                    </article>
+                                    <article class="member-kpi">
+                                        <span>Periodo</span>
+                                        <strong data-kpi="period"><?= e($introMetrics['period']) ?></strong>
+                                    </article>
+                                </div>
+                            </div>
+
+                            <div class="member-entry-list" data-entry-list="<?= e($introSectionKey) ?>" data-entry-next="<?= e((string) count($introEntries)) ?>">
+                                <?php foreach ($introEntries as $rowIndex => $entry): ?>
+                                    <?= cv_entry_item_markup($introSectionKey, $introSectionConfig, (string) $rowIndex, is_array($entry) ? $entry : [], $introSectionTitle) ?>
+                                <?php endforeach; ?>
+                            </div>
+
+                            <div class="member-entry-empty" data-entry-empty <?= $introEntries ? 'hidden' : '' ?>>
+                                <p>Todavia no has creado ningun articulo de <strong>Inicio</strong>. Mientras no haya ninguno visible, tu web publica pasa directamente de la cabecera a la galeria.</p>
+                                <button type="button" class="button button-secondary" data-entry-create="<?= e($introSectionKey) ?>">+ Crear articulo</button>
+                            </div>
+
+                            <p class="field-help">Los articulos se muestran en la web ordenados por el campo <strong>Orden</strong>, de menor a mayor. Los ocultos siguen aqui pero no aparecen en la web.</p>
+
+                            <template data-entry-template="<?= e($introSectionKey) ?>"><?= cv_entry_item_markup($introSectionKey, $introSectionConfig, '__INDEX__', [], $introSectionTitle) ?></template>
+                        </section>
+                        <?php endif; ?>
 
                         <?php foreach ($cvSectionConfig as $sectionKey => $sectionConfig): ?>
                             <?php
@@ -2215,7 +2335,14 @@ if ($alumnoPanelLink) {
             return match ? `${match[3]}/${match[2]}/${match[1]}` : value;
         };
 
-        const entryMetaLabel = (fields) => {
+        // Espejo de cv_entry_meta_label(): por defecto fechas y lugar, salvo que
+        // la fila declare con que campos se resume (el bloque Inicio usa el ano).
+        const entryMetaLabel = (fields, item) => {
+            const declared = (item?.dataset.entryMetaFields || '').split(',').filter(Boolean);
+            if (declared.length > 0) {
+                return declared.map((field) => entryFieldValue(fields, field)).filter(Boolean).join(' · ');
+            }
+
             const dates = [
                 formatEntryDate(entryFieldValue(fields, 'date_start')),
                 formatEntryDate(entryFieldValue(fields, 'date_end')),
@@ -2242,16 +2369,21 @@ if ($alumnoPanelLink) {
             const flag = item.querySelector('[data-entry-flag]');
             const thumbImage = item.querySelector('[data-entry-thumb-image]');
             const thumbPlaceholder = item.querySelector('[data-entry-thumb-placeholder]');
+            const toggleButton = item.querySelector('[data-entry-toggle]');
             const imagePath = entryFieldValue(fields, 'image_path');
+            const isVisible = entryFieldValue(fields, 'is_active') === '1';
 
             if (title instanceof HTMLElement) {
-                title.textContent = entryFieldValue(fields, 'category') || 'Entrada sin titulo';
+                title.textContent = entryFieldValue(fields, item.dataset.entryTitleField || 'category') || 'Entrada sin titulo';
             }
             if (meta instanceof HTMLElement) {
-                meta.textContent = entryMetaLabel(fields);
+                meta.textContent = entryMetaLabel(fields, item);
             }
             if (flag instanceof HTMLElement) {
-                flag.hidden = entryFieldValue(fields, 'is_active') === '1';
+                flag.hidden = isVisible;
+            }
+            if (toggleButton instanceof HTMLElement) {
+                toggleButton.textContent = isVisible ? 'Ocultar' : 'Mostrar';
             }
             if (thumbImage instanceof HTMLImageElement) {
                 if (imagePath) {
@@ -2282,7 +2414,7 @@ if ($alumnoPanelLink) {
                 if (entryFieldValue(fields, 'image_path') !== '') {
                     images += 1;
                 }
-                ['date_start', 'date_end'].forEach((field) => {
+                ['date_start', 'date_end', 'year'].forEach((field) => {
                     const year = Number.parseInt(entryFieldValue(fields, field).slice(0, 4), 10);
                     if (Number.isInteger(year) && year > 0) {
                         years.push(year);
@@ -2318,7 +2450,8 @@ if ($alumnoPanelLink) {
 
             const navMetric = document.querySelector(`[data-nav-metric="${card.dataset.entryCard}"]`);
             if (navMetric instanceof HTMLElement) {
-                navMetric.textContent = metrics.total === 1 ? '1 entrada' : `${metrics.total} entradas`;
+                const noun = card.dataset.entryNoun || 'entrada';
+                navMetric.textContent = `${metrics.total} ${metrics.total === 1 ? noun : noun + 's'}`;
             }
             if (empty instanceof HTMLElement) {
                 empty.hidden = metrics.total > 0;
@@ -2328,16 +2461,16 @@ if ($alumnoPanelLink) {
             }
         };
 
-        const entryPreviewMarkup = (fields) => {
+        const entryPreviewMarkup = (fields, item) => {
             const imagePath = entryFieldValue(fields, 'image_path');
-            const meta = entryMetaLabel(fields);
+            const meta = entryMetaLabel(fields, item);
             const description = entryFieldValue(fields, 'description');
             const blocks = [];
 
             if (imagePath) {
                 blocks.push(`<img class="member-entry-preview-image" src="${escapeEntryText(imagePath)}" alt="">`);
             }
-            blocks.push(`<h5>${escapeEntryText(entryFieldValue(fields, 'category') || 'Entrada sin titulo')}</h5>`);
+            blocks.push(`<h5>${escapeEntryText(entryFieldValue(fields, item?.dataset.entryTitleField || 'category') || 'Entrada sin titulo')}</h5>`);
             if (meta) {
                 blocks.push(`<p class="member-entry-preview-meta">${escapeEntryText(meta)}</p>`);
             }
@@ -2345,7 +2478,10 @@ if ($alumnoPanelLink) {
                 ? `<div class="member-entry-preview-text">${description}</div>`
                 : '<p class="member-entry-preview-empty">Esta entrada todavia no tiene descripcion.</p>');
             if (entryFieldValue(fields, 'is_active') !== '1') {
-                blocks.push('<p class="member-entry-preview-flag">Esta entrada no se imprime en el curriculum PDF.</p>');
+                const hiddenNote = item?.dataset.entryHiddenLabel === 'Oculto en la web'
+                    ? 'Este articulo esta oculto: no aparece en tu web publica.'
+                    : 'Esta entrada no se imprime en el curriculum PDF.';
+                blocks.push(`<p class="member-entry-preview-flag">${escapeEntryText(hiddenNote)}</p>`);
             }
 
             return blocks.join('');
@@ -2363,7 +2499,7 @@ if ($alumnoPanelLink) {
             if (preview instanceof HTMLElement) {
                 preview.hidden = !isView;
                 if (isView) {
-                    preview.innerHTML = entryPreviewMarkup(fields);
+                    preview.innerHTML = entryPreviewMarkup(fields, fields.closest('[data-entry-item]'));
                 }
             }
             if (entryForm instanceof HTMLElement) {
@@ -2495,6 +2631,24 @@ if ($alumnoPanelLink) {
                 const fields = toEditButton.closest('[data-entry-fields]');
                 if (fields instanceof HTMLElement) {
                     setEntryDrawerMode(fields, 'edit');
+                }
+                return;
+            }
+
+            // Ocultar / mostrar sin abrir el panel: cambia la misma casilla que
+            // el formulario, asi que se confirma con Guardar cambios como todo
+            // lo demas y no hace falta un envio aparte.
+            const toggleButton = target.closest('[data-entry-toggle]');
+            if (toggleButton) {
+                const item = toggleButton.closest('[data-entry-item]');
+                const visibleInput = item?.querySelector('[data-entry-field="is_active"]');
+                if (item instanceof HTMLElement && visibleInput instanceof HTMLInputElement) {
+                    visibleInput.checked = !visibleInput.checked;
+                    refreshEntryItem(item);
+                    refreshEntryCard(item.closest('[data-entry-card]'));
+                    markProfilePendingSave(visibleInput.checked
+                        ? 'Articulo marcado como visible. Pulsa Guardar cambios para confirmarlo.'
+                        : 'Articulo marcado como oculto. Pulsa Guardar cambios para confirmarlo.');
                 }
                 return;
             }

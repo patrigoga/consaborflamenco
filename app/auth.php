@@ -302,6 +302,10 @@ function default_member_profile(array $user = []): array
         'public_fields' => [],
         'sort_orders' => [],
         'section_settings' => [],
+        // Bloque "Inicio" de la microweb publica: presentacion por articulos con
+        // ano, titulo, descripcion e imagen opcional. Vive en perfil_json como
+        // el resto de secciones repetibles, asi que no necesita tabla propia.
+        'intro_articles' => [],
         'education' => [],
         'experience' => [],
         'teaching' => [],
