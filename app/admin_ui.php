@@ -21,6 +21,7 @@ function admin_sections(): array
         'contenido' => [
             'label' => 'Contenido',
             'items' => [
+                'eventos' => ['label' => 'Eventos', 'target' => 'eventos-admin'],
                 'articulos' => ['label' => 'Articulos', 'target' => 'articulos'],
                 'categorias' => ['label' => 'Categorias', 'target' => 'categorias'],
                 'servicios' => ['label' => 'Servicios', 'target' => 'servicios-admin'],
@@ -36,6 +37,7 @@ function admin_sections(): array
         'finanzas' => [
             'label' => 'Finanzas',
             'items' => [
+                'puntos' => ['label' => 'Puntos', 'target' => 'puntos-admin'],
                 'comisiones' => ['label' => 'Comisiones', 'target' => 'comisiones'],
             ],
         ],

@@ -228,3 +228,4 @@ El formulario publico guarda solo hash de IP, aplica CSRF, honeypot, limite basi
 - 2026-06-29: Anadida configuracion especifica para la base de produccion `u311361615_csf` y separacion de credenciales mediante `.env`.
 - 2026-07-18: Preparada migracion no destructiva de disciplinas y filtros compatibles para directorios de artistas y academias.
 - 2026-07-18: Preparada migracion no destructiva para documentos legales administrables y versionados.
+- 2026-08-31: Anadidas las tablas de la fase 1 de red social: `municipios`, `eventos`, `puntos_saldos`, `puntos_movimientos`, `miembro_redes` y `registro_actividad`, mas las columnas `miembros.provincia_id` y `miembros.municipio_id`. Reutilizadas `provincias` (sembrada con las 52), `disciplinas`, `miembro_disciplinas` y `pagos_stripe`. Detalle en `docs/17_RED_SOCIAL_FASE1.md`.

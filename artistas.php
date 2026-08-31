@@ -4,14 +4,40 @@ declare(strict_types=1);
 require_once __DIR__ . '/app/auth.php';
 require_once __DIR__ . '/app/layout.php';
 require_once __DIR__ . '/app/directory_helpers.php';
+require_once __DIR__ . '/app/geo_repository.php';
 
 $activeDiscipline = csf_active_discipline($_GET);
 $activeDisciplineLabel = csf_discipline_options()[$activeDiscipline] ?? 'Todos';
 $artists = [];
 $pdo = db();
 
+// Fase 1: filtros por territorio. Artistas > Cordoba > Montilla > Baile.
+$provincias = [];
+$municipios = [];
+$provinciaActual = null;
+$municipioId = 0;
+$provinciaSlug = slugify(clean_text((string) ($_GET['provincia'] ?? '')));
+
 if ($pdo) {
-    foreach (csf_fetch_member_directory($pdo, 'artista', $activeDiscipline, 48) as $row) {
+    try {
+        $provincias = csf_geo_provincias($pdo);
+        $provinciaActual = $provinciaSlug !== '' ? csf_geo_provincia_por_slug($pdo, $provinciaSlug) : null;
+
+        if ($provinciaActual !== null) {
+            $municipios = csf_geo_municipios($pdo, $provinciaActual['id']);
+            $municipioId = (int) ($_GET['municipio'] ?? 0);
+            if ($municipioId > 0 && !in_array($municipioId, array_column($municipios, 'id'), true)) {
+                $municipioId = 0;
+            }
+        }
+    } catch (Throwable $exception) {
+        error_log('[artistas] filtros geograficos no disponibles: ' . $exception->getMessage());
+    }
+}
+
+if ($pdo) {
+    $geoFiltros = ['provincia_id' => $provinciaActual['id'] ?? 0, 'municipio_id' => $municipioId];
+    foreach (csf_fetch_member_directory($pdo, 'artista', $activeDiscipline, 48, $geoFiltros) as $row) {
         $profile = csf_decode_profile((string) ($row['perfil_json'] ?? ''));
         $slug = clean_text((string) ($row['slug'] ?? ''));
         if ($slug === '') {
@@ -86,6 +112,36 @@ if ($pdo) {
                     </div>
 
                     <?php csf_render_discipline_filters('artistas.php', $activeDiscipline, 'Filtrar artistas por disciplina'); ?>
+
+                    <?php /* Filtros por territorio. Los de disciplina de arriba
+                             se conservan tal cual: siguen siendo enlaces. */ ?>
+                    <form class="csf-directory-filters" method="get" action="artistas.php">
+                        <input type="hidden" name="disciplina" value="<?= e($activeDiscipline) ?>">
+                        <div>
+                            <label for="filtro-provincia">Provincia</label>
+                            <select id="filtro-provincia" name="provincia" onchange="this.form.municipio.value=''; this.form.submit();">
+                                <option value="">Toda España</option>
+                                <?php foreach ($provincias as $provincia): ?>
+                                    <option value="<?= e($provincia['slug']) ?>"<?= ($provinciaActual['slug'] ?? '') === $provincia['slug'] ? ' selected' : '' ?>><?= e($provincia['nombre']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="filtro-municipio">Municipio</label>
+                            <select id="filtro-municipio" name="municipio"<?= $municipios === [] ? ' disabled' : '' ?>>
+                                <option value="">Todos</option>
+                                <?php foreach ($municipios as $municipio): ?>
+                                    <option value="<?= e((string) $municipio['id']) ?>"<?= $municipioId === $municipio['id'] ? ' selected' : '' ?>><?= e($municipio['nombre']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="csf-directory-filters-actions">
+                            <button class="button button-primary" type="submit">Filtrar</button>
+                            <?php if ($provinciaActual !== null || $activeDiscipline !== 'todos'): ?>
+                                <a class="button button-secondary" href="artistas.php">Quitar filtros</a>
+                            <?php endif; ?>
+                        </div>
+                    </form>
 
                     <?php if ($artists): ?>
                         <div class="editorial-grid directory-grid">

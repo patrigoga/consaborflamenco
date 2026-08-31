@@ -7,6 +7,9 @@ require_once __DIR__ . '/app/academia_security.php';
 require_once __DIR__ . '/app/legal_repository.php';
 require_once __DIR__ . '/app/site_content_repository.php';
 require_once __DIR__ . '/app/layout.php';
+// Fase 1 red social: supervision de eventos y de la economia de puntos.
+require_once __DIR__ . '/app/events_repository.php';
+require_once __DIR__ . '/app/points_repository.php';
 
 $user = require_login();
 if (($user['role'] ?? 'user') !== 'admin') {
@@ -1193,6 +1196,179 @@ $recentBlocks = [
                                 </td>
                             </tr>
                         <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <?php
+        /* Fase 1 red social: supervision de la agenda y de la economia de
+           puntos. Solo lectura: el admin observa y audita, pero no altera
+           saldos desde aqui. Cuando haga falta un ajuste manual se anadira con
+           su propio movimiento de tipo ADMINISTRACION, que ya esta contemplado
+           en el ENUM de puntos_movimientos.
+
+           Todas las consultas pasan por admin_safe_fetch_all(), asi que en un
+           entorno sin migrar la seccion se ve vacia en vez de romper el panel. */
+        $eventosAdmin = $pdo ? admin_safe_fetch_all($pdo, 'SELECT
+                e.id, e.titulo, e.slug, e.fecha, e.hora, e.estado, e.promocionado,
+                e.promocion_expira_at, e.municipio_texto, e.provincia_texto,
+                e.deleted_at, e.vistas, e.created_at,
+                m.nombre_publico AS artista
+            FROM eventos e
+            LEFT JOIN miembros m ON m.id = e.miembro_id
+            ORDER BY e.created_at DESC
+            LIMIT 40') : [];
+
+        $eventosTotalAdmin = $pdo ? admin_safe_count($pdo, 'SELECT COUNT(*) FROM eventos WHERE deleted_at IS NULL') : 0;
+        $eventosProximosAdmin = $pdo ? admin_safe_count($pdo, 'SELECT COUNT(*) FROM eventos WHERE deleted_at IS NULL AND estado = "PUBLICADO" AND COALESCE(fecha_fin, fecha) >= CURDATE()') : 0;
+        $eventosPromocionadosAdmin = $pdo ? admin_safe_count($pdo, 'SELECT COUNT(*) FROM eventos WHERE deleted_at IS NULL AND promocionado = 1 AND (promocion_expira_at IS NULL OR promocion_expira_at > NOW())') : 0;
+        ?>
+
+        <section class="content-section admin-shell" id="eventos-admin">
+            <div class="section-heading">
+                <div class="section-heading-content">
+                    <p class="section-kicker">Contenido</p>
+                    <h2>Eventos de la agenda</h2>
+                    <p>Los eventos que publican los miembros. Crear es gratis; promocionar cuesta <?= e((string) csf_puntos_coste('promocion_evento')) ?> puntos.</p>
+                </div>
+            </div>
+
+            <div class="admin-overview-grid admin-overview-grid-compact">
+                <article class="admin-overview-card">
+                    <span>Publicados</span>
+                    <strong><?= e(admin_metric_number($eventosTotalAdmin)) ?></strong>
+                    <small>Eventos vivos en la plataforma</small>
+                </article>
+                <article class="admin-overview-card">
+                    <span>Proximos</span>
+                    <strong><?= e(admin_metric_number($eventosProximosAdmin)) ?></strong>
+                    <small>Visibles ahora en la agenda publica</small>
+                </article>
+                <article class="admin-overview-card">
+                    <span>Promocionados</span>
+                    <strong><?= e(admin_metric_number($eventosPromocionadosAdmin)) ?></strong>
+                    <small>Con promocion vigente</small>
+                </article>
+            </div>
+
+            <div class="admin-table-wrapper">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Evento</th>
+                            <th>Artista</th>
+                            <th>Fecha</th>
+                            <th>Lugar</th>
+                            <th>Estado</th>
+                            <th>Visitas</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (!$eventosAdmin): ?>
+                            <tr><td colspan="6">Todavia no hay eventos publicados.</td></tr>
+                        <?php else: ?>
+                            <?php foreach ($eventosAdmin as $eventoAdmin): ?>
+                                <?php
+                                $borrado = !empty($eventoAdmin['deleted_at']);
+                                $destacadoAdmin = !$borrado && csf_evento_promocion_vigente($eventoAdmin);
+                                ?>
+                                <tr>
+                                    <td>
+                                        <?php if ($borrado): ?>
+                                            <?= e((string) $eventoAdmin['titulo']) ?>
+                                        <?php else: ?>
+                                            <a href="<?= e(app_url('evento/' . rawurlencode((string) $eventoAdmin['slug']))) ?>" target="_blank" rel="noopener"><?= e((string) $eventoAdmin['titulo']) ?></a>
+                                        <?php endif; ?>
+                                        <?php if ($destacadoAdmin): ?> <span class="status-pill status-pill-active">Destacado</span><?php endif; ?>
+                                    </td>
+                                    <td><?= e((string) ($eventoAdmin['artista'] ?? '—')) ?></td>
+                                    <td><?= e((string) $eventoAdmin['fecha']) ?><?= $eventoAdmin['hora'] ? ' ' . e(substr((string) $eventoAdmin['hora'], 0, 5)) : '' ?></td>
+                                    <td><?= e(csf_geo_etiqueta((string) $eventoAdmin['municipio_texto'], (string) $eventoAdmin['provincia_texto'])) ?></td>
+                                    <td><?= $borrado ? admin_status_badge('ARCHIVADO', 'Eliminado') : admin_status_badge((string) $eventoAdmin['estado']) ?></td>
+                                    <td><?= e((string) $eventoAdmin['vistas']) ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <?php
+        $movimientosAdmin = $pdo ? admin_safe_fetch_all($pdo, 'SELECT
+                pm.id, pm.puntos, pm.tipo, pm.concepto, pm.saldo_posterior, pm.created_at,
+                u.nombre AS usuario, u.email
+            FROM puntos_movimientos pm
+            LEFT JOIN usuarios u ON u.id = pm.usuario_id
+            ORDER BY pm.created_at DESC, pm.id DESC
+            LIMIT 40') : [];
+
+        $puntosEnCirculacion = $pdo ? admin_safe_count($pdo, 'SELECT COALESCE(SUM(saldo), 0) FROM puntos_saldos') : 0;
+        $puntosGastados = $pdo ? admin_safe_count($pdo, 'SELECT COALESCE(SUM(total_gastado), 0) FROM puntos_saldos') : 0;
+        $carterasAbiertas = $pdo ? admin_safe_count($pdo, 'SELECT COUNT(*) FROM puntos_saldos') : 0;
+        $comprasSolicitadas = $pdo ? admin_safe_count($pdo, 'SELECT COUNT(*) FROM pagos_stripe WHERE concepto LIKE "Paquete de %puntos" AND estado = "PENDIENTE"') : 0;
+        ?>
+
+        <section class="content-section admin-shell" id="puntos-admin">
+            <div class="section-heading">
+                <div class="section-heading-content">
+                    <p class="section-kicker">Finanzas</p>
+                    <h2>Puntos</h2>
+                    <p>Economia de la plataforma. 1 punto = <?= e(csf_puntos_formato_euros(CSF_PUNTOS_VALOR_CENTIMOS)) ?>. Solo lectura.</p>
+                </div>
+            </div>
+
+            <div class="admin-overview-grid admin-overview-grid-compact">
+                <article class="admin-overview-card">
+                    <span>En circulacion</span>
+                    <strong><?= e(admin_metric_number($puntosEnCirculacion)) ?></strong>
+                    <small>Saldo sin gastar de todos los miembros</small>
+                </article>
+                <article class="admin-overview-card">
+                    <span>Consumidos</span>
+                    <strong><?= e(admin_metric_number($puntosGastados)) ?></strong>
+                    <small>Puntos ya usados en promociones y enlaces</small>
+                </article>
+                <article class="admin-overview-card">
+                    <span>Carteras</span>
+                    <strong><?= e(admin_metric_number($carterasAbiertas)) ?></strong>
+                    <small>Miembros con cartera abierta</small>
+                </article>
+                <article class="admin-overview-card">
+                    <span>Compras solicitadas</span>
+                    <strong><?= e(admin_metric_number($comprasSolicitadas)) ?></strong>
+                    <small>A la espera de la pasarela de pago</small>
+                </article>
+            </div>
+
+            <div class="admin-table-wrapper">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Miembro</th>
+                            <th>Concepto</th>
+                            <th>Tipo</th>
+                            <th>Puntos</th>
+                            <th>Saldo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (!$movimientosAdmin): ?>
+                            <tr><td colspan="6">Todavia no hay movimientos de puntos.</td></tr>
+                        <?php else: ?>
+                            <?php foreach ($movimientosAdmin as $movimientoAdmin): ?>
+                                <tr>
+                                    <td><?= e(date('d/m/Y H:i', strtotime((string) $movimientoAdmin['created_at']))) ?></td>
+                                    <td><?= e((string) ($movimientoAdmin['usuario'] ?? '—')) ?></td>
+                                    <td><?= e((string) $movimientoAdmin['concepto']) ?></td>
+                                    <td><?= e(csf_puntos_tipo_etiqueta((string) $movimientoAdmin['tipo'])) ?></td>
+                                    <td><?= e(((int) $movimientoAdmin['puntos'] > 0 ? '+' : '') . (string) $movimientoAdmin['puntos']) ?></td>
+                                    <td><?= e((string) $movimientoAdmin['saldo_posterior']) ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>

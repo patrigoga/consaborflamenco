@@ -202,3 +202,157 @@ CREATE TABLE usos_codigo_descuento (
     INDEX idx_usos_codigo (codigo_descuento),
     INDEX idx_usos_miembro_fecha (miembro_id, usado_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ===========================================================================
+-- Fase 1 red social (2026-08-31): perfil de artista, eventos, agenda y puntos.
+-- Migracion incremental equivalente: database/20260831_fase1_red_social.sql
+-- ===========================================================================
+
+CREATE TABLE municipios (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    provincia_id BIGINT UNSIGNED NOT NULL,
+    nombre VARCHAR(160) NOT NULL,
+    slug VARCHAR(180) NOT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_municipios_provincia FOREIGN KEY (provincia_id) REFERENCES provincias(id) ON DELETE CASCADE,
+    UNIQUE KEY uq_municipios_provincia_slug (provincia_id, slug),
+    INDEX idx_municipios_nombre (nombre)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE disciplinas (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    slug VARCHAR(80) NOT NULL UNIQUE,
+    nombre VARCHAR(120) NOT NULL,
+    estado ENUM('ACTIVA','INACTIVA') NOT NULL DEFAULT 'ACTIVA',
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE miembro_disciplinas (
+    miembro_id BIGINT UNSIGNED NOT NULL,
+    disciplina_id BIGINT UNSIGNED NOT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (miembro_id, disciplina_id),
+    CONSTRAINT fk_miembro_disciplinas_miembro FOREIGN KEY (miembro_id) REFERENCES miembros(id) ON DELETE CASCADE,
+    CONSTRAINT fk_miembro_disciplinas_disciplina FOREIGN KEY (disciplina_id) REFERENCES disciplinas(id) ON DELETE CASCADE,
+    INDEX idx_miembro_disciplinas_disciplina (disciplina_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Saldo materializado. Se lee con SELECT ... FOR UPDATE y se escribe siempre en
+-- la misma transaccion que inserta el movimiento correspondiente.
+CREATE TABLE puntos_saldos (
+    usuario_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+    saldo INT UNSIGNED NOT NULL DEFAULT 0,
+    total_ingresado INT UNSIGNED NOT NULL DEFAULT 0,
+    total_gastado INT UNSIGNED NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_puntos_saldos_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Libro mayor de puntos. Solo se anade: nunca se actualiza ni se borra.
+CREATE TABLE puntos_movimientos (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    usuario_id BIGINT UNSIGNED NOT NULL,
+    puntos INT NOT NULL,
+    tipo ENUM('INICIAL','COMPRA','CONSUMO','DEVOLUCION','PROMOCION','ENLACE_SOCIAL','ADMINISTRACION','PROMOCIONAL') NOT NULL,
+    concepto VARCHAR(190) NOT NULL,
+    referencia_tipo VARCHAR(40) NULL,
+    referencia_id BIGINT UNSIGNED NULL,
+    saldo_posterior INT UNSIGNED NOT NULL,
+    pago_id BIGINT UNSIGNED NULL,
+    clave_idempotencia VARCHAR(120) NULL UNIQUE,
+    creado_por_usuario_id BIGINT UNSIGNED NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_puntos_mov_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+    CONSTRAINT fk_puntos_mov_pago FOREIGN KEY (pago_id) REFERENCES pagos_stripe(id) ON DELETE SET NULL,
+    CONSTRAINT fk_puntos_mov_actor FOREIGN KEY (creado_por_usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL,
+    INDEX idx_puntos_mov_usuario_fecha (usuario_id, created_at),
+    INDEX idx_puntos_mov_referencia (referencia_tipo, referencia_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE eventos (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    miembro_id BIGINT UNSIGNED NOT NULL,
+    usuario_id BIGINT UNSIGNED NOT NULL,
+    titulo VARCHAR(200) NOT NULL,
+    slug VARCHAR(220) NOT NULL UNIQUE,
+    descripcion TEXT NULL,
+    imagen_path VARCHAR(255) NULL,
+    video_url VARCHAR(255) NULL,
+    fecha DATE NOT NULL,
+    hora TIME NULL,
+    fecha_fin DATE NULL,
+    lugar VARCHAR(190) NULL,
+    direccion VARCHAR(255) NULL,
+    provincia_id BIGINT UNSIGNED NULL,
+    municipio_id BIGINT UNSIGNED NULL,
+    provincia_texto VARCHAR(120) NULL,
+    municipio_texto VARCHAR(160) NULL,
+    enlace_url VARCHAR(255) NULL,
+    estado ENUM('BORRADOR','PUBLICADO','CANCELADO','ARCHIVADO') NOT NULL DEFAULT 'PUBLICADO',
+    promocionado BOOLEAN NOT NULL DEFAULT FALSE,
+    promocionado_at DATETIME NULL,
+    promocion_expira_at DATETIME NULL,
+    -- Preparados para fases posteriores, sin interfaz todavia.
+    precio_centimos INT UNSIGNED NULL,
+    entradas_url VARCHAR(255) NULL,
+    categoria VARCHAR(80) NULL,
+    latitud DECIMAL(10,7) NULL,
+    longitud DECIMAL(10,7) NULL,
+    vistas INT UNSIGNED NOT NULL DEFAULT 0,
+    deleted_at DATETIME NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_eventos_miembro FOREIGN KEY (miembro_id) REFERENCES miembros(id) ON DELETE CASCADE,
+    CONSTRAINT fk_eventos_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+    CONSTRAINT fk_eventos_provincia FOREIGN KEY (provincia_id) REFERENCES provincias(id) ON DELETE SET NULL,
+    CONSTRAINT fk_eventos_municipio FOREIGN KEY (municipio_id) REFERENCES municipios(id) ON DELETE SET NULL,
+    INDEX idx_eventos_agenda (estado, deleted_at, fecha, hora),
+    INDEX idx_eventos_destacados (promocionado, fecha),
+    INDEX idx_eventos_miembro_fecha (miembro_id, fecha),
+    INDEX idx_eventos_provincia_fecha (provincia_id, fecha),
+    INDEX idx_eventos_municipio_fecha (municipio_id, fecha)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- visible = se muestra en el perfil publico (gratis).
+-- enlace_activo = ademas es clicable (el primero gratis, los demas cuestan puntos).
+CREATE TABLE miembro_redes (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    miembro_id BIGINT UNSIGNED NOT NULL,
+    red VARCHAR(30) NOT NULL,
+    url VARCHAR(255) NULL,
+    handle VARCHAR(120) NULL,
+    visible BOOLEAN NOT NULL DEFAULT TRUE,
+    enlace_activo BOOLEAN NOT NULL DEFAULT FALSE,
+    activado_at DATETIME NULL,
+    coste_puntos SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    movimiento_id BIGINT UNSIGNED NULL,
+    orden SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_miembro_redes_miembro FOREIGN KEY (miembro_id) REFERENCES miembros(id) ON DELETE CASCADE,
+    CONSTRAINT fk_miembro_redes_movimiento FOREIGN KEY (movimiento_id) REFERENCES puntos_movimientos(id) ON DELETE SET NULL,
+    UNIQUE KEY uq_miembro_redes (miembro_id, red),
+    INDEX idx_miembro_redes_activas (miembro_id, enlace_activo)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE registro_actividad (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    usuario_id BIGINT UNSIGNED NULL,
+    entidad VARCHAR(40) NOT NULL,
+    entidad_id BIGINT UNSIGNED NULL,
+    accion VARCHAR(40) NOT NULL,
+    detalle_json TEXT NULL,
+    ip VARCHAR(45) NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_registro_actividad_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL,
+    INDEX idx_registro_entidad (entidad, entidad_id),
+    INDEX idx_registro_usuario_fecha (usuario_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Columnas anadidas a tablas existentes por esta fase:
+--   ALTER TABLE miembros ADD COLUMN provincia_id BIGINT UNSIGNED NULL AFTER provincia_texto;
+--   ALTER TABLE miembros ADD COLUMN municipio_id BIGINT UNSIGNED NULL AFTER provincia_id;
+--   ALTER TABLE miembros ADD INDEX idx_miembros_geo (provincia_id, municipio_id);

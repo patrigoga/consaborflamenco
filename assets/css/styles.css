@@ -10888,3 +10888,1445 @@ body.member-entry-drawer-open {
 .member-web-public-url {
     margin-bottom: clamp(14px, 1.8vw, 20px);
 }
+
+/* ==========================================================================
+   FASE 1 RED SOCIAL — Eventos, agenda, puntos y redes sociales
+   --------------------------------------------------------------------------
+   Prefijo `.csf-` para no colisionar con nada de lo anterior. Mobile first:
+   las reglas base son las del movil y los @media solo AMPLIAN hacia arriba.
+   La identidad es sobria: tinta y blanco calido como base, azul para las
+   acciones y el rojo de marca reservado a la etiqueta de destacado, que es
+   lo unico que debe gritar.
+   ========================================================================== */
+
+:root {
+    --csf-card-radius: 16px;
+    --csf-card-line: rgba(17, 17, 20, 0.09);
+    --csf-card-shadow: 0 2px 10px rgba(17, 17, 20, 0.05);
+    --csf-card-shadow-hover: 0 16px 38px rgba(17, 17, 20, 0.13);
+}
+
+.csf-empty {
+    margin: 0;
+    padding: clamp(22px, 5vw, 34px);
+    border: 1px dashed var(--csf-card-line);
+    border-radius: var(--csf-card-radius);
+    background: rgba(255, 255, 255, 0.6);
+    color: var(--color-muted);
+    text-align: center;
+}
+
+/* --- Tarjeta de evento ---------------------------------------------------- */
+
+.csf-event-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(14px, 2.4vw, 24px);
+}
+
+.csf-event-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--csf-card-line);
+    border-radius: var(--csf-card-radius);
+    background: var(--color-white);
+    box-shadow: var(--csf-card-shadow);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.csf-event-card:hover,
+.csf-event-card:focus-within {
+    transform: translateY(-3px);
+    border-color: rgba(95, 143, 184, 0.4);
+    box-shadow: var(--csf-card-shadow-hover);
+}
+
+.csf-event-media {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    background: linear-gradient(135deg, #1d2a33, #33454f);
+}
+
+.csf-event-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.5s ease;
+}
+
+.csf-event-card:hover .csf-event-media img {
+    transform: scale(1.04);
+}
+
+/* Sin cartel la tarjeta no deja un hueco vacio: la fecha ocupa el espacio. */
+.csf-event-media-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: rgba(255, 255, 255, 0.92);
+    font-family: var(--font-display);
+    line-height: 1;
+}
+
+.csf-event-media-placeholder span {
+    font-size: clamp(2.6rem, 9vw, 3.4rem);
+}
+
+.csf-event-media-placeholder small {
+    margin-top: 6px;
+    font-family: "Inter", Arial, sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    opacity: 0.75;
+}
+
+/* Sello de fecha. Es el ancla visual de la tarjeta. */
+.csf-event-date {
+    position: absolute;
+    left: 12px;
+    bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 52px;
+    padding: 7px 9px 6px;
+    border-radius: 11px;
+    background: var(--color-white);
+    box-shadow: 0 4px 14px rgba(17, 17, 20, 0.24);
+    line-height: 1;
+}
+
+.csf-event-date strong {
+    font-family: var(--font-display);
+    font-size: 1.42rem;
+    color: var(--color-black);
+}
+
+.csf-event-date small {
+    margin-top: 3px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    color: var(--color-muted);
+}
+
+.csf-event-flag {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    background: var(--color-red);
+    color: var(--color-white);
+    font-size: 0.63rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.csf-event-state {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    background: rgba(17, 17, 20, 0.82);
+    color: var(--color-white);
+    font-size: 0.63rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.csf-event-state-cancelado {
+    background: rgba(201, 79, 92, 0.94);
+}
+
+.csf-event-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 7px;
+    padding: clamp(15px, 2.4vw, 20px);
+}
+
+.csf-event-artist {
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--color-blue);
+}
+
+.csf-event-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(1.14rem, 2.6vw, 1.34rem);
+    line-height: 1.25;
+}
+
+.csf-event-title a {
+    color: var(--color-black);
+    text-decoration: none;
+}
+
+.csf-event-title a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.csf-event-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--color-muted);
+}
+
+.csf-event-place::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 7px;
+    border-radius: 50%;
+    background: var(--color-blue);
+    vertical-align: middle;
+}
+
+.csf-event-time {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: var(--color-ink);
+}
+
+.csf-event-excerpt {
+    margin: 0;
+    font-size: 0.92rem;
+    color: var(--color-muted);
+}
+
+.csf-event-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 12px;
+}
+
+.csf-event-cta {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--color-blue);
+    text-decoration: none;
+}
+
+.csf-event-cta:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+/* Destacado: un filete rojo a la izquierda, sin invadir el resto. */
+.csf-event-card.is-featured {
+    border-color: rgba(201, 79, 92, 0.34);
+    box-shadow: 0 3px 16px rgba(201, 79, 92, 0.13);
+}
+
+.csf-event-card.is-featured .csf-event-body {
+    border-left: 3px solid var(--color-red);
+}
+
+.csf-event-card.is-past {
+    opacity: 0.74;
+}
+
+.csf-event-card.is-past .csf-event-media img {
+    filter: grayscale(0.6);
+}
+
+.csf-event-card.is-compact .csf-event-media {
+    aspect-ratio: 16 / 7;
+}
+
+.csf-event-card.is-compact .csf-event-excerpt {
+    display: none;
+}
+
+/* --- Agenda publica ------------------------------------------------------- */
+
+.csf-agenda-month + .csf-agenda-month {
+    margin-top: clamp(28px, 4.5vw, 44px);
+}
+
+.csf-agenda-month-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 clamp(14px, 2.2vw, 20px);
+    font-family: var(--font-display);
+    font-size: clamp(1.3rem, 3.4vw, 1.7rem);
+    color: var(--color-black);
+    text-transform: capitalize;
+}
+
+.csf-agenda-month-title::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--csf-card-line);
+}
+
+.csf-agenda-month-title span {
+    order: 3;
+    padding: 3px 11px;
+    border-radius: 999px;
+    background: rgba(95, 143, 184, 0.13);
+    color: var(--color-blue);
+    font-family: "Inter", Arial, sans-serif;
+    font-size: 0.76rem;
+    font-weight: 700;
+}
+
+.csf-agenda-filters {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: clamp(20px, 3vw, 30px);
+    padding: clamp(15px, 2.4vw, 20px);
+    border: 1px solid var(--csf-card-line);
+    border-radius: var(--csf-card-radius);
+    background: rgba(255, 255, 255, 0.78);
+}
+
+.csf-agenda-filters label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+}
+
+.csf-agenda-filters select,
+.csf-agenda-filters input[type="search"],
+.csf-agenda-filters input[type="date"] {
+    width: 100%;
+    padding: 11px 13px;
+    border: 1px solid var(--csf-card-line);
+    border-radius: 10px;
+    background: var(--color-white);
+    font-family: inherit;
+    font-size: 0.95rem;
+    color: var(--color-ink);
+}
+
+.csf-agenda-filters-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+.csf-agenda-featured {
+    margin-bottom: clamp(26px, 4vw, 40px);
+}
+
+.csf-agenda-featured-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0 0 14px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--color-red);
+}
+
+.csf-agenda-count {
+    margin: 0 0 clamp(14px, 2.2vw, 18px);
+    color: var(--color-muted);
+    font-size: 0.92rem;
+}
+
+/* --- Cartera de puntos ---------------------------------------------------- */
+
+.csf-points-balance {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: clamp(18px, 3vw, 26px);
+    border-radius: var(--csf-card-radius);
+    background: linear-gradient(135deg, #1b2730 0%, #2b3f4c 100%);
+    color: var(--color-white);
+}
+
+.csf-points-label {
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    opacity: 0.72;
+}
+
+.csf-points-amount {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    margin: 6px 0 0;
+}
+
+.csf-points-amount strong {
+    font-family: var(--font-display);
+    font-size: clamp(2.2rem, 8vw, 3rem);
+    line-height: 1;
+}
+
+.csf-points-amount span {
+    font-size: 0.94rem;
+    opacity: 0.82;
+}
+
+.csf-points-hint {
+    margin: 8px 0 0;
+    font-size: 0.84rem;
+    opacity: 0.7;
+}
+
+.csf-points-balance .csf-points-buy {
+    align-self: flex-start;
+}
+
+.csf-points-balance.is-compact {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+}
+
+.csf-points-balance.is-compact .csf-points-amount strong {
+    font-size: 1.8rem;
+}
+
+/* Paquetes de compra */
+.csf-points-packs {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
+    gap: 12px;
+    margin: 18px 0;
+}
+
+.csf-points-pack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 17px 12px 14px;
+    border: 1px solid var(--csf-card-line);
+    border-radius: 13px;
+    background: var(--color-white);
+    text-align: center;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.csf-points-pack:hover {
+    border-color: var(--color-blue);
+    transform: translateY(-2px);
+}
+
+.csf-points-pack-amount {
+    font-family: var(--font-display);
+    font-size: 1.95rem;
+    line-height: 1;
+    color: var(--color-black);
+}
+
+.csf-points-pack-unit {
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+}
+
+.csf-points-pack-price {
+    margin: 7px 0 10px;
+    font-size: 1.02rem;
+    font-weight: 700;
+    color: var(--color-blue);
+}
+
+.csf-points-pack .button {
+    width: 100%;
+}
+
+.csf-points-notice {
+    margin: 0;
+    padding: 14px 16px;
+    border-radius: 11px;
+    background: rgba(95, 143, 184, 0.1);
+    color: var(--color-ink);
+    font-size: 0.88rem;
+}
+
+.csf-points-notice strong {
+    display: block;
+    margin-bottom: 3px;
+}
+
+/* Historial de movimientos */
+.csf-points-ledger {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--csf-card-line);
+    border-radius: var(--csf-card-radius);
+    background: var(--color-white);
+    overflow: hidden;
+}
+
+.csf-points-entry {
+    display: grid;
+    grid-template-columns: 58px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 15px;
+}
+
+.csf-points-entry + .csf-points-entry {
+    border-top: 1px solid var(--csf-card-line);
+}
+
+.csf-points-entry-amount {
+    padding: 5px 0;
+    border-radius: 8px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
+.csf-points-entry.is-credit .csf-points-entry-amount {
+    background: rgba(95, 143, 184, 0.14);
+    color: #35688f;
+}
+
+.csf-points-entry.is-debit .csf-points-entry-amount {
+    background: rgba(201, 79, 92, 0.12);
+    color: #a83f4c;
+}
+
+.csf-points-entry-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.csf-points-entry-body strong {
+    font-size: 0.94rem;
+    overflow-wrap: anywhere;
+}
+
+.csf-points-entry-body small {
+    font-size: 0.78rem;
+    color: var(--color-muted);
+}
+
+.csf-points-entry-balance {
+    font-variant-numeric: tabular-nums;
+    font-size: 0.86rem;
+    color: var(--color-muted);
+}
+
+/* --- Modales -------------------------------------------------------------- */
+
+.csf-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0;
+}
+
+.csf-modal[hidden] {
+    display: none;
+}
+
+.csf-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(17, 17, 20, 0.55);
+    backdrop-filter: blur(2px);
+}
+
+.csf-modal-dialog {
+    position: relative;
+    width: 100%;
+    max-height: 92vh;
+    overflow-y: auto;
+    padding: clamp(20px, 4vw, 30px);
+    border-radius: 20px 20px 0 0;
+    background: var(--color-warm);
+    box-shadow: 0 -12px 44px rgba(17, 17, 20, 0.3);
+}
+
+.csf-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+.csf-modal-header h2 {
+    margin: 4px 0 6px;
+    font-family: var(--font-display);
+    font-size: clamp(1.35rem, 4vw, 1.75rem);
+}
+
+.csf-modal-header p:last-child {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.92rem;
+}
+
+.csf-confirm-text {
+    margin: 0 0 16px;
+    color: var(--color-ink);
+}
+
+.csf-confirm-ledger {
+    margin: 0 0 20px;
+    padding: 15px 17px;
+    border-radius: 12px;
+    background: var(--color-white);
+    border: 1px solid var(--csf-card-line);
+}
+
+.csf-confirm-ledger > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 0;
+}
+
+.csf-confirm-ledger dt,
+.csf-confirm-ledger dd {
+    margin: 0;
+}
+
+.csf-confirm-ledger dt {
+    color: var(--color-muted);
+    font-size: 0.9rem;
+}
+
+.csf-confirm-ledger dd {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.csf-confirm-ledger dd.is-cost {
+    color: #a83f4c;
+}
+
+.csf-confirm-ledger .is-total {
+    margin-top: 6px;
+    padding-top: 12px;
+    border-top: 1px solid var(--csf-card-line);
+}
+
+.csf-confirm-ledger .is-total dt,
+.csf-confirm-ledger .is-total dd {
+    font-weight: 700;
+    color: var(--color-black);
+    font-size: 1.02rem;
+}
+
+.csf-confirm-empty {
+    margin-bottom: 18px;
+    padding: 15px 17px;
+    border-radius: 12px;
+    border: 1px solid rgba(201, 79, 92, 0.3);
+    background: rgba(201, 79, 92, 0.07);
+}
+
+.csf-confirm-empty p {
+    margin: 0;
+}
+
+.csf-confirm-empty p + p {
+    margin-top: 4px;
+    color: var(--color-muted);
+    font-size: 0.9rem;
+}
+
+.csf-confirm-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.csf-confirm-actions form {
+    flex: 1;
+    min-width: 170px;
+}
+
+.csf-confirm-actions .button {
+    width: 100%;
+}
+
+/* --- Redes sociales del miembro ------------------------------------------- */
+
+.csf-social-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+}
+
+.csf-social-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 11px;
+    padding: clamp(14px, 2.4vw, 18px);
+    border: 1px solid var(--csf-card-line);
+    border-radius: var(--csf-card-radius);
+    background: var(--color-white);
+}
+
+.csf-social-row.is-active {
+    border-color: rgba(95, 143, 184, 0.42);
+    background: linear-gradient(180deg, rgba(95, 143, 184, 0.05), var(--color-white) 60%);
+}
+
+.csf-social-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.csf-social-name {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.csf-social-name strong {
+    font-size: 1rem;
+}
+
+.csf-social-name small {
+    font-size: 0.83rem;
+    color: var(--color-muted);
+    overflow-wrap: anywhere;
+}
+
+.csf-social-status {
+    flex-shrink: 0;
+    padding: 5px 11px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.csf-social-status.is-on {
+    background: rgba(95, 143, 184, 0.16);
+    color: #35688f;
+}
+
+.csf-social-status.is-off {
+    background: rgba(17, 17, 20, 0.07);
+    color: var(--color-muted);
+}
+
+.csf-social-row input[type="url"] {
+    width: 100%;
+    padding: 11px 13px;
+    border: 1px solid var(--csf-card-line);
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 0.94rem;
+}
+
+.csf-social-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.csf-social-visible {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.88rem;
+    color: var(--color-muted);
+}
+
+.csf-social-activate {
+    padding: 9px 15px;
+    border: 1px solid var(--color-blue);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--color-blue);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.csf-social-activate:hover {
+    background: var(--color-blue);
+    color: var(--color-white);
+}
+
+.csf-social-activate[disabled] {
+    border-color: var(--csf-card-line);
+    color: var(--color-muted);
+    cursor: not-allowed;
+}
+
+.csf-social-note {
+    margin: 0;
+    padding: 13px 15px;
+    border-radius: 11px;
+    background: rgba(95, 143, 184, 0.09);
+    font-size: 0.88rem;
+    color: var(--color-ink);
+}
+
+/* Redes en el perfil publico */
+.csf-social-public {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.csf-social-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 15px;
+    border: 1px solid var(--csf-card-line);
+    border-radius: 999px;
+    background: var(--color-white);
+    color: var(--color-ink);
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+a.csf-social-chip:hover {
+    border-color: var(--color-blue);
+    color: var(--color-blue);
+}
+
+/* Red visible pero sin enlace activo: se ve, no se pulsa. */
+.csf-social-chip.is-plain {
+    color: var(--color-muted);
+    cursor: default;
+}
+
+.csf-social-chip small {
+    font-weight: 400;
+    opacity: 0.75;
+}
+
+/* --- Resumen de cabecera del panel ---------------------------------------- */
+
+.csf-panel-summary {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(16px, 3vw, 24px);
+    padding: clamp(18px, 3.4vw, 28px);
+    margin-bottom: clamp(18px, 3vw, 26px);
+    border: 1px solid var(--csf-card-line);
+    border-radius: var(--csf-card-radius);
+    background: var(--color-white);
+    box-shadow: var(--csf-card-shadow);
+}
+
+.csf-panel-greeting {
+    margin: 0 0 4px;
+    font-family: var(--font-display);
+    font-size: clamp(1.45rem, 5vw, 2rem);
+    line-height: 1.15;
+}
+
+.csf-panel-greeting-note {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.94rem;
+}
+
+.csf-panel-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+    gap: 10px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.csf-panel-stat {
+    padding: 13px 14px;
+    border-radius: 12px;
+    background: rgba(95, 143, 184, 0.07);
+}
+
+.csf-panel-stat strong {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 1.55rem;
+    line-height: 1.1;
+    color: var(--color-black);
+}
+
+.csf-panel-stat span {
+    font-size: 0.79rem;
+    color: var(--color-muted);
+}
+
+.csf-panel-progress {
+    height: 5px;
+    margin-top: 8px;
+    border-radius: 999px;
+    background: rgba(17, 17, 20, 0.09);
+    overflow: hidden;
+}
+
+.csf-panel-progress i {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--color-blue);
+}
+
+.csf-panel-cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.csf-panel-cta .button {
+    flex: 1;
+    min-width: 152px;
+    text-align: center;
+}
+
+/* --- Formulario de evento ------------------------------------------------- */
+
+.csf-form-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(12px, 2.2vw, 18px);
+}
+
+.csf-field label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+}
+
+.csf-field input[type="text"],
+.csf-field input[type="url"],
+.csf-field input[type="date"],
+.csf-field input[type="time"],
+.csf-field select,
+.csf-field textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--csf-card-line);
+    border-radius: 10px;
+    background: var(--color-white);
+    font-family: inherit;
+    font-size: 0.96rem;
+    color: var(--color-ink);
+}
+
+.csf-field textarea {
+    min-height: 130px;
+    resize: vertical;
+}
+
+.csf-field input:focus,
+.csf-field select:focus,
+.csf-field textarea:focus {
+    outline: 2px solid rgba(95, 143, 184, 0.45);
+    outline-offset: 1px;
+    border-color: var(--color-blue);
+}
+
+.csf-field-hint {
+    margin: 5px 0 0;
+    font-size: 0.8rem;
+    color: var(--color-muted);
+}
+
+.csf-field-full {
+    grid-column: 1 / -1;
+}
+
+.csf-image-field {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+}
+
+.csf-image-preview {
+    width: 108px;
+    height: 74px;
+    border-radius: 10px;
+    border: 1px solid var(--csf-card-line);
+    object-fit: cover;
+    background: rgba(17, 17, 20, 0.05);
+}
+
+/* --- Acciones sobre una tarjeta de evento en el panel --------------------- */
+
+.csf-event-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+.csf-event-tool {
+    padding: 7px 13px;
+    border: 1px solid var(--csf-card-line);
+    border-radius: 999px;
+    background: var(--color-white);
+    color: var(--color-ink);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.csf-event-tool:hover {
+    border-color: var(--color-blue);
+    color: var(--color-blue);
+}
+
+.csf-event-tool.is-promote {
+    border-color: rgba(201, 79, 92, 0.45);
+    color: #a83f4c;
+}
+
+.csf-event-tool.is-promote:hover {
+    background: var(--color-red);
+    border-color: var(--color-red);
+    color: var(--color-white);
+}
+
+.csf-event-tool.is-danger:hover {
+    border-color: var(--color-red);
+    color: var(--color-red);
+}
+
+.csf-event-tool[disabled] {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* --- Tabs de la agenda del panel ------------------------------------------ */
+
+.csf-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-bottom: clamp(16px, 2.6vw, 22px);
+}
+
+.csf-tab {
+    padding: 9px 16px;
+    border: 1px solid var(--csf-card-line);
+    border-radius: 999px;
+    background: var(--color-white);
+    color: var(--color-muted);
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.csf-tab.is-active {
+    border-color: var(--color-black);
+    background: var(--color-black);
+    color: var(--color-white);
+}
+
+/* ==========================================================================
+   Ampliaciones para pantallas mayores. Mobile first: de aqui hacia arriba.
+   ========================================================================== */
+
+@media (min-width: 620px) {
+    .csf-event-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .csf-agenda-filters {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .csf-form-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .csf-social-row {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .csf-modal {
+        align-items: center;
+        padding: 24px;
+    }
+
+    .csf-modal-dialog {
+        max-width: 620px;
+        border-radius: 20px;
+        box-shadow: 0 26px 64px rgba(17, 17, 20, 0.34);
+    }
+
+    .csf-modal-narrow {
+        max-width: 470px;
+    }
+
+    .csf-panel-summary {
+        grid-template-columns: 1.2fr 1fr;
+        align-items: center;
+    }
+
+    .csf-points-balance {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .csf-points-balance .csf-points-buy {
+        align-self: center;
+    }
+}
+
+@media (min-width: 960px) {
+    .csf-event-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .csf-event-grid.is-two {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .csf-agenda-filters {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .csf-panel-summary {
+        grid-template-columns: 1.1fr 1.3fr auto;
+    }
+
+    .csf-panel-cta {
+        flex-direction: column;
+    }
+}
+
+@media (min-width: 1280px) {
+    .csf-event-grid.is-wide {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* Respeta a quien pide menos animacion en el sistema. */
+@media (prefers-reduced-motion: reduce) {
+    .csf-event-card,
+    .csf-event-media img,
+    .csf-points-pack {
+        transition: none;
+    }
+
+    .csf-event-card:hover {
+        transform: none;
+    }
+
+    .csf-event-card:hover .csf-event-media img {
+        transform: none;
+    }
+}
+
+/* --- Pagina publica de un evento ------------------------------------------ */
+
+.csf-event-detail-poster {
+    width: 100%;
+    max-height: 520px;
+    object-fit: cover;
+    border-radius: var(--csf-card-radius);
+    margin-bottom: clamp(18px, 3vw, 26px);
+}
+
+.csf-event-facts {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    margin: 0 0 clamp(20px, 3vw, 28px);
+    padding: clamp(15px, 2.4vw, 20px);
+    border: 1px solid var(--csf-card-line);
+    border-radius: var(--csf-card-radius);
+    background: var(--color-white);
+}
+
+.csf-event-facts > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px 16px;
+    padding: 10px 0;
+}
+
+.csf-event-facts > div + div {
+    border-top: 1px solid var(--csf-card-line);
+}
+
+.csf-event-facts dt {
+    margin: 0;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+}
+
+.csf-event-facts dd {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--color-ink);
+    text-align: right;
+}
+
+.csf-event-description {
+    margin-bottom: clamp(18px, 3vw, 26px);
+    font-size: 1.02rem;
+    line-height: 1.75;
+}
+
+.csf-event-description p {
+    margin: 0 0 14px;
+}
+
+.csf-event-share {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    margin-top: clamp(20px, 3vw, 28px);
+    padding-top: 18px;
+    border-top: 1px solid var(--csf-card-line);
+    font-size: 0.9rem;
+}
+
+.csf-event-share span {
+    font-weight: 700;
+    color: var(--color-muted);
+}
+
+.csf-event-share a {
+    padding: 7px 14px;
+    border: 1px solid var(--csf-card-line);
+    border-radius: 999px;
+    color: var(--color-ink);
+    text-decoration: none;
+    transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.csf-event-share a:hover {
+    border-color: var(--color-blue);
+    color: var(--color-blue);
+}
+
+.csf-event-artist-card {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: clamp(14px, 2.4vw, 20px);
+    padding: clamp(15px, 2.4vw, 20px);
+    border: 1px solid var(--csf-card-line);
+    border-radius: var(--csf-card-radius);
+    background: var(--color-white);
+}
+
+.csf-event-artist-card img {
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.csf-event-artist-card strong {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+}
+
+.csf-event-artist-card p {
+    margin: 4px 0 0;
+}
+
+/* --- Bloques de eventos y redes en el microsite del artista ---------------- */
+
+.csf-artist-events {
+    margin-top: clamp(24px, 4vw, 40px);
+}
+
+.csf-artist-events-title {
+    margin: 0 0 clamp(14px, 2.2vw, 20px);
+    font-family: var(--font-display);
+    font-size: clamp(1.3rem, 3.4vw, 1.7rem);
+}
+
+@media (min-width: 620px) {
+    .csf-event-facts {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0 clamp(20px, 3vw, 32px);
+    }
+
+    .csf-event-facts > div:nth-child(-n+2) {
+        border-top: 0;
+    }
+
+    .csf-event-facts > div:nth-child(2) {
+        border-top: 0;
+    }
+}
+
+/* --- Selector de disciplinas del perfil ----------------------------------- */
+
+.csf-discipline-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-top: 10px;
+}
+
+.csf-discipline-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 15px;
+    border: 1px solid var(--csf-card-line);
+    border-radius: 999px;
+    background: var(--color-white);
+    font-size: 0.92rem;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.csf-discipline-option:hover {
+    border-color: var(--color-blue);
+}
+
+.csf-discipline-option:has(input:checked) {
+    border-color: var(--color-blue);
+    background: rgba(95, 143, 184, 0.12);
+    font-weight: 600;
+}
+
+.csf-discipline-option input {
+    margin: 0;
+}
+
+/* --- Filtros del directorio de artistas ----------------------------------- */
+
+.csf-directory-filters {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: clamp(16px, 2.6vw, 22px);
+    padding: clamp(14px, 2.4vw, 18px);
+    border: 1px solid var(--csf-card-line);
+    border-radius: var(--csf-card-radius);
+    background: rgba(255, 255, 255, 0.78);
+}
+
+.csf-directory-filters label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+}
+
+.csf-directory-filters select {
+    width: 100%;
+    padding: 11px 13px;
+    border: 1px solid var(--csf-card-line);
+    border-radius: 10px;
+    background: var(--color-white);
+    font-family: inherit;
+    font-size: 0.95rem;
+    color: var(--color-ink);
+}
+
+.csf-directory-filters-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+@media (min-width: 620px) {
+    .csf-directory-filters {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 960px) {
+    .csf-directory-filters {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* Marca de bloque sustituido por una pantalla nueva del panel. */
+.member-tile-legacy {
+    display: inline-block;
+    align-self: flex-start;
+    margin: 2px 0 4px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: rgba(17, 17, 20, 0.07);
+    color: var(--color-muted);
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}

@@ -4,6 +4,10 @@ declare(strict_types=1);
 require_once __DIR__ . '/app/auth.php';
 require_once __DIR__ . '/app/layout.php';
 require_once __DIR__ . '/app/academia_security.php';
+// Fase 1 red social: agenda de eventos, cartera de puntos y redes sociales.
+require_once __DIR__ . '/app/events_ui.php';
+require_once __DIR__ . '/app/points_ui.php';
+require_once __DIR__ . '/app/social_links_repository.php';
 
 $user = require_login();
 
@@ -868,6 +872,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($profileAction, ['update_p
                     ? 'Perfil artistico actualizado.'
                     : 'Perfil guardado. Sigue pendiente completar nombre artistico, ciudad, provincia, fotografia principal y al menos una formacion, experiencia profesional o actuacion.');
         }
+
+        /* Fase 1: ademas del texto de siempre (que se sigue guardando igual en
+           perfil_json y en miembros.ciudad / provincia_texto), se resuelve la
+           ubicacion contra las tablas normalizadas y se guardan las disciplinas.
+           Es lo que permite filtrar el directorio por
+           Artistas > Cordoba > Montilla > Baile.
+
+           Va en su propio try: si falla, el perfil ya esta guardado y lo unico
+           que se pierde es la clasificacion, no los datos del artista. */
+        $perfilMiembroId = (int) ($user['member_db_id'] ?? 0);
+        if ($panelPdo instanceof PDO && $perfilMiembroId > 0 && $profileAction === 'update_profile') {
+            try {
+                $geoPerfil = csf_geo_resolver(
+                    $panelPdo,
+                    (string) ($memberProfile['province'] ?? ''),
+                    (string) ($memberProfile['city'] ?? '')
+                );
+                $panelPdo->prepare(
+                    'UPDATE miembros SET provincia_id = :provincia_id, municipio_id = :municipio_id WHERE id = :id'
+                )->execute([
+                    'provincia_id' => $geoPerfil['provincia_id'],
+                    'municipio_id' => $geoPerfil['municipio_id'],
+                    'id' => $perfilMiembroId,
+                ]);
+
+                // Disciplinas: relacion N:M, se reescribe entera con lo marcado.
+                $disciplinasEnviadas = array_map(
+                    'strval',
+                    is_array($_POST['disciplinas'] ?? null) ? $_POST['disciplinas'] : []
+                );
+                $panelPdo->prepare('DELETE FROM miembro_disciplinas WHERE miembro_id = :id')
+                    ->execute(['id' => $perfilMiembroId]);
+
+                if ($disciplinasEnviadas !== []) {
+                    $marcadores = implode(',', array_fill(0, count($disciplinasEnviadas), '?'));
+                    $consulta = $panelPdo->prepare(
+                        'SELECT id FROM disciplinas WHERE estado = "ACTIVA" AND slug IN (' . $marcadores . ')'
+                    );
+                    $consulta->execute($disciplinasEnviadas);
+
+                    $insertar = $panelPdo->prepare(
+                        'INSERT IGNORE INTO miembro_disciplinas (miembro_id, disciplina_id) VALUES (:miembro_id, :disciplina_id)'
+                    );
+                    foreach ($consulta->fetchAll(PDO::FETCH_COLUMN) as $disciplinaId) {
+                        $insertar->execute(['miembro_id' => $perfilMiembroId, 'disciplina_id' => (int) $disciplinaId]);
+                    }
+                }
+            } catch (Throwable $excepcionGeo) {
+                error_log('[panel-usuario fase1] clasificacion del perfil omitida: ' . $excepcionGeo->getMessage());
+            }
+        }
     }
 }
 
@@ -1100,6 +1155,277 @@ if ($hasWebPage && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_act
     }
 }
 
+/* =========================================================================
+   FASE 1 RED SOCIAL — Eventos, puntos y redes sociales
+   -------------------------------------------------------------------------
+   Bloque autonomo: si no hay base de datos o el usuario todavia no tiene ficha
+   de miembro, $fase1Activa queda a false y ni las tarjetas ni las pantallas se
+   pintan. Nada de lo anterior cambia de comportamiento.
+   ========================================================================= */
+
+$miembroDbId = (int) ($user['member_db_id'] ?? 0);
+$usuarioDbId = (int) ($user['db_id'] ?? 0);
+$fase1Activa = $panelPdo instanceof PDO && $miembroDbId > 0 && $usuarioDbId > 0;
+
+/**
+ * Mensajes de una accion que termina en redireccion.
+ *
+ * Las acciones de puntos siguen patron POST-Redirect-GET: sin el, recargar la
+ * pagina despues de promocionar reenviaria el formulario. Como el redirect
+ * pierde las variables, el aviso viaja por sesion.
+ */
+function panel_flash_guardar(string $tipo, string $mensaje): void
+{
+    $_SESSION['csf_panel_flash'][] = ['tipo' => $tipo, 'mensaje' => $mensaje];
+}
+
+/**
+ * @return array<int, array{tipo:string, mensaje:string}>
+ */
+function panel_flash_consumir(): array
+{
+    $avisos = is_array($_SESSION['csf_panel_flash'] ?? null) ? $_SESSION['csf_panel_flash'] : [];
+    unset($_SESSION['csf_panel_flash']);
+
+    return $avisos;
+}
+
+foreach (panel_flash_consumir() as $aviso) {
+    if ($aviso['tipo'] === 'error') {
+        $profileErrors[] = $aviso['mensaje'];
+    } else {
+        $profileMessages[] = $aviso['mensaje'];
+    }
+}
+
+$panelAction = (string) ($_POST['panel_action'] ?? '');
+$fase1Acciones = ['evento_guardar', 'evento_eliminar', 'evento_promocionar', 'redes_guardar', 'red_activar', 'puntos_comprar'];
+
+if ($fase1Activa && $_SERVER['REQUEST_METHOD'] === 'POST' && in_array($panelAction, $fase1Acciones, true)) {
+    if (!verify_csrf($_POST['csrf_token'] ?? null)) {
+        panel_flash_guardar('error', 'La sesión ha caducado. Vuelve a intentarlo.');
+        redirect_to('panel-usuario.php#inicio');
+    }
+
+    // Ancla a la que se vuelve tras la accion, para no perder el contexto.
+    $destino = match ($panelAction) {
+        'redes_guardar', 'red_activar' => 'mis-redes',
+        'puntos_comprar' => 'mis-puntos',
+        default => 'mis-eventos',
+    };
+
+    try {
+        switch ($panelAction) {
+            case 'evento_guardar':
+                $eventoId = (int) ($_POST['evento_id'] ?? 0);
+                $datosEvento = [
+                    'titulo' => (string) ($_POST['titulo'] ?? ''),
+                    'descripcion' => (string) ($_POST['descripcion'] ?? ''),
+                    'fecha' => (string) ($_POST['fecha'] ?? ''),
+                    'hora' => (string) ($_POST['hora'] ?? ''),
+                    'fecha_fin' => (string) ($_POST['fecha_fin'] ?? ''),
+                    'lugar' => (string) ($_POST['lugar'] ?? ''),
+                    'direccion' => (string) ($_POST['direccion'] ?? ''),
+                    'provincia' => (string) ($_POST['provincia'] ?? ''),
+                    'municipio' => (string) ($_POST['municipio'] ?? ''),
+                    'enlace_url' => (string) ($_POST['enlace_url'] ?? ''),
+                    'video_url' => (string) ($_POST['video_url'] ?? ''),
+                    'estado' => (string) ($_POST['estado'] ?? 'PUBLICADO'),
+                ];
+
+                $erroresEvento = csf_evento_validar($datosEvento);
+
+                // La imagen se sube antes de decidir, pero solo si la validacion
+                // paso: asi un formulario invalido no deja ficheros huerfanos.
+                if (!$erroresEvento) {
+                    $cartel = csf_evento_guardar_cartel($_FILES['imagen'] ?? null, $erroresEvento);
+                    $datosEvento['imagen_path'] = $cartel ?? clean_text((string) ($_POST['imagen_actual'] ?? ''));
+                }
+
+                if ($erroresEvento) {
+                    foreach ($erroresEvento as $errorEvento) {
+                        panel_flash_guardar('error', $errorEvento);
+                    }
+                    redirect_to('panel-usuario.php?evento=' . ($eventoId > 0 ? $eventoId : 'nuevo') . '#evento-form');
+                }
+
+                $guardadoId = csf_evento_guardar(
+                    $panelPdo,
+                    $miembroDbId,
+                    $usuarioDbId,
+                    $eventoId > 0 ? $eventoId : null,
+                    $datosEvento
+                );
+                panel_flash_guardar('ok', $eventoId > 0
+                    ? 'Evento actualizado.'
+                    : 'Evento creado. Ya aparece en la agenda de Con Sabor Flamenco.');
+                break;
+
+            case 'evento_eliminar':
+                $eliminado = csf_evento_eliminar(
+                    $panelPdo,
+                    (int) ($_POST['evento_id'] ?? 0),
+                    $miembroDbId,
+                    $usuarioDbId
+                );
+                panel_flash_guardar(
+                    $eliminado ? 'ok' : 'error',
+                    $eliminado ? 'Evento eliminado.' : 'No se pudo eliminar el evento.'
+                );
+                break;
+
+            case 'evento_promocionar':
+                // El coste NO viene del formulario: lo pone csf_evento_promocionar().
+                $promocion = csf_evento_promocionar(
+                    $panelPdo,
+                    (int) ($_POST['evento_id'] ?? 0),
+                    $miembroDbId,
+                    $usuarioDbId
+                );
+                panel_flash_guardar('ok', sprintf(
+                    'Evento promocionado por %s. Te quedan %s.',
+                    csf_puntos_formato($promocion['puntos']),
+                    csf_puntos_formato($promocion['saldo'])
+                ));
+                break;
+
+            case 'redes_guardar':
+                $erroresRedes = [];
+                csf_redes_guardar(
+                    $panelPdo,
+                    $miembroDbId,
+                    $usuarioDbId,
+                    is_array($_POST['redes'] ?? null) ? $_POST['redes'] : [],
+                    $erroresRedes
+                );
+                foreach ($erroresRedes as $errorRed) {
+                    panel_flash_guardar('error', $errorRed);
+                }
+                if (!$erroresRedes) {
+                    panel_flash_guardar('ok', 'Redes sociales guardadas.');
+                }
+                break;
+
+            case 'red_activar':
+                // Igual que arriba: gratis el primero, tarifa a partir del segundo,
+                // y lo decide el servidor.
+                $activacion = csf_redes_activar_enlace(
+                    $panelPdo,
+                    $miembroDbId,
+                    $usuarioDbId,
+                    (string) ($_POST['red'] ?? '')
+                );
+                panel_flash_guardar('ok', $activacion['gratis']
+                    ? 'Enlace de ' . csf_red_nombre($activacion['red']) . ' activado sin coste. Era tu enlace gratuito.'
+                    : sprintf(
+                        'Enlace de %s activado por %s. Te quedan %s.',
+                        csf_red_nombre($activacion['red']),
+                        csf_puntos_formato($activacion['puntos']),
+                        csf_puntos_formato($activacion['saldo'])
+                    ));
+                break;
+
+            case 'puntos_comprar':
+                // Solo registra la intencion. NO acredita puntos: eso ocurrira
+                // cuando Stripe confirme el pago de verdad.
+                $intento = csf_puntos_crear_intento_compra(
+                    $panelPdo,
+                    $usuarioDbId,
+                    (int) ($_POST['paquete'] ?? 0)
+                );
+                panel_flash_guardar('ok', sprintf(
+                    'Solicitud guardada: %s por %s. Te avisaremos en cuanto el pago con Stripe esté disponible. Todavía no se ha realizado ningún cargo.',
+                    csf_puntos_formato($intento['puntos']),
+                    csf_puntos_formato_euros($intento['centimos'])
+                ));
+                break;
+        }
+    } catch (Throwable $excepcion) {
+        panel_flash_guardar('error', $excepcion->getMessage());
+        error_log('[panel-usuario fase1] ' . $panelAction . ': ' . $excepcion->getMessage());
+    }
+
+    redirect_to('panel-usuario.php#' . $destino);
+}
+
+// --- Datos de las pantallas nuevas ---------------------------------------
+
+$puntosSaldo = 0;
+$puntosResumen = ['saldo' => 0, 'total_ingresado' => 0, 'total_gastado' => 0];
+$puntosMovimientos = [];
+$eventosProximos = [];
+$eventosPasados = [];
+$eventosTotales = 0;
+$proximosCount = 0;
+$redesMiembro = [];
+$redesActivas = 0;
+$redesCosteSiguiente = 0;
+$eventoEnEdicion = null;
+$provinciasLista = [];
+$municipiosLista = [];
+$municipiosPerfil = [];
+$disciplinasCatalogo = [];
+$disciplinasMiembro = [];
+
+if ($fase1Activa) {
+    try {
+        // Los puntos de bienvenida se abonan la primera vez que se abre el panel.
+        // Es idempotente, asi que da igual cuantas veces se recargue.
+        csf_puntos_asegurar_alta($panelPdo, $usuarioDbId, $memberTier);
+
+        $puntosResumen = csf_puntos_resumen($panelPdo, $usuarioDbId);
+        $puntosSaldo = $puntosResumen['saldo'];
+        $puntosMovimientos = csf_puntos_movimientos($panelPdo, $usuarioDbId, 30);
+
+        $eventosProximos = csf_evento_listar_miembro($panelPdo, $miembroDbId, 'proximos');
+        $eventosPasados = csf_evento_listar_miembro($panelPdo, $miembroDbId, 'pasados');
+        $eventosTotales = count($eventosProximos) + count($eventosPasados);
+        $proximosCount = csf_evento_contar_proximos($panelPdo, $miembroDbId);
+
+        $redesMiembro = csf_redes_de_miembro($panelPdo, $miembroDbId);
+        $redesActivas = csf_redes_contar_activas($panelPdo, $miembroDbId);
+        $redesCosteSiguiente = csf_redes_coste_activacion($panelPdo, $miembroDbId);
+
+        $provinciasLista = csf_geo_provincias($panelPdo);
+
+        // Catalogo de disciplinas y las que tiene marcadas este miembro.
+        $disciplinasCatalogo = $panelPdo
+            ->query('SELECT slug, nombre FROM disciplinas WHERE estado = "ACTIVA" ORDER BY nombre ASC')
+            ->fetchAll(PDO::FETCH_ASSOC);
+        $consultaDisciplinas = $panelPdo->prepare(
+            'SELECT d.slug FROM miembro_disciplinas md
+             INNER JOIN disciplinas d ON d.id = md.disciplina_id
+             WHERE md.miembro_id = :miembro_id'
+        );
+        $consultaDisciplinas->execute(['miembro_id' => $miembroDbId]);
+        $disciplinasMiembro = $consultaDisciplinas->fetchAll(PDO::FETCH_COLUMN);
+
+        // Municipios ya conocidos de la provincia del perfil, para el autocompletado.
+        $provinciaPerfil = csf_geo_provincia_por_texto($panelPdo, (string) ($memberProfile['province'] ?? ''));
+        if ($provinciaPerfil !== null) {
+            $municipiosPerfil = csf_geo_municipios($panelPdo, $provinciaPerfil['id']);
+        }
+
+        // ?evento=123 abre el formulario con ese evento cargado; ?evento=nuevo
+        // (o cualquier otro valor) lo abre vacio.
+        $eventoSolicitado = (int) ($_GET['evento'] ?? 0);
+        if ($eventoSolicitado > 0) {
+            $eventoEnEdicion = csf_evento_obtener_de_miembro($panelPdo, $eventoSolicitado, $miembroDbId);
+        }
+
+        $provinciaFormulario = $eventoEnEdicion !== null
+            ? (int) $eventoEnEdicion['provincia_id']
+            : 0;
+        if ($provinciaFormulario > 0) {
+            $municipiosLista = csf_geo_municipios($panelPdo, $provinciaFormulario);
+        }
+    } catch (Throwable $excepcion) {
+        // Un entorno sin migrar no debe tumbar el panel entero.
+        $fase1Activa = false;
+        error_log('[panel-usuario fase1] datos no disponibles: ' . $excepcion->getMessage());
+    }
+}
+
 $userName = $user['name'] ?? 'Miembro';
 $accountNameLocked = clean_text((string) ($user['name'] ?? '')) !== '';
 
@@ -1252,6 +1578,8 @@ function panel_icon(string $name): string
         'servicios' => '<path d="m12 3.6 2.4 5 5.5.8-4 3.9.9 5.4-4.8-2.5-4.8 2.5.9-5.4-4-3.9 5.5-.8z"/>',
         'seguridad' => '<rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8.4 10.5V8a3.6 3.6 0 0 1 7.2 0v2.5"/>',
         'academia'  => '<path d="m3.5 9 8.5-4.5L20.5 9 12 13.5z"/><path d="M7 11v4.5c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5V11"/>',
+        'puntos'    => '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v9M9.6 9.8h3.6a1.9 1.9 0 0 1 0 3.8h-3.2a1.9 1.9 0 0 0 0 3.8h3.8"/>',
+        'redes'     => '<circle cx="6.5" cy="12" r="2.6"/><circle cx="17.5" cy="6.5" r="2.6"/><circle cx="17.5" cy="17.5" r="2.6"/><path d="m8.9 10.8 6.2-3M8.9 13.2l6.2 3"/>',
     ];
 
     return '<svg class="member-tile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
@@ -1270,14 +1598,41 @@ $panelPrimaryCards = [
         'note' => 'Gestiona tus datos personales, identidad artistica, fotografia, ubicacion y contacto.',
         'metric' => 'Perfil completo ' . $profileCompletion . '%',
     ],
-    [
-        'target' => 'curriculum',
-        'icon' => 'curriculum',
-        'title' => 'Mi curriculum',
-        'note' => 'Configura tu curriculum artistico, formacion, experiencia, premios y trayectoria profesional.',
-        'metric' => $totalCvEntries === 1 ? '1 entrada' : $totalCvEntries . ' entradas',
-        'metric_id' => 'curriculum-total',
-    ],
+];
+
+// Fase 1: agenda, cartera y redes. Van delante del resto porque son el nuevo
+// centro del panel. Las tarjetas anteriores siguen justo detras, intactas.
+if ($fase1Activa) {
+    $panelPrimaryCards[] = [
+        'target' => 'mis-eventos',
+        'icon' => 'agenda',
+        'title' => 'Mis eventos',
+        'note' => 'Publica tus actuaciones en la agenda de Con Sabor Flamenco. Crear un evento es gratis.',
+        'metric' => $proximosCount === 1 ? '1 próximo evento' : $proximosCount . ' próximos eventos',
+    ];
+    $panelPrimaryCards[] = [
+        'target' => 'mis-puntos',
+        'icon' => 'puntos',
+        'title' => 'Mis puntos',
+        'note' => 'Tu cartera. Los puntos dan visibilidad extra a tus eventos y a tus enlaces.',
+        'metric' => csf_puntos_formato($puntosSaldo) . ' disponibles',
+    ];
+    $panelPrimaryCards[] = [
+        'target' => 'mis-redes',
+        'icon' => 'redes',
+        'title' => 'Redes sociales',
+        'note' => 'Muestra todas tus redes. El primer enlace clicable es gratuito.',
+        'metric' => $redesActivas === 1 ? '1 enlace activo' : $redesActivas . ' enlaces activos',
+    ];
+}
+
+$panelPrimaryCards[] = [
+    'target' => 'curriculum',
+    'icon' => 'curriculum',
+    'title' => 'Mi curriculum',
+    'note' => 'Configura tu curriculum artistico, formacion, experiencia, premios y trayectoria profesional.',
+    'metric' => $totalCvEntries === 1 ? '1 entrada' : $totalCvEntries . ' entradas',
+    'metric_id' => 'curriculum-total',
 ];
 if ($hasWebPage) {
     $panelPrimaryCards[] = [
@@ -1311,12 +1666,26 @@ if ($hasWebPage) {
         ['target' => 'web-slider', 'icon' => 'galeria', 'title' => 'Slider de cabecera', 'note' => 'Las imagenes principales de la cabecera de tu microweb.', 'metric' => $webUnit($webSlidesFilled, 'cabecera', 'cabeceras')],
         ['target' => 'web-galeria', 'icon' => 'galeria', 'title' => 'Galeria', 'note' => 'Las fotografias que quieres mostrar publicamente.', 'metric' => $webUnit(count($webGallery), 'fotografia', 'fotografias')],
         ['target' => 'web-videos', 'icon' => 'video', 'title' => 'Videos', 'note' => 'Tus videos publicos de YouTube, Vimeo u otra plataforma.', 'metric' => $webUnit(count($webVideos), 'video', 'videos')],
-        ['target' => 'web-eventos', 'icon' => 'agenda', 'title' => 'Agenda', 'note' => 'Actuaciones, cursos, festivales y proximos eventos.', 'metric' => $webUnit(count($webEvents), 'evento', 'eventos')],
+        ['target' => 'web-eventos', 'icon' => 'agenda', 'title' => 'Agenda', 'note' => 'Actuaciones, cursos, festivales y proximos eventos.', 'metric' => $webUnit(count($webEvents), 'evento', 'eventos'), 'legacy' => 'mis-eventos'],
         ['target' => 'web-actualidad', 'icon' => 'actualidad', 'title' => 'Actualidad', 'note' => 'Noticias, comunicados y novedades de tu actividad.', 'metric' => $webUnit(count($webNews), 'publicacion', 'publicaciones')],
-        ['target' => 'web-redes', 'icon' => 'contacto', 'title' => 'Redes sociales', 'note' => 'Los enlaces sociales de la cabecera de tu microweb.', 'metric' => $webUnit(count(array_filter($webSocialLinks)), 'red configurada', 'redes configuradas')],
+        ['target' => 'web-redes', 'icon' => 'contacto', 'title' => 'Redes sociales', 'note' => 'Los enlaces sociales de la cabecera de tu microweb.', 'metric' => $webUnit(count(array_filter($webSocialLinks)), 'red configurada', 'redes configuradas'), 'legacy' => 'mis-redes'],
         ['target' => 'web-contacto', 'icon' => 'contacto', 'title' => 'Contacto', 'note' => 'Que datos de contacto se muestran en tu web.', 'metric' => $webUnit(count($webContactFields), 'dato visible', 'datos visibles')],
     ];
-    $panelWebCards = $webSectionCards;
+
+    /* Tarjetas sustituidas por la fase 1.
+       "Agenda" (web-eventos) la sustituye "Mis eventos"; "Redes sociales"
+       (web-redes) la sustituye la pantalla de redes con puntos.
+
+       No se borran: la clave 'legacy' solo las retira de la PORTADA cuando la
+       fase 1 esta activa. Sus pantallas, sus formularios y sus datos siguen
+       intactos y accesibles por su ancla (#web-eventos, #web-redes), asi que
+       nadie pierde lo que tenia. Para volver a mostrarlas basta con poner
+       $ocultarTarjetasSustituidas a false. */
+    $ocultarTarjetasSustituidas = $fase1Activa;
+
+    $panelWebCards = $ocultarTarjetasSustituidas
+        ? array_values(array_filter($webSectionCards, static fn (array $card): bool => !isset($card['legacy'])))
+        : $webSectionCards;
 }
 
 $panelAccountCards = [
@@ -1350,6 +1719,12 @@ function panel_tile_markup(array $card, string $size = 'lg'): string
         <span class="member-tile-badge"><?= panel_icon((string) ($card['icon'] ?? 'perfil')) ?></span>
         <span class="member-tile-body">
             <strong><?= e((string) $card['title']) ?></strong>
+            <?php if (!empty($card['legacy'])): ?>
+                <?php /* Bloque sustituido por una pantalla nueva. Se sigue
+                         pudiendo editar desde aqui, pero ya no es el camino
+                         principal, asi que se avisa. */ ?>
+                <span class="member-tile-legacy">Versión anterior</span>
+            <?php endif; ?>
             <?php if (!empty($card['note'])): ?>
                 <span class="member-tile-note"><?= e((string) $card['note']) ?></span>
             <?php endif; ?>
@@ -1432,6 +1807,38 @@ function panel_tile_markup(array $card, string $size = 'lg'): string
                 <?php endif; ?>
 
                 <section id="inicio" class="content-section member-panel-section active">
+                    <?php if ($fase1Activa): ?>
+                        <?php /* Resumen de un vistazo: quien eres, con cuanto
+                                 cuentas y que puedes hacer ahora mismo. */ ?>
+                        <div class="csf-panel-summary">
+                            <div>
+                                <p class="csf-panel-greeting">Hola, <?= e($displayName) ?></p>
+                                <p class="csf-panel-greeting-note"><?= e($memberTypeLabel) ?><?= $memberProfile['city'] !== '' ? ' · ' . e($memberProfile['city']) : '' ?></p>
+                            </div>
+
+                            <ul class="csf-panel-stats">
+                                <li class="csf-panel-stat">
+                                    <strong><?= e((string) $puntosSaldo) ?></strong>
+                                    <span><?= e($puntosSaldo === 1 ? 'punto disponible' : 'puntos disponibles') ?></span>
+                                </li>
+                                <li class="csf-panel-stat">
+                                    <strong><?= e((string) $proximosCount) ?></strong>
+                                    <span><?= e($proximosCount === 1 ? 'próximo evento' : 'próximos eventos') ?></span>
+                                </li>
+                                <li class="csf-panel-stat">
+                                    <strong><?= e((string) $profileCompletion) ?>%</strong>
+                                    <span>perfil completado</span>
+                                    <span class="csf-panel-progress" aria-hidden="true"><i style="width: <?= e((string) $profileCompletion) ?>%"></i></span>
+                                </li>
+                            </ul>
+
+                            <div class="csf-panel-cta">
+                                <a class="button button-primary" href="#evento-form" data-panel-link="evento-form">Crear evento</a>
+                                <a class="button button-secondary" href="#perfil" data-panel-link="perfil">Editar perfil</a>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
                     <header class="member-home-intro">
                         <p class="section-kicker">Tu panel</p>
                         <h2>¿Que quieres hacer hoy?</h2>
@@ -1584,16 +1991,69 @@ function panel_tile_markup(array $card, string $size = 'lg'): string
                                             <em>Donde estas y como pueden localizarte desde tu ficha publica.</em>
                                         </legend>
                                         <div class="form-grid-three">
-                                            <label for="city">Ciudad
-                                                <input id="city" name="city" type="text" value="<?= e($memberProfile['city']) ?>" required>
+                                            <label for="city">Municipio
+                                                <?php /* Se llama city por compatibilidad: es el nombre que ya
+                                                         guardaba el perfil y que lee todo el codigo anterior.
+                                                         La lista sugiere municipios ya registrados en la
+                                                         provincia, pero admite escribir uno nuevo. */ ?>
+                                                <input id="city" name="city" type="text" value="<?= e($memberProfile['city']) ?>" required list="csf-municipios-perfil">
+                                                <?php if ($fase1Activa): ?>
+                                                    <datalist id="csf-municipios-perfil">
+                                                        <?php foreach ($municipiosPerfil as $municipioPerfil): ?>
+                                                            <option value="<?= e($municipioPerfil['nombre']) ?>"></option>
+                                                        <?php endforeach; ?>
+                                                    </datalist>
+                                                <?php endif; ?>
                                             </label>
                                             <label for="province">Provincia
-                                                <input id="province" name="province" type="text" value="<?= e($memberProfile['province']) ?>" required>
+                                                <?php if ($fase1Activa && $provinciasLista): ?>
+                                                    <select id="province" name="province" required>
+                                                        <?php
+                                                        $provinciaActualPerfil = clean_text((string) $memberProfile['province']);
+                                                        $provinciaReconocida = false;
+                                                        foreach ($provinciasLista as $provinciaOpcion) {
+                                                            if ($provinciaOpcion['nombre'] === $provinciaActualPerfil) {
+                                                                $provinciaReconocida = true;
+                                                                break;
+                                                            }
+                                                        }
+                                                        ?>
+                                                        <option value="">Elige tu provincia</option>
+                                                        <?php if (!$provinciaReconocida && $provinciaActualPerfil !== ''): ?>
+                                                            <?php /* Lo que ya tuviera escrito no se pierde por
+                                                                     pasar a lista cerrada: se conserva como opcion. */ ?>
+                                                            <option value="<?= e($provinciaActualPerfil) ?>" selected><?= e($provinciaActualPerfil) ?> (sin normalizar)</option>
+                                                        <?php endif; ?>
+                                                        <?php foreach ($provinciasLista as $provinciaOpcion): ?>
+                                                            <option value="<?= e($provinciaOpcion['nombre']) ?>"<?= $provinciaActualPerfil === $provinciaOpcion['nombre'] ? ' selected' : '' ?>><?= e($provinciaOpcion['nombre']) ?></option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                <?php else: ?>
+                                                    <input id="province" name="province" type="text" value="<?= e($memberProfile['province']) ?>" required>
+                                                <?php endif; ?>
                                             </label>
                                             <label for="birth_place">Lugar de origen
                                                 <input id="birth_place" name="birth_place" type="text" value="<?= e($memberProfile['birth_place']) ?>">
                                             </label>
                                         </div>
+
+                                        <?php if ($fase1Activa && $disciplinasCatalogo): ?>
+                                            <?php /* Tipo de artista. Relacion N:M: se pueden marcar varias y
+                                                     anadir especialidades nuevas es insertar una fila en
+                                                     `disciplinas`, sin tocar codigo ni esquema. */ ?>
+                                            <div class="member-field-block">
+                                                <p class="member-field-title">Tipo de artista</p>
+                                                <p class="csf-field-hint">Marca todas las que practiques. Se usan para que te encuentren en el directorio y en la agenda.</p>
+                                                <div class="csf-discipline-picker">
+                                                    <?php foreach ($disciplinasCatalogo as $disciplinaOpcion): ?>
+                                                        <label class="csf-discipline-option">
+                                                            <input type="checkbox" name="disciplinas[]" value="<?= e($disciplinaOpcion['slug']) ?>"<?= in_array($disciplinaOpcion['slug'], $disciplinasMiembro, true) ? ' checked' : '' ?>>
+                                                            <span><?= e($disciplinaOpcion['nombre']) ?></span>
+                                                        </label>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
                                         <div class="form-grid-three">
                                             <label for="phone">Telefono / WhatsApp
                                                 <input id="phone" name="phone" type="text" value="<?= e($memberProfile['phone']) ?>">
@@ -2304,6 +2764,403 @@ function panel_tile_markup(array $card, string $size = 'lg'): string
                             <button class="button button-primary member-save-button" type="submit">Guardar pagina web</button>
                         </div>
                 </form>
+                <?php endif; ?>
+
+                <?php if ($fase1Activa): ?>
+                <?php
+                /* ==============================================================
+                   FASE 1 — Mis eventos / Crear evento / Mis puntos / Mis redes
+
+                   Cuatro pantallas del panel, fuera de los formularios grandes
+                   (form[data-panel-form]) para que la navegacion por secciones
+                   que ya existia las trate como cualquier otra.
+
+                   Todas las acciones que gastan puntos pasan por POST con CSRF y
+                   confirmacion previa. El coste lo calcula el servidor: aqui solo
+                   se muestra.
+                   ============================================================== */
+                $csrfFase1 = csrf_token();
+                $accionFase1 = 'panel-usuario.php';
+
+                /** Botonera de una tarjeta de evento dentro del panel. */
+                $herramientasEvento = static function (array $evento) use ($csrfFase1, $accionFase1): string {
+                    $eventoId = (int) $evento['id'];
+                    $destacado = csf_evento_promocion_vigente($evento);
+                    $pasado = csf_evento_es_pasado($evento);
+
+                    ob_start();
+                    ?>
+                    <span class="csf-event-tools">
+                        <a class="csf-event-tool" href="panel-usuario.php?evento=<?= e((string) $eventoId) ?>#evento-form" data-panel-link="evento-form">Editar</a>
+
+                        <?php if ($destacado): ?>
+                            <span class="csf-event-tool" aria-disabled="true">Promocionado</span>
+                        <?php elseif (!$pasado && (string) $evento['estado'] === 'PUBLICADO'): ?>
+                            <button class="csf-event-tool is-promote" type="button"
+                                    data-abrir-confirmar="promocionar-<?= e((string) $eventoId) ?>">
+                                Promocionar · <?= e((string) csf_puntos_coste('promocion_evento')) ?> pts
+                            </button>
+                        <?php endif; ?>
+
+                        <button class="csf-event-tool is-danger" type="button"
+                                data-abrir-confirmar="eliminar-<?= e((string) $eventoId) ?>">Eliminar</button>
+                    </span>
+                    <?php
+
+                    return (string) ob_get_clean();
+                };
+                ?>
+
+                <section id="mis-eventos" class="content-section member-panel-section">
+                    <div class="member-panel-heading">
+                        <div class="member-panel-heading-main">
+                            <div>
+                                <p class="section-kicker">Agenda</p>
+                                <h2>Mis eventos</h2>
+                                <p>Publicar es gratis. Los puntos solo sirven para dar visibilidad extra.</p>
+                            </div>
+                            <span class="member-heading-count"><?= e($proximosCount === 1 ? '1 próximo' : $proximosCount . ' próximos') ?></span>
+                        </div>
+                    </div>
+
+                    <div class="csf-panel-cta" style="margin-bottom: 22px;">
+                        <a class="button button-primary" href="panel-usuario.php?evento=nuevo#evento-form" data-panel-link="evento-form">Crear evento</a>
+                        <a class="button button-secondary" href="<?= e(app_url('agenda')) ?>" target="_blank" rel="noopener">Ver la agenda pública</a>
+                    </div>
+
+                    <h3 class="csf-agenda-month-title">Próximos<span><?= e((string) count($eventosProximos)) ?></span></h3>
+                    <?php if ($eventosProximos): ?>
+                        <div class="csf-event-grid">
+                            <?php foreach ($eventosProximos as $evento): ?>
+                                <?= csf_evento_card($evento, ['artista' => false, 'acciones' => $herramientasEvento($evento)]) ?>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <p class="csf-empty">Todavía no tienes eventos programados. Crea el primero: es gratis y aparecerá en la agenda pública.</p>
+                    <?php endif; ?>
+
+                    <?php if ($eventosPasados): ?>
+                        <h3 class="csf-agenda-month-title" style="margin-top: 34px;">Histórico<span><?= e((string) count($eventosPasados)) ?></span></h3>
+                        <div class="csf-event-grid">
+                            <?php foreach ($eventosPasados as $evento): ?>
+                                <?= csf_evento_card($evento, ['artista' => false, 'acciones' => $herramientasEvento($evento)]) ?>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </section>
+
+                <section id="evento-form" class="content-section member-panel-section">
+                    <div class="member-panel-heading">
+                        <div class="member-panel-heading-main">
+                            <div>
+                                <p class="section-kicker">Agenda</p>
+                                <h2><?= $eventoEnEdicion !== null ? 'Editar evento' : 'Crear evento' ?></h2>
+                                <p>Crear y editar eventos es gratis, sin límite y sin gastar puntos.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="post" action="<?= e($accionFase1) ?>" enctype="multipart/form-data" class="member-config-card">
+                        <input type="hidden" name="csrf_token" value="<?= e($csrfFase1) ?>">
+                        <input type="hidden" name="panel_action" value="evento_guardar">
+                        <input type="hidden" name="evento_id" value="<?= e((string) ($eventoEnEdicion['id'] ?? 0)) ?>">
+                        <input type="hidden" name="imagen_actual" value="<?= e((string) ($eventoEnEdicion['imagen_path'] ?? '')) ?>">
+
+                        <div class="csf-form-grid">
+                            <div class="csf-field csf-field-full">
+                                <label for="evento-titulo">Título del evento *</label>
+                                <input type="text" id="evento-titulo" name="titulo" required maxlength="200"
+                                       value="<?= e((string) ($eventoEnEdicion['titulo'] ?? '')) ?>"
+                                       placeholder="Noche de bulerías en el Teatro Garnelo">
+                            </div>
+
+                            <div class="csf-field">
+                                <label for="evento-fecha">Fecha *</label>
+                                <input type="date" id="evento-fecha" name="fecha" required
+                                       value="<?= e((string) ($eventoEnEdicion['fecha'] ?? '')) ?>">
+                            </div>
+
+                            <div class="csf-field">
+                                <label for="evento-hora">Hora</label>
+                                <input type="time" id="evento-hora" name="hora"
+                                       value="<?= e(csf_evento_hora_corta((string) ($eventoEnEdicion['hora'] ?? ''))) ?>">
+                            </div>
+
+                            <div class="csf-field">
+                                <label for="evento-provincia">Provincia</label>
+                                <select id="evento-provincia" name="provincia">
+                                    <option value="">Sin especificar</option>
+                                    <?php foreach ($provinciasLista as $provincia): ?>
+                                        <option value="<?= e($provincia['nombre']) ?>"<?= (string) ($eventoEnEdicion['provincia_texto'] ?? '') === $provincia['nombre'] ? ' selected' : '' ?>><?= e($provincia['nombre']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <p class="csf-field-hint">Clasifica el evento en la agenda por territorio.</p>
+                            </div>
+
+                            <div class="csf-field">
+                                <label for="evento-municipio">Municipio</label>
+                                <input type="text" id="evento-municipio" name="municipio" maxlength="160" list="csf-municipios"
+                                       value="<?= e((string) ($eventoEnEdicion['municipio_texto'] ?? '')) ?>"
+                                       placeholder="Montilla">
+                                <datalist id="csf-municipios">
+                                    <?php foreach ($municipiosLista as $municipio): ?>
+                                        <option value="<?= e($municipio['nombre']) ?>"></option>
+                                    <?php endforeach; ?>
+                                </datalist>
+                            </div>
+
+                            <div class="csf-field">
+                                <label for="evento-lugar">Lugar</label>
+                                <input type="text" id="evento-lugar" name="lugar" maxlength="190"
+                                       value="<?= e((string) ($eventoEnEdicion['lugar'] ?? '')) ?>"
+                                       placeholder="Teatro Garnelo">
+                            </div>
+
+                            <div class="csf-field">
+                                <label for="evento-direccion">Dirección</label>
+                                <input type="text" id="evento-direccion" name="direccion" maxlength="255"
+                                       value="<?= e((string) ($eventoEnEdicion['direccion'] ?? '')) ?>"
+                                       placeholder="Calle Ancha, 12">
+                            </div>
+
+                            <div class="csf-field csf-field-full">
+                                <label for="evento-descripcion">Descripción</label>
+                                <textarea id="evento-descripcion" name="descripcion" maxlength="4000"
+                                          placeholder="Cuenta de qué va el espectáculo, quién actúa y qué se va a ver."><?= e((string) ($eventoEnEdicion['descripcion'] ?? '')) ?></textarea>
+                            </div>
+
+                            <div class="csf-field">
+                                <label for="evento-enlace">Enlace externo</label>
+                                <input type="url" id="evento-enlace" name="enlace_url" maxlength="255"
+                                       value="<?= e((string) ($eventoEnEdicion['enlace_url'] ?? '')) ?>"
+                                       placeholder="https://entradas.example.com">
+                            </div>
+
+                            <div class="csf-field">
+                                <label for="evento-video">Vídeo (opcional)</label>
+                                <input type="url" id="evento-video" name="video_url" maxlength="255"
+                                       value="<?= e((string) ($eventoEnEdicion['video_url'] ?? '')) ?>"
+                                       placeholder="https://youtube.com/watch?v=...">
+                            </div>
+
+                            <div class="csf-field csf-field-full">
+                                <label for="evento-imagen">Cartel del evento</label>
+                                <div class="csf-image-field">
+                                    <?php $carteActual = csf_evento_imagen_url($eventoEnEdicion ?? []); ?>
+                                    <img class="csf-image-preview" data-evento-preview
+                                         src="<?= e($carteActual) ?>"
+                                         alt="Cartel actual"<?= $carteActual === '' ? ' hidden' : '' ?>>
+                                    <input type="file" id="evento-imagen" name="imagen" accept="image/jpeg,image/png,image/webp" data-evento-imagen>
+                                </div>
+                                <p class="csf-field-hint">JPG, PNG o WebP, hasta 5 MB. Si no subes cartel mostraremos la fecha destacada.</p>
+                            </div>
+
+                            <div class="csf-field">
+                                <label for="evento-estado">Estado</label>
+                                <select id="evento-estado" name="estado">
+                                    <?php foreach (csf_evento_estados() as $valor => $etiqueta): ?>
+                                        <option value="<?= e($valor) ?>"<?= (string) ($eventoEnEdicion['estado'] ?? 'PUBLICADO') === $valor ? ' selected' : '' ?>><?= e($etiqueta) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <p class="csf-field-hint">Solo los publicados aparecen en la agenda pública.</p>
+                            </div>
+                        </div>
+
+                        <div class="member-form-savebar">
+                            <div>
+                                <strong><?= $eventoEnEdicion !== null ? 'Guardar los cambios' : 'Publicar el evento' ?></strong>
+                                <span>Publicar en la agenda no cuesta puntos.</span>
+                            </div>
+                            <button class="button button-primary member-save-button" type="submit">
+                                <?= $eventoEnEdicion !== null ? 'Guardar evento' : 'Crear evento' ?>
+                            </button>
+                        </div>
+                    </form>
+                </section>
+
+                <section id="mis-puntos" class="content-section member-panel-section">
+                    <div class="member-panel-heading">
+                        <div class="member-panel-heading-main">
+                            <div>
+                                <p class="section-kicker">Cartera</p>
+                                <h2>Mis puntos</h2>
+                                <p>Publicar siempre es gratis. Los puntos compran visibilidad.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <?= csf_puntos_widget_saldo($puntosSaldo) ?>
+
+                    <div class="csf-panel-stats" style="margin: 20px 0;">
+                        <div class="csf-panel-stat">
+                            <strong><?= e((string) $puntosResumen['total_ingresado']) ?></strong>
+                            <span>puntos recibidos</span>
+                        </div>
+                        <div class="csf-panel-stat">
+                            <strong><?= e((string) $puntosResumen['total_gastado']) ?></strong>
+                            <span>puntos usados</span>
+                        </div>
+                        <div class="csf-panel-stat">
+                            <strong><?= e((string) csf_puntos_coste('promocion_evento')) ?></strong>
+                            <span>puntos por promocionar un evento</span>
+                        </div>
+                        <div class="csf-panel-stat">
+                            <strong><?= e((string) csf_puntos_coste('enlace_social')) ?></strong>
+                            <span>puntos por enlace social extra</span>
+                        </div>
+                    </div>
+
+                    <h3 class="csf-agenda-month-title">Movimientos<span><?= e((string) count($puntosMovimientos)) ?></span></h3>
+                    <?= csf_puntos_historial($puntosMovimientos) ?>
+                </section>
+
+                <section id="mis-redes" class="content-section member-panel-section">
+                    <div class="member-panel-heading">
+                        <div class="member-panel-heading-main">
+                            <div>
+                                <p class="section-kicker">Perfil público</p>
+                                <h2>Redes sociales</h2>
+                                <p>Muestra todas tus redes gratis. El primer enlace clicable también es gratuito.</p>
+                            </div>
+                            <span class="member-heading-count"><?= e($redesActivas === 1 ? '1 enlace activo' : $redesActivas . ' enlaces activos') ?></span>
+                        </div>
+                    </div>
+
+                    <p class="csf-social-note">
+                        <?php if ($redesActivas === 0): ?>
+                            Tienes <strong>un enlace gratuito</strong> por estrenar. Añade tus redes, guarda y activa la que más te interese.
+                        <?php else: ?>
+                            Activar un enlace más cuesta <strong><?= e(csf_puntos_formato(csf_puntos_coste('enlace_social'))) ?></strong>.
+                            Una vez activado permanece enlazado para siempre. Tu saldo: <strong><?= e(csf_puntos_formato($puntosSaldo)) ?></strong>.
+                        <?php endif; ?>
+                    </p>
+
+                    <form method="post" action="<?= e($accionFase1) ?>">
+                        <input type="hidden" name="csrf_token" value="<?= e($csrfFase1) ?>">
+                        <input type="hidden" name="panel_action" value="redes_guardar">
+
+                        <div class="csf-social-list">
+                            <?php foreach ($redesMiembro as $clave => $red): ?>
+                                <div class="csf-social-row<?= $red['enlace_activo'] ? ' is-active' : '' ?>">
+                                    <div class="csf-social-head">
+                                        <span class="csf-social-name">
+                                            <strong><?= e($red['nombre']) ?></strong>
+                                            <?php if ($red['handle'] !== ''): ?><small><?= e($red['handle']) ?></small><?php endif; ?>
+                                        </span>
+                                        <span class="csf-social-status <?= $red['enlace_activo'] ? 'is-on' : 'is-off' ?>">
+                                            <?= $red['enlace_activo'] ? 'Enlace activo' : 'Sin enlace' ?>
+                                        </span>
+                                    </div>
+
+                                    <input type="url" name="redes[<?= e($clave) ?>][url]" maxlength="255"
+                                           value="<?= e($red['url']) ?>" placeholder="<?= e($red['placeholder']) ?>">
+
+                                    <div class="csf-social-controls">
+                                        <label class="csf-social-visible">
+                                            <input type="checkbox" name="redes[<?= e($clave) ?>][visible]" value="1"<?= $red['visible'] ? ' checked' : '' ?>>
+                                            Mostrar en mi perfil público
+                                        </label>
+
+                                        <?php if ($red['enlace_activo']): ?>
+                                            <span class="csf-event-tool" aria-disabled="true">
+                                                <?= $red['coste_puntos'] > 0
+                                                    ? 'Activado por ' . e(csf_puntos_formato($red['coste_puntos']))
+                                                    : 'Activado gratis' ?>
+                                            </span>
+                                        <?php elseif ($red['configurada']): ?>
+                                            <button class="csf-social-activate" type="button"
+                                                    data-abrir-confirmar="red-<?= e($clave) ?>">
+                                                <?= $redesCosteSiguiente === 0
+                                                    ? 'Activar enlace gratis'
+                                                    : 'Activar enlace — ' . e(csf_puntos_formato($redesCosteSiguiente)) ?>
+                                            </button>
+                                        <?php else: ?>
+                                            <button class="csf-social-activate" type="button" disabled>Añade la dirección primero</button>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <div class="member-form-savebar">
+                            <div>
+                                <strong>Guardar tus redes</strong>
+                                <span>Guardar direcciones y visibilidad no cuesta puntos.</span>
+                            </div>
+                            <button class="button button-primary member-save-button" type="submit">Guardar redes</button>
+                        </div>
+                    </form>
+                </section>
+
+                <?php /* Modales: paquetes de puntos y confirmaciones de gasto. */ ?>
+                <?= csf_puntos_modal_paquetes($accionFase1, $csrfFase1) ?>
+
+                <?php foreach ($eventosProximos as $evento): ?>
+                    <?php if (!csf_evento_promocion_vigente($evento) && (string) $evento['estado'] === 'PUBLICADO' && !csf_evento_es_pasado($evento)): ?>
+                        <?= csf_puntos_dialogo_confirmar([
+                            'id' => 'promocionar-' . (int) $evento['id'],
+                            'titulo' => 'Promocionar «' . (string) $evento['titulo'] . '»',
+                            'texto' => 'El evento aparecerá destacado en la agenda, con la etiqueta DESTACADO y por delante del resto de eventos de su mismo día.',
+                            'coste' => csf_puntos_coste('promocion_evento'),
+                            'saldo' => $puntosSaldo,
+                            'accion' => $accionFase1,
+                            'csrf' => $csrfFase1,
+                            'panel_action' => 'evento_promocionar',
+                            'campos' => ['evento_id' => (string) (int) $evento['id']],
+                            'confirmar' => 'Promocionar por ' . csf_puntos_formato(csf_puntos_coste('promocion_evento')),
+                        ]) ?>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+
+                <?php foreach (array_merge($eventosProximos, $eventosPasados) as $evento): ?>
+                    <div class="csf-modal" data-confirmar-modal="eliminar-<?= e((string) (int) $evento['id']) ?>" hidden>
+                        <div class="csf-modal-backdrop" data-cerrar-confirmar></div>
+                        <section class="csf-modal-dialog csf-modal-narrow" role="dialog" aria-modal="true">
+                            <header class="csf-modal-header">
+                                <div>
+                                    <p class="section-kicker">Confirmación</p>
+                                    <h2>Eliminar evento</h2>
+                                </div>
+                                <button class="modal-close" type="button" data-cerrar-confirmar aria-label="Cerrar">×</button>
+                            </header>
+                            <p class="csf-confirm-text">
+                                «<?= e((string) $evento['titulo']) ?>» dejará de aparecer en la agenda y en tu perfil público.
+                                Los puntos que hayas gastado en promocionarlo no se devuelven.
+                            </p>
+                            <div class="csf-confirm-actions">
+                                <button class="button button-secondary" type="button" data-cerrar-confirmar>Cancelar</button>
+                                <form method="post" action="<?= e($accionFase1) ?>">
+                                    <input type="hidden" name="csrf_token" value="<?= e($csrfFase1) ?>">
+                                    <input type="hidden" name="panel_action" value="evento_eliminar">
+                                    <input type="hidden" name="evento_id" value="<?= e((string) (int) $evento['id']) ?>">
+                                    <button class="button button-primary" type="submit">Eliminar evento</button>
+                                </form>
+                            </div>
+                        </section>
+                    </div>
+                <?php endforeach; ?>
+
+                <?php foreach ($redesMiembro as $clave => $red): ?>
+                    <?php if (!$red['enlace_activo'] && $red['configurada']): ?>
+                        <?= csf_puntos_dialogo_confirmar([
+                            'id' => 'red-' . $clave,
+                            'titulo' => 'Activar el enlace de ' . $red['nombre'],
+                            'texto' => $redesCosteSiguiente === 0
+                                ? 'Este es tu enlace gratuito. Después de activarlo permanecerá enlazado en tu perfil.'
+                                : 'Activar este enlace cuesta ' . csf_puntos_formato(csf_puntos_coste('enlace_social'))
+                                    . '. Después de activarlo permanecerá enlazado en tu perfil.',
+                            'coste' => $redesCosteSiguiente,
+                            'saldo' => $puntosSaldo,
+                            'accion' => $accionFase1,
+                            'csrf' => $csrfFase1,
+                            'panel_action' => 'red_activar',
+                            'campos' => ['red' => $clave],
+                            'confirmar' => $redesCosteSiguiente === 0
+                                ? 'Activar gratis'
+                                : 'Activar por ' . csf_puntos_formato($redesCosteSiguiente),
+                        ]) ?>
+                    <?php endif; ?>
+                <?php endforeach; ?>
                 <?php endif; ?>
 
                 <section id="tarjeta-miembro" class="content-section member-panel-section">

@@ -262,6 +262,149 @@ function db_bootstrap(PDO $pdo): void
             INDEX idx_usos_codigo (codigo_descuento),
             INDEX idx_usos_miembro_fecha (miembro_id, usado_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        // --- Fase 1 red social: geografia, disciplinas, eventos y puntos ------
+        // Espejo de database/20260831_fase1_red_social.sql. El orden importa:
+        // municipios depende de provincias, eventos de ambas y miembro_redes de
+        // puntos_movimientos.
+
+        "CREATE TABLE IF NOT EXISTS municipios (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            provincia_id BIGINT UNSIGNED NOT NULL,
+            nombre VARCHAR(160) NOT NULL,
+            slug VARCHAR(180) NOT NULL,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            CONSTRAINT fk_municipios_provincia FOREIGN KEY (provincia_id) REFERENCES provincias(id) ON DELETE CASCADE,
+            UNIQUE KEY uq_municipios_provincia_slug (provincia_id, slug),
+            INDEX idx_municipios_nombre (nombre)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS disciplinas (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            slug VARCHAR(80) NOT NULL UNIQUE,
+            nombre VARCHAR(120) NOT NULL,
+            estado ENUM('ACTIVA','INACTIVA') NOT NULL DEFAULT 'ACTIVA',
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS miembro_disciplinas (
+            miembro_id BIGINT UNSIGNED NOT NULL,
+            disciplina_id BIGINT UNSIGNED NOT NULL,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (miembro_id, disciplina_id),
+            CONSTRAINT fk_miembro_disciplinas_miembro FOREIGN KEY (miembro_id) REFERENCES miembros(id) ON DELETE CASCADE,
+            CONSTRAINT fk_miembro_disciplinas_disciplina FOREIGN KEY (disciplina_id) REFERENCES disciplinas(id) ON DELETE CASCADE,
+            INDEX idx_miembro_disciplinas_disciplina (disciplina_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS puntos_saldos (
+            usuario_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+            saldo INT UNSIGNED NOT NULL DEFAULT 0,
+            total_ingresado INT UNSIGNED NOT NULL DEFAULT 0,
+            total_gastado INT UNSIGNED NOT NULL DEFAULT 0,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            CONSTRAINT fk_puntos_saldos_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS puntos_movimientos (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            usuario_id BIGINT UNSIGNED NOT NULL,
+            puntos INT NOT NULL,
+            tipo ENUM('INICIAL','COMPRA','CONSUMO','DEVOLUCION','PROMOCION','ENLACE_SOCIAL','ADMINISTRACION','PROMOCIONAL') NOT NULL,
+            concepto VARCHAR(190) NOT NULL,
+            referencia_tipo VARCHAR(40) NULL,
+            referencia_id BIGINT UNSIGNED NULL,
+            saldo_posterior INT UNSIGNED NOT NULL,
+            pago_id BIGINT UNSIGNED NULL,
+            clave_idempotencia VARCHAR(120) NULL UNIQUE,
+            creado_por_usuario_id BIGINT UNSIGNED NULL,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT fk_puntos_mov_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+            CONSTRAINT fk_puntos_mov_pago FOREIGN KEY (pago_id) REFERENCES pagos_stripe(id) ON DELETE SET NULL,
+            CONSTRAINT fk_puntos_mov_actor FOREIGN KEY (creado_por_usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL,
+            INDEX idx_puntos_mov_usuario_fecha (usuario_id, created_at),
+            INDEX idx_puntos_mov_referencia (referencia_tipo, referencia_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS eventos (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            miembro_id BIGINT UNSIGNED NOT NULL,
+            usuario_id BIGINT UNSIGNED NOT NULL,
+            titulo VARCHAR(200) NOT NULL,
+            slug VARCHAR(220) NOT NULL UNIQUE,
+            descripcion TEXT NULL,
+            imagen_path VARCHAR(255) NULL,
+            video_url VARCHAR(255) NULL,
+            fecha DATE NOT NULL,
+            hora TIME NULL,
+            fecha_fin DATE NULL,
+            lugar VARCHAR(190) NULL,
+            direccion VARCHAR(255) NULL,
+            provincia_id BIGINT UNSIGNED NULL,
+            municipio_id BIGINT UNSIGNED NULL,
+            provincia_texto VARCHAR(120) NULL,
+            municipio_texto VARCHAR(160) NULL,
+            enlace_url VARCHAR(255) NULL,
+            estado ENUM('BORRADOR','PUBLICADO','CANCELADO','ARCHIVADO') NOT NULL DEFAULT 'PUBLICADO',
+            promocionado BOOLEAN NOT NULL DEFAULT FALSE,
+            promocionado_at DATETIME NULL,
+            promocion_expira_at DATETIME NULL,
+            precio_centimos INT UNSIGNED NULL,
+            entradas_url VARCHAR(255) NULL,
+            categoria VARCHAR(80) NULL,
+            latitud DECIMAL(10,7) NULL,
+            longitud DECIMAL(10,7) NULL,
+            vistas INT UNSIGNED NOT NULL DEFAULT 0,
+            deleted_at DATETIME NULL,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            CONSTRAINT fk_eventos_miembro FOREIGN KEY (miembro_id) REFERENCES miembros(id) ON DELETE CASCADE,
+            CONSTRAINT fk_eventos_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+            CONSTRAINT fk_eventos_provincia FOREIGN KEY (provincia_id) REFERENCES provincias(id) ON DELETE SET NULL,
+            CONSTRAINT fk_eventos_municipio FOREIGN KEY (municipio_id) REFERENCES municipios(id) ON DELETE SET NULL,
+            INDEX idx_eventos_agenda (estado, deleted_at, fecha, hora),
+            INDEX idx_eventos_destacados (promocionado, fecha),
+            INDEX idx_eventos_miembro_fecha (miembro_id, fecha),
+            INDEX idx_eventos_provincia_fecha (provincia_id, fecha),
+            INDEX idx_eventos_municipio_fecha (municipio_id, fecha)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS miembro_redes (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            miembro_id BIGINT UNSIGNED NOT NULL,
+            red VARCHAR(30) NOT NULL,
+            url VARCHAR(255) NULL,
+            handle VARCHAR(120) NULL,
+            visible BOOLEAN NOT NULL DEFAULT TRUE,
+            enlace_activo BOOLEAN NOT NULL DEFAULT FALSE,
+            activado_at DATETIME NULL,
+            coste_puntos SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            movimiento_id BIGINT UNSIGNED NULL,
+            orden SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            CONSTRAINT fk_miembro_redes_miembro FOREIGN KEY (miembro_id) REFERENCES miembros(id) ON DELETE CASCADE,
+            CONSTRAINT fk_miembro_redes_movimiento FOREIGN KEY (movimiento_id) REFERENCES puntos_movimientos(id) ON DELETE SET NULL,
+            UNIQUE KEY uq_miembro_redes (miembro_id, red),
+            INDEX idx_miembro_redes_activas (miembro_id, enlace_activo)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS registro_actividad (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            usuario_id BIGINT UNSIGNED NULL,
+            entidad VARCHAR(40) NOT NULL,
+            entidad_id BIGINT UNSIGNED NULL,
+            accion VARCHAR(40) NOT NULL,
+            detalle_json TEXT NULL,
+            ip VARCHAR(45) NULL,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT fk_registro_actividad_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL,
+            INDEX idx_registro_entidad (entidad, entidad_id),
+            INDEX idx_registro_usuario_fecha (usuario_id, created_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     ];
 
     foreach ($statements as $statement) {
@@ -278,10 +421,16 @@ function db_bootstrap(PDO $pdo): void
     db_add_column_if_missing($pdo, 'miembros', 'perfil_completo_at', 'TIMESTAMP NULL');
     db_add_column_if_missing($pdo, 'banners_miembro', 'fecha_inicio_contratacion', 'DATETIME NULL');
     db_add_column_if_missing($pdo, 'banners_miembro', 'fecha_fin_contratacion', 'DATETIME NULL');
+    // Geografia normalizada del perfil. NULL: ninguna ficha existente se invalida
+    // y el codigo que sigue leyendo ciudad/provincia_texto no se entera.
+    db_add_column_if_missing($pdo, 'miembros', 'provincia_id', 'BIGINT UNSIGNED NULL AFTER provincia_texto');
+    db_add_column_if_missing($pdo, 'miembros', 'municipio_id', 'BIGINT UNSIGNED NULL AFTER provincia_id');
     db_normalize_member_status_column($pdo);
 
     db_seed_member_types($pdo);
     db_seed_article_categories($pdo);
+    db_seed_provincias($pdo);
+    db_seed_disciplinas($pdo);
 }
 
 function db_column_exists(PDO $pdo, string $table, string $column): bool
@@ -351,6 +500,68 @@ function db_seed_member_types(PDO $pdo): void
     $statement = $pdo->prepare('INSERT IGNORE INTO tipos_miembro (nombre, slug) VALUES (:nombre, :slug)');
     foreach ($types as $slug => $name) {
         $statement->execute(['nombre' => $name, 'slug' => $slug]);
+    }
+}
+
+/**
+ * Las 52 provincias, para poder filtrar la agenda y el directorio por territorio.
+ *
+ * La lista es la misma que usa assets/js/advertising.js en el selector de
+ * provincia, para que la publicidad local y los filtros hablen del mismo mapa.
+ *
+ * A diferencia del resto de seeds, esta comprueba primero si la tabla ya tiene
+ * filas: db_bootstrap() corre en cada conexion y no merece la pena lanzar 52
+ * INSERT IGNORE por peticion.
+ */
+function db_seed_provincias(PDO $pdo): void
+{
+    if ((int) $pdo->query('SELECT COUNT(*) FROM provincias')->fetchColumn() > 0) {
+        return;
+    }
+
+    $statement = $pdo->prepare('INSERT IGNORE INTO provincias (nombre, slug) VALUES (:nombre, :slug)');
+    foreach (csf_provincias_seed() as $provincia) {
+        $statement->execute(['nombre' => $provincia, 'slug' => slugify($provincia)]);
+    }
+}
+
+/**
+ * @return string[]
+ */
+function csf_provincias_seed(): array
+{
+    return [
+        'A Coruña', 'Álava', 'Albacete', 'Alicante', 'Almería', 'Asturias', 'Ávila',
+        'Badajoz', 'Barcelona', 'Bizkaia', 'Burgos', 'Cáceres', 'Cádiz', 'Cantabria',
+        'Castellón', 'Ceuta', 'Ciudad Real', 'Córdoba', 'Cuenca', 'Gipuzkoa', 'Girona',
+        'Granada', 'Guadalajara', 'Huelva', 'Huesca', 'Illes Balears', 'Jaén', 'La Rioja',
+        'Las Palmas', 'León', 'Lleida', 'Lugo', 'Madrid', 'Málaga', 'Melilla', 'Murcia',
+        'Navarra', 'Ourense', 'Palencia', 'Pontevedra', 'Salamanca', 'Santa Cruz de Tenerife',
+        'Segovia', 'Sevilla', 'Soria', 'Tarragona', 'Teruel', 'Toledo', 'Valencia',
+        'Valladolid', 'Zamora', 'Zaragoza',
+    ];
+}
+
+/**
+ * Disciplinas base. Anadir una nueva especialidad es insertar una fila aqui:
+ * la relacion miembro_disciplinas es N:M y no impone limite por artista.
+ */
+function db_seed_disciplinas(PDO $pdo): void
+{
+    if ((int) $pdo->query('SELECT COUNT(*) FROM disciplinas')->fetchColumn() > 0) {
+        return;
+    }
+
+    $disciplinas = [
+        'baile' => 'Baile',
+        'cante' => 'Cante',
+        'toque' => 'Toque',
+        'percusion' => 'Percusión',
+    ];
+
+    $statement = $pdo->prepare('INSERT IGNORE INTO disciplinas (slug, nombre) VALUES (:slug, :nombre)');
+    foreach ($disciplinas as $slug => $nombre) {
+        $statement->execute(['slug' => $slug, 'nombre' => $nombre]);
     }
 }
 

@@ -3,6 +3,9 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/app/auth.php';
 require_once __DIR__ . '/app/layout.php';
+// Fase 1 red social: agenda real y redes sociales con enlace de pago.
+require_once __DIR__ . '/app/events_ui.php';
+require_once __DIR__ . '/app/social_links_repository.php';
 
 function artist_public_media_url(string $path): string
 {
@@ -231,6 +234,38 @@ usort($news, static function (array $a, array $b): int {
 });
 $socialLinks = is_array($webPage['social_links'] ?? null) ? $webPage['social_links'] : [];
 $contactFields = is_array($webPage['contact_fields'] ?? null) ? $webPage['contact_fields'] : [];
+
+/* -------------------------------------------------------------------------
+   Fase 1: agenda real (tabla `eventos`) y redes sociales (`miembro_redes`).
+
+   El bloque de agenda antiguo, el que se guarda dentro de perfil_json en
+   web_page.events, NO se toca: sigue entero unas lineas mas abajo. Solo se
+   OCULTA cuando este miembro ya tiene eventos en la tabla nueva, para no
+   mostrar dos agendas distintas a la vez. Si no tiene ninguno, se sigue viendo
+   la de siempre y nadie pierde contenido.
+   ------------------------------------------------------------------------- */
+$miembroPublicoId = (int) ($member['member_db_id'] ?? 0);
+$eventosProximosDb = [];
+$eventosPasadosDb = [];
+$redesPublicas = [];
+
+$pdoPublico = db();
+if ($pdoPublico && $miembroPublicoId > 0) {
+    try {
+        $eventosProximosDb = csf_evento_listar_miembro($pdoPublico, $miembroPublicoId, 'proximos', true);
+        $eventosPasadosDb = array_slice(
+            csf_evento_listar_miembro($pdoPublico, $miembroPublicoId, 'pasados', true),
+            0,
+            6
+        );
+        $redesPublicas = csf_redes_publicas($pdoPublico, $miembroPublicoId);
+    } catch (Throwable $exception) {
+        error_log('[artista] fase1 no disponible: ' . $exception->getMessage());
+    }
+}
+
+$tieneAgendaNueva = $eventosProximosDb !== [] || $eventosPasadosDb !== [];
+$mostrarAgendaLegacy = !$tieneAgendaNueva;
 $siteBaseUrl = artist_public_base_url();
 $artistPageUrl = $siteBaseUrl . '/' . member_public_path((string) ($profile['member_type'] ?? 'artista'), $slug);
 $artistsUrl = $siteBaseUrl . '/artistas.php';
@@ -629,7 +664,63 @@ $shareText = $displayName . ' — Galería';
         </section>
     <?php endif; ?>
 
-    <?php if ($events): ?>
+    <?php /* Agenda de la tabla `eventos`. Sustituye a la agenda guardada en
+             perfil_json, que queda justo debajo y solo se muestra si este
+             miembro todavia no ha publicado ningun evento en la tabla nueva. */ ?>
+    <?php if ($eventosProximosDb): ?>
+        <section id="eventos" class="ms-section">
+            <?php artist_render_section_band('Próximos eventos'); ?>
+            <div class="ms-shell">
+                <div class="csf-event-grid" data-reveal>
+                    <?php foreach ($eventosProximosDb as $eventoPublico): ?>
+                        <?= csf_evento_card($eventoPublico, ['artista' => false]) ?>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </section>
+    <?php endif; ?>
+
+    <?php if ($eventosPasadosDb): ?>
+        <section id="eventos-anteriores" class="ms-section">
+            <?php artist_render_section_band('Eventos anteriores'); ?>
+            <div class="ms-shell">
+                <div class="csf-event-grid" data-reveal>
+                    <?php foreach ($eventosPasadosDb as $eventoPublico): ?>
+                        <?= csf_evento_card($eventoPublico, ['artista' => false, 'cta' => 'Ver ficha']) ?>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </section>
+    <?php endif; ?>
+
+    <?php if ($redesPublicas): ?>
+        <section id="redes-sociales" class="ms-section">
+            <?php artist_render_section_band('Redes sociales'); ?>
+            <div class="ms-shell">
+                <ul class="csf-social-public" data-reveal>
+                    <?php foreach ($redesPublicas as $redPublica): ?>
+                        <li>
+                            <?php if ($redPublica['enlace_activo'] && $redPublica['url'] !== ''): ?>
+                                <a class="csf-social-chip" href="<?= e($redPublica['url']) ?>" target="_blank" rel="noopener me">
+                                    <?= e($redPublica['nombre']) ?>
+                                    <?php if ($redPublica['handle'] !== ''): ?><small><?= e($redPublica['handle']) ?></small><?php endif; ?>
+                                </a>
+                            <?php else: ?>
+                                <?php /* Red visible pero sin enlace activo: se ve
+                                         y se puede copiar, pero no es clicable. */ ?>
+                                <span class="csf-social-chip is-plain">
+                                    <?= e($redPublica['nombre']) ?>
+                                    <?php if ($redPublica['handle'] !== ''): ?><small><?= e($redPublica['handle']) ?></small><?php endif; ?>
+                                </span>
+                            <?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        </section>
+    <?php endif; ?>
+
+    <?php if ($events && $mostrarAgendaLegacy): ?>
         <?php $eventsHaveList = count($events) > 1; ?>
         <section id="eventos" class="ms-section">
             <?php artist_render_section_band('Agenda'); ?>

@@ -15,6 +15,10 @@ function page_head(string $title, string $description, bool $includeRankings = t
     $legalModalVersion = (string) (@filemtime(__DIR__ . '/../assets/js/legal-modal.js') ?: time());
     $cookieConsentVersion = (string) (@filemtime(__DIR__ . '/../assets/js/cookie-consent.js') ?: time());
     $isAdmin = strpos($_SERVER['REQUEST_URI'] ?? '', 'panel-admin.php') !== false;
+    // Modales de puntos y eventos: solo donde hacen falta, no en todo el sitio.
+    $requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '');
+    $needsPanelEvents = str_contains($requestUri, 'panel-usuario.php') || str_contains($requestUri, 'agenda');
+    $panelEventsVersion = (string) (@filemtime(__DIR__ . '/../assets/js/panel-eventos.js') ?: time());
     ?>
     <head>
         <meta charset="UTF-8">
@@ -36,6 +40,7 @@ function page_head(string $title, string $description, bool $includeRankings = t
         <script src="<?= e(app_url('assets/js/cookie-consent.js')) ?>?v=<?= e($cookieConsentVersion) ?>" defer></script>
         <script src="<?= e(app_url('assets/js/password-visibility.js')) ?>" defer></script>
         <?php if ($isAdmin): ?><script src="<?= e(app_url('assets/js/admin-sidebar.js')) ?>?v=<?= e($adminSidebarVersion) ?>" defer></script><?php endif; ?>
+        <?php if ($needsPanelEvents): ?><script src="<?= e(app_url('assets/js/panel-eventos.js')) ?>?v=<?= e($panelEventsVersion) ?>" defer></script><?php endif; ?>
         <?php if ($includeRankings): ?><script src="<?= e(app_url('assets/js/section-rankings.js')) ?>" defer></script><?php endif; ?>
     </head>
     <?php
@@ -109,6 +114,7 @@ function page_header(string $active = ''): void
                     <a href="festivales.php" data-ad-nav="FESTIVALES"<?= nav_class($active, 'FESTIVALES') ?>>Festivales</a>
                 </div>
             </div>
+            <a href="<?= e(app_url('agenda')) ?>" data-ad-nav="EVENTOS"<?= nav_class($active, 'EVENTOS') ?>>Agenda</a>
             <a href="servicios.php"<?= nav_class($active, 'SERVICIOS') ?>>Servicios</a>
             <a href="contacto.php"<?= nav_class($active, 'CONTACTO') ?>>Contacto</a>
             <div class="mobile-nav-footer">
@@ -162,7 +168,7 @@ function page_footer(): void
             <p>Revista, comunidad y servicios digitales para impulsar el arte flamenco.</p>
         </div>
         <div class="footer-links">
-            <div><h3>Principal</h3><a href="index.php#inicio">Inicio</a><a href="revista.php">Revista</a><a href="artistas.php">Artistas</a><a href="servicios.php">Servicios</a></div>
+            <div><h3>Principal</h3><a href="index.php#inicio">Inicio</a><a href="revista.php">Revista</a><a href="artistas.php">Artistas</a><a href="<?= e(app_url('agenda')) ?>">Agenda</a><a href="servicios.php">Servicios</a></div>
             <div><h3>Legal</h3><a href="terminos.php" data-legal-document="terms">Términos y condiciones</a><a href="aviso-legal.php" data-legal-document="legal_notice">Aviso legal</a><a href="privacidad.php" data-legal-document="privacy">Privacidad</a><a href="cookies.php" data-legal-document="cookies">Cookies</a><button class="footer-action-link" type="button" data-cookie-settings>Configurar cookies</button></div>
             <div><h3>Contacto</h3><a href="contacto.php">Formulario de contacto</a><a href="mailto:hola@consaborflamenco.com">hola@consaborflamenco.com</a><span>Redes sociales</span><span>Instagram · Facebook · YouTube</span></div>
         </div>

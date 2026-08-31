@@ -114,8 +114,18 @@ function csf_db_table_exists(PDO $pdo, string $table): bool
     return (int) $statement->fetchColumn() > 0;
 }
 
-function csf_fetch_member_directory(PDO $pdo, string $memberType, string $discipline, int $limit = 48): array
-{
+/**
+ * @param array{provincia_id?:int, municipio_id?:int} $geoFilters Filtros de
+ *        territorio de la fase 1. Opcionales: sin ellos la consulta se comporta
+ *        exactamente igual que antes.
+ */
+function csf_fetch_member_directory(
+    PDO $pdo,
+    string $memberType,
+    string $discipline,
+    int $limit = 48,
+    array $geoFilters = []
+): array {
     $conditions = [
         'm.slug IS NOT NULL',
         'm.slug <> ""',
@@ -126,6 +136,20 @@ function csf_fetch_member_directory(PDO $pdo, string $memberType, string $discip
         'member_type' => $memberType,
         'member_type_json' => '%"member_type":"' . $memberType . '"%',
     ];
+
+    // Territorio. Solo se aplica si la columna existe: en un entorno sin migrar,
+    // el directorio sigue funcionando igual que siempre.
+    $provinciaId = (int) ($geoFilters['provincia_id'] ?? 0);
+    if ($provinciaId > 0 && db_column_exists($pdo, 'miembros', 'provincia_id')) {
+        $conditions[] = 'm.provincia_id = :provincia_id';
+        $params['provincia_id'] = $provinciaId;
+
+        $municipioId = (int) ($geoFilters['municipio_id'] ?? 0);
+        if ($municipioId > 0 && db_column_exists($pdo, 'miembros', 'municipio_id')) {
+            $conditions[] = 'm.municipio_id = :municipio_id';
+            $params['municipio_id'] = $municipioId;
+        }
+    }
 
     $disciplineConditions = [];
     $relationTable = $memberType === 'academia' ? 'academia_disciplinas' : 'miembro_disciplinas';
