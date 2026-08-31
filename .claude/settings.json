@@ -7,7 +7,10 @@
       "Bash(php -r '$h=stream_get_contents\\(STDIN\\); *)",
       "Bash(php -r 'require \"app/config.php\"; require \"app/database.php\"; echo db\\(\\) ? \"BD OK: \".DB_NAME.\"@\".DB_PORT.\"\\\\n\" : \"BD KO\\\\n\";')",
       "Bash(rm -f \"C:/Users/patri/AppData/Local/Temp/csf_test_puntos.php\" \"C:/Users/patri/AppData/Local/Temp/csf_test_eventos.php\" \"C:/Users/patri/AppData/Local/Temp/csf_http_test.php\" \"C:/Users/patri/AppData/Local/Temp/csf_http_test2.php\" \"C:/Users/patri/AppData/Local/Temp/csf_setup_test_user.php\" \"C:/Users/patri/AppData/Local/Temp/p.html\" \"C:/Users/patri/AppData/Local/Temp/artista.html\" \"C:/Users/patri/AppData/Local/Temp/csf_server.log\")",
-      "Bash(pkill -f \"php -S 127.0.0.1:8765\")"
+      "Bash(pkill -f \"php -S 127.0.0.1:8765\")",
+      "Bash(awk 'NR<6620 && /@media/{l=NR\": \"$0} END{}{} NR==6619{print \"antes de 6620 -> \"l}' assets/css/styles.css)",
+      "Bash(awk -v t=9435 'NR<t && /@media/{l=NR\": \"$0} NR==t-1{print \"antes de 9435 -> \"l}' assets/css/styles.css)",
+      "Bash(awk -v t=10413 'NR<t && /@media/{l=NR\": \"$0} NR==t-1{print \"antes de 10413 -> \"l}' assets/css/styles.css)"
     ]
   }
 }
