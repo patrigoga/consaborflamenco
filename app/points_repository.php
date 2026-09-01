@@ -27,7 +27,12 @@ require_once __DIR__ . '/activity_log.php';
 /** 1 punto = 0,50 EUR. */
 const CSF_PUNTOS_VALOR_CENTIMOS = 50;
 
-/** Puntos de bienvenida segun el tipo de membresia. */
+/**
+ * Puntos de bienvenida segun el nivel de membresia.
+ *
+ * El artista destacado recibe lo mismo que el VIP: son las fichas escaparate de
+ * la plataforma y no tiene sentido dejarlas cortas de saldo.
+ */
 const CSF_PUNTOS_ALTA_SIMPATIZANTE = 30;
 const CSF_PUNTOS_ALTA_VIP = 100;
 
@@ -418,9 +423,9 @@ function csf_puntos_gastar(
  * Abona los puntos de bienvenida la primera vez que el usuario entra al panel.
  *
  * Idempotente por `clave_idempotencia`: se puede llamar en cada carga de pagina
- * sin miedo. El importe depende del tipo de membresia en el momento del alta;
- * una subida posterior a VIP no vuelve a abonar (seria una decision comercial
- * distinta, con su propio movimiento de tipo PROMOCIONAL).
+ * sin miedo. El importe depende del nivel de membresia en el momento del alta;
+ * una subida posterior a VIP o a destacado no vuelve a abonar (seria una
+ * decision comercial distinta, con su propio movimiento de tipo PROMOCIONAL).
  */
 function csf_puntos_asegurar_alta(PDO $pdo, int $usuarioId, string $membresia): int
 {
@@ -428,9 +433,11 @@ function csf_puntos_asegurar_alta(PDO $pdo, int $usuarioId, string $membresia): 
         return 0;
     }
 
-    $esVip = strtolower(trim($membresia)) === 'vip';
-    $puntos = $esVip ? CSF_PUNTOS_ALTA_VIP : CSF_PUNTOS_ALTA_SIMPATIZANTE;
-    $concepto = $esVip ? 'Bienvenida miembro VIP' : 'Bienvenida miembro gratuito';
+    // VIP y artista destacado comparten el saldo de bienvenida alto.
+    $nivel = member_tier_from_estado($membresia);
+    $altoNivel = $nivel !== 'simpatizante';
+    $puntos = $altoNivel ? CSF_PUNTOS_ALTA_VIP : CSF_PUNTOS_ALTA_SIMPATIZANTE;
+    $concepto = 'Bienvenida ' . mb_strtolower(member_tier_label($nivel), 'UTF-8');
 
     try {
         $resultado = csf_puntos_abonar($pdo, $usuarioId, $puntos, 'INICIAL', $concepto, [
@@ -442,7 +449,7 @@ function csf_puntos_asegurar_alta(PDO $pdo, int $usuarioId, string $membresia): 
         if (!$resultado['duplicado']) {
             csf_log_actividad($pdo, $usuarioId, 'puntos', $resultado['movimiento_id'], 'alta_inicial', [
                 'puntos' => $puntos,
-                'membresia' => $esVip ? 'vip' : 'simpatizante',
+                'membresia' => $nivel,
             ]);
         }
 

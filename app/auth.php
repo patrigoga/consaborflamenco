@@ -164,6 +164,87 @@ function normalize_member_type(string $type): string
 }
 
 /**
+ * Niveles de membresia.
+ *
+ * OJO: no confundir con member_type_options(). El TIPO de miembro dice que es
+ * (artista, academia, tablao...) y decide el prefijo de su URL publica. El NIVEL
+ * dice que puede hacer dentro de la plataforma. Un mismo miembro de tipo
+ * "artista" puede ser simpatizante, VIP o destacado.
+ *
+ * Se guarda en `miembros.estado`, que ademas admite valores que no son niveles
+ * (INACTIVO, SUSPENDIDO, PENDIENTE). Por eso la conversion pasa siempre por
+ * member_tier_from_estado().
+ *
+ * @return array<string, string>
+ */
+function member_tier_options(): array
+{
+    return [
+        'simpatizante' => 'Miembro simpatizante',
+        'vip' => 'Miembro VIP',
+        'destacado' => 'Artista destacado',
+    ];
+}
+
+function member_tier_label(string $tier): string
+{
+    return member_tier_options()[strtolower(trim($tier))] ?? 'Miembro simpatizante';
+}
+
+/**
+ * Nivel a partir del valor de `miembros.estado`.
+ *
+ * Los estados que no son niveles (INACTIVO, SUSPENDIDO, PENDIENTE) degradan a
+ * simpatizante, que es lo que ya hacia el codigo anterior.
+ */
+function member_tier_from_estado(?string $estado): string
+{
+    $estado = strtolower(trim((string) $estado));
+
+    return array_key_exists($estado, member_tier_options()) ? $estado : 'simpatizante';
+}
+
+/**
+ * Valor de `miembros.estado` para un nivel.
+ */
+function member_estado_from_tier(string $tier): string
+{
+    return strtoupper(member_tier_from_estado($tier));
+}
+
+/**
+ * Nivel con perfil avanzado: curriculum artistico y microweb publica.
+ *
+ * Reservado a los artistas destacados, que son las fichas escaparate que da de
+ * alta la administracion. Simpatizantes y VIP no ven esas pantallas en la
+ * portada del panel; sus datos, si los tuvieran, siguen guardados.
+ */
+function member_tier_has_advanced_profile(string $tier): bool
+{
+    return member_tier_from_estado($tier) === 'destacado';
+}
+
+/**
+ * Nivel con los limites altos de contenido de la microweb.
+ *
+ * Separado de member_tier_is_vip() a proposito: el codigo de descuento y la
+ * tarjeta con ventajas son de la membresia VIP de pago, mientras que los
+ * limites altos acompanan tambien al artista destacado.
+ */
+function member_tier_has_high_limits(string $tier): bool
+{
+    return in_array(member_tier_from_estado($tier), ['vip', 'destacado'], true);
+}
+
+/**
+ * Solo la membresia VIP de pago (descuentos y ventajas de la tarjeta).
+ */
+function member_tier_is_vip(string $tier): bool
+{
+    return member_tier_from_estado($tier) === 'vip';
+}
+
+/**
  * Prefijo de URL publica de cada tipo de miembro.
  *
  * Todos los tipos son miembros y comparten el mismo espacio de slugs (la columna
@@ -1174,7 +1255,7 @@ function db_user_from_row(array $row): array
         'SETTER' => 'setter',
         default => 'user',
     };
-    $memberState = strtolower((string) ($row['miembro_estado'] ?? 'SIMPATIZANTE'));
+    $memberState = (string) ($row['miembro_estado'] ?? 'SIMPATIZANTE');
 
     return [
         'id' => (string) ($row['uuid'] ?? ''),
@@ -1185,7 +1266,7 @@ function db_user_from_row(array $row): array
         'password_hash' => (string) ($row['password_hash'] ?? ''),
         'role' => $role,
         'account_status' => strtolower((string) ($row['estado'] ?? 'ACTIVO')),
-        'membership_tier' => $memberState === 'vip' ? 'vip' : 'simpatizante',
+        'membership_tier' => member_tier_from_estado($memberState),
         'member_number' => isset($row['numero_miembro']) ? (string) $row['numero_miembro'] : null,
         'member_code' => isset($row['codigo_descuento']) ? (string) $row['codigo_descuento'] : null,
         'artistic_profile' => $profile,
@@ -1314,7 +1395,13 @@ function db_upsert_member_for_user(PDO $pdo, int $userId, array $user): void
             tipo_miembro_id = VALUES(tipo_miembro_id),
             nombre_publico = VALUES(nombre_publico),
             slug = VALUES(slug),
-            estado = VALUES(estado),
+            -- `estado` NO se actualiza a proposito: solo se fija al crear la ficha.
+            -- Antes se reescribia en cada guardado del perfil, asi que cualquier
+            -- estado distinto de VIP volvia solo a SIMPATIZANTE. Eso degradaba a
+            -- los artistas destacados y, peor, reactivaba a los miembros que la
+            -- administracion habia dejado SUSPENDIDO, INACTIVO o PENDIENTE.
+            -- El nivel de membresia lo cambia la administracion, no el propio
+            -- miembro al editar su ficha.
             biografia = VALUES(biografia),
             ciudad = VALUES(ciudad),
             provincia_texto = VALUES(provincia_texto),
@@ -1334,7 +1421,8 @@ function db_upsert_member_for_user(PDO $pdo, int $userId, array $user): void
         'slug' => $resolvedSlug,
         'numero_miembro' => $memberNumber,
         'codigo_descuento' => $memberCode,
-        'estado' => strtolower((string) ($user['membership_tier'] ?? 'simpatizante')) === 'vip' ? 'VIP' : 'SIMPATIZANTE',
+        // Solo se aplica en el INSERT (ver el comentario del ON DUPLICATE KEY).
+        'estado' => member_estado_from_tier((string) ($user['membership_tier'] ?? 'simpatizante')),
         'biografia' => '',
         'ciudad' => clean_text((string) ($profile['city'] ?? '')),
         'provincia_texto' => clean_text((string) ($profile['province'] ?? '')),

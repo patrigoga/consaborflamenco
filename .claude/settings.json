@@ -10,7 +10,16 @@
       "Bash(pkill -f \"php -S 127.0.0.1:8765\")",
       "Bash(awk 'NR<6620 && /@media/{l=NR\": \"$0} END{}{} NR==6619{print \"antes de 6620 -> \"l}' assets/css/styles.css)",
       "Bash(awk -v t=9435 'NR<t && /@media/{l=NR\": \"$0} NR==t-1{print \"antes de 9435 -> \"l}' assets/css/styles.css)",
-      "Bash(awk -v t=10413 'NR<t && /@media/{l=NR\": \"$0} NR==t-1{print \"antes de 10413 -> \"l}' assets/css/styles.css)"
+      "Bash(awk -v t=10413 'NR<t && /@media/{l=NR\": \"$0} NR==t-1{print \"antes de 10413 -> \"l}' assets/css/styles.css)",
+      "Bash(php tools/run_migration.php database/20260901_nivel_artista_destacado.sql)",
+      "Bash(curl -s \"http://127.0.0.1:8765/acceso.php\" -c /tmp/c.txt)",
+      "Bash(sed 's/.*value=\"//;s/\"//')",
+      "Bash(curl -s -b /tmp/c.txt -c /tmp/c.txt -d \"csrf_token=$\\(cat /tmp/t.txt\\)&email=simpatizante@tiers.test&password=Prueba1234!\" \"http://127.0.0.1:8765/acceso.php\")",
+      "Bash(curl -s -b /tmp/c.txt \"http://127.0.0.1:8765/panel-usuario.php\")",
+      "Bash(php -r *)",
+      "Bash(php \"C:/Users/patri/AppData/Local/Temp/csf_setup_tiers.php\" crear)",
+      "Bash(php \"C:/Users/patri/AppData/Local/Temp/csf_test_tiers.php\")",
+      "Bash(grep -v \"^PHP Warning\\\\|^Warning:\\\\|^$\")"
     ]
   }
 }

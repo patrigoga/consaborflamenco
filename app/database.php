@@ -104,7 +104,7 @@ function db_bootstrap(PDO $pdo): void
             slug VARCHAR(180) NULL UNIQUE,
             numero_miembro INT UNSIGNED NOT NULL UNIQUE,
             codigo_descuento VARCHAR(40) NOT NULL UNIQUE,
-            estado ENUM('SIMPATIZANTE','VIP','INACTIVO','SUSPENDIDO','PENDIENTE') NOT NULL DEFAULT 'SIMPATIZANTE',
+            estado ENUM('SIMPATIZANTE','VIP','DESTACADO','INACTIVO','SUSPENDIDO','PENDIENTE') NOT NULL DEFAULT 'SIMPATIZANTE',
             biografia TEXT NULL,
             ciudad VARCHAR(120) NULL,
             provincia_texto VARCHAR(120) NULL,
@@ -474,14 +474,21 @@ function db_add_unique_index_if_missing(PDO $pdo, string $table, string $index, 
     $pdo->exec("ALTER TABLE `{$safeTable}` ADD UNIQUE KEY `{$safeIndex}` (`{$safeColumn}`)");
 }
 
+/**
+ * `miembros.estado` guarda a la vez el nivel de membresia (SIMPATIZANTE, VIP,
+ * DESTACADO) y estados de cuenta que no son niveles (INACTIVO, SUSPENDIDO,
+ * PENDIENTE). La conversion a nivel la hace member_tier_from_estado().
+ *
+ * DESTACADO es el artista escaparate: el unico nivel con curriculum y microweb.
+ */
 function db_normalize_member_status_column(PDO $pdo): void
 {
     $pdo->exec(
-        "ALTER TABLE miembros MODIFY estado ENUM('ACTIVO','SIMPATIZANTE','VIP','INACTIVO','SUSPENDIDO','PENDIENTE') NOT NULL DEFAULT 'SIMPATIZANTE'"
+        "ALTER TABLE miembros MODIFY estado ENUM('ACTIVO','SIMPATIZANTE','VIP','DESTACADO','INACTIVO','SUSPENDIDO','PENDIENTE') NOT NULL DEFAULT 'SIMPATIZANTE'"
     );
     $pdo->exec("UPDATE miembros SET estado = 'SIMPATIZANTE' WHERE estado = 'ACTIVO'");
     $pdo->exec(
-        "ALTER TABLE miembros MODIFY estado ENUM('SIMPATIZANTE','VIP','INACTIVO','SUSPENDIDO','PENDIENTE') NOT NULL DEFAULT 'SIMPATIZANTE'"
+        "ALTER TABLE miembros MODIFY estado ENUM('SIMPATIZANTE','VIP','DESTACADO','INACTIVO','SUSPENDIDO','PENDIENTE') NOT NULL DEFAULT 'SIMPATIZANTE'"
     );
 }
 

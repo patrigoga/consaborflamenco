@@ -29,9 +29,10 @@ $displayName = $cardIsAvailable
     ? (($cardProfile['public_name'] ?? '') !== '' ? (string) $cardProfile['public_name'] : (string) ($cardUser['name'] ?? 'Miembro'))
     : '';
 $memberTypeLabel = $cardIsAvailable ? (member_type_options()[$cardProfile['member_type'] ?? 'artista'] ?? 'Artista') : '';
-$memberTier = $cardIsAvailable ? strtolower((string) ($cardUser['membership_tier'] ?? 'simpatizante')) : 'simpatizante';
-$isVipMember = $memberTier === 'vip';
-$memberStatus = $isVipMember ? 'Miembro VIP' : 'Miembro simpatizante';
+$memberTier = $cardIsAvailable ? member_tier_from_estado((string) ($cardUser['membership_tier'] ?? 'simpatizante')) : 'simpatizante';
+// El codigo de descuento sigue siendo exclusivo de la membresia VIP de pago.
+$isVipMember = member_tier_is_vip($memberTier);
+$memberStatus = member_tier_label($memberTier);
 $memberCode = $cardIsAvailable ? member_code_for_user($cardUser) : '';
 $cardHeadline = $cardIsAvailable ? clean_text((string) ($cardProfile['artistic_headline'] ?? '')) : '';
 $memberCardPublicUrl = $cardIsAvailable

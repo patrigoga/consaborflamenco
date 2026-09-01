@@ -454,3 +454,19 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Creada la herramienta `tools/backfill_geo_miembros.php` para clasificar por provincia y municipio a los miembros que ya existian.
 - Anadido el enlace Agenda al menu principal y al pie.
 - Documentado en `docs/17_RED_SOCIAL_FASE1.md`.
+
+### 2026-09-01 - Fase 1 red social - Nivel de membresia "Artista destacado"
+
+- Anadido el nivel DESTACADO a `miembros.estado`, junto a SIMPATIZANTE y VIP. Migracion incremental `database/20260901_nivel_artista_destacado.sql`, idempotente y no destructiva.
+- Es el nivel de los artistas conocidos que da de alta la administracion: el unico que ve las pantallas de curriculum artistico y de microweb publica.
+- Ocultadas para simpatizantes y VIP las tarjetas "Mi curriculum", "Mi pagina web" y "Ver mi web", ademas del bloque "Contenido de tu web" que cuelga de esta ultima.
+- La pantalla de microweb (`#pagina-web`) y su formulario dejan de pintarse sin el nivel, y el guardado se valida ademas en servidor: un POST fabricado con `profile_action=update_web_page` no modifica nada.
+- El marcado de `#curriculum` se conserva siempre a proposito: viaja dentro del formulario de perfil, asi que retirarlo haria que al guardar el perfil se enviaran las secciones vacias y se borrara el curriculum ya guardado.
+- Corregido un fallo anterior en `db_upsert_member_for_user()`: reescribia `miembros.estado` en cada guardado de perfil, forzandolo a VIP o SIMPATIZANTE. Degradaba a los artistas destacados y, sobre todo, reactivaba a quien la administracion habia dejado SUSPENDIDO, INACTIVO o PENDIENTE. Ahora el estado solo se fija al crear la ficha; el nivel lo cambia la administracion.
+- Creados en `app/auth.php` los helpers `member_tier_options()`, `member_tier_label()`, `member_tier_from_estado()`, `member_estado_from_tier()`, `member_tier_has_advanced_profile()`, `member_tier_has_high_limits()` y `member_tier_is_vip()`.
+- Separados en el panel tres conceptos que antes iban todos en `$isVipMember`: los descuentos y la tarjeta siguen siendo exclusivos del VIP de pago, los limites altos de contenido acompanan tambien al destacado, y el perfil avanzado es solo del destacado.
+- El artista destacado recibe 100 puntos de bienvenida, los mismos que el VIP.
+- Panel de administracion: selector de membresia en la tabla de miembros, con auditoria en `registro_actividad`. Solo admite los tres niveles; los estados de cuenta (SUSPENDIDO, INACTIVO, PENDIENTE) se muestran pero no se editan desde ahi.
+- Bajar de nivel no borra nada: el `perfil_json` con curriculum y microweb se conserva intacto y la ficha publica sigue publicandose.
+- Corregida la anchura de la cabecera del panel, que era de 1580 px fijos frente a los 1760 px del panel y no seguia sus cortes responsive, asi que aparecia metida hacia dentro en todas las resoluciones.
+- Corregida la barra de progreso del perfil en el resumen del panel: era un `span` en linea, donde no se aplican `height` ni `width`, y el `border-radius` la convertia en un ovalo azul desbordado.

@@ -78,7 +78,7 @@ function admin_section_url(string $section, array $params = []): string
 function admin_badge_class(string $status): string
 {
     $status = strtoupper(trim($status));
-    if (in_array($status, ['ACTIVO', 'ACTIVE', 'ACTIVA', 'PUBLICADO', 'PUBLISHED', 'APROBADO', 'APPROVED', 'PAGADO', 'PAID', 'VALIDADA', 'AL_DIA', 'VIP', 'COMPLETO', 'MATRICULA_ABIERTA', 'EN_CURSO', 'CONVERTIDA'], true)) {
+    if (in_array($status, ['ACTIVO', 'ACTIVE', 'ACTIVA', 'PUBLICADO', 'PUBLISHED', 'APROBADO', 'APPROVED', 'PAGADO', 'PAID', 'VALIDADA', 'AL_DIA', 'VIP', 'DESTACADO', 'COMPLETO', 'MATRICULA_ABIERTA', 'EN_CURSO', 'CONVERTIDA'], true)) {
         return 'status-pill-active';
     }
     if (in_array($status, ['PENDIENTE', 'PENDING', 'REVISION', 'VALIDATING', 'PENDIENTE_PAGO', 'PENDIENTE_COBRO', 'NEW', 'NUEVO', 'SIMPATIZANTE', 'SOLICITADA', 'PENDIENTE_DOCUMENTACION', 'PAUSADA', 'EN_PROCESO'], true)) {

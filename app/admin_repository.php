@@ -228,7 +228,9 @@ function admin_members(): array
             u.email,
             u.estado AS usuario_estado,
             u.created_at,
+            m.id AS miembro_id,
             m.nombre_publico,
+            m.slug AS miembro_slug,
             m.numero_miembro,
             m.codigo_descuento,
             m.estado AS miembro_estado,
@@ -389,4 +391,49 @@ function admin_unique_slug(PDO $pdo, string $table, string $baseSlug): string
         $slug = $baseSlug . '-' . $counter;
         $counter++;
     }
+}
+
+/**
+ * Cambia el nivel de membresia de un miembro.
+ *
+ * Es la unica via para marcar a alguien como artista destacado, el nivel que
+ * habilita el curriculum y la microweb publica. El miembro no puede cambiarselo
+ * desde su panel: db_upsert_member_for_user() ya no toca `estado` al guardar.
+ *
+ * Solo acepta los tres niveles de member_tier_options(). Los estados de cuenta
+ * (INACTIVO, SUSPENDIDO, PENDIENTE) viven en la misma columna pero se gestionan
+ * aparte, asi que desde aqui no se pueden fijar por error.
+ */
+function admin_set_member_tier(PDO $pdo, int $miembroId, string $tier, int $actorUserId): bool
+{
+    if ($miembroId <= 0) {
+        return false;
+    }
+
+    $tier = strtolower(trim($tier));
+    if (!array_key_exists($tier, member_tier_options())) {
+        throw new RuntimeException('Nivel de membresia no valido.');
+    }
+
+    $anterior = $pdo->prepare('SELECT estado FROM miembros WHERE id = :id');
+    $anterior->execute(['id' => $miembroId]);
+    $estadoAnterior = $anterior->fetchColumn();
+    if ($estadoAnterior === false) {
+        return false;
+    }
+
+    $statement = $pdo->prepare('UPDATE miembros SET estado = :estado WHERE id = :id');
+    $statement->execute([
+        'estado' => member_estado_from_tier($tier),
+        'id' => $miembroId,
+    ]);
+
+    if (function_exists('csf_log_actividad')) {
+        csf_log_actividad($pdo, $actorUserId, 'miembro', $miembroId, 'nivel_membresia', [
+            'anterior' => (string) $estadoAnterior,
+            'nuevo' => member_estado_from_tier($tier),
+        ]);
+    }
+
+    return true;
 }

@@ -87,6 +87,35 @@ La agenda es cronologica y esa promesa no se rompe: **un evento nunca adelanta a
 
 Duracion: 30 dias (`CSF_PUNTOS_PROMOCION_DIAS`) o hasta que pase el evento, lo que ocurra antes. Destacar algo que ya paso no aporta nada.
 
+## Niveles de membresia
+
+Ojo con la palabra "artista": hay dos cosas distintas.
+
+- **Tipo de miembro** (`tipos_miembro`, `member_type_options()`): que es. Artista, academia, tienda, pena, tablao, festival, profesional. Decide el prefijo de la URL publica.
+- **Nivel de membresia** (`miembros.estado`, `member_tier_options()`): que puede hacer. Un mismo miembro de tipo artista puede ser simpatizante, VIP o destacado.
+
+| Nivel | Puntos de alta | Limites microweb | Curriculum y microweb | Descuentos |
+|---|---|---|---|---|
+| Miembro simpatizante | 30 | 3 / 3 / 5 | No | No |
+| Miembro VIP | 100 | 20 / 12 / 20 | No | Si |
+| Artista destacado | 100 | 20 / 12 / 20 | **Si** | No |
+
+`DESTACADO` es el nivel de los artistas conocidos que da de alta la administracion. Es el unico con curriculum artistico y microweb publica editable.
+
+El nivel **solo lo cambia la administracion**, desde Panel > Usuarios > Miembros. Queda auditado en `registro_actividad`. El miembro no puede tocarlo desde su panel.
+
+Tres funciones distintas donde antes habia una sola comprobacion de VIP:
+
+- `member_tier_is_vip()` — descuentos y ventajas de la tarjeta. Solo la membresia VIP de pago.
+- `member_tier_has_high_limits()` — limites altos de contenido. VIP y destacado.
+- `member_tier_has_advanced_profile()` — curriculum y microweb. Solo destacado.
+
+### Que pasa al bajar de nivel
+
+Nada se borra. El `perfil_json` con el curriculum y la microweb se conserva intacto, la ficha publica del miembro se sigue publicando igual, y en cuanto se le devuelve el nivel vuelve a verlo todo tal y como lo dejo.
+
+La pantalla `#pagina-web` deja de pintarse y su guardado se rechaza tambien en servidor. El marcado de `#curriculum`, en cambio, se conserva siempre: viaja dentro del formulario de perfil, asi que retirarlo haria que al guardar el perfil se enviaran las secciones vacias y se borrara el curriculum guardado.
+
 ## Ficheros
 
 ### Nuevos

@@ -61,6 +61,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($action === 'academia_set_estado' && admin_database() instanceof PDO) {
                 academia_admin_set_estado(admin_database(), (int) ($_POST['academia_id'] ?? 0), (string) ($_POST['estado'] ?? 'PENDIENTE'), academia_user_id($user));
                 $adminMessages[] = 'Estado de la academia actualizado.';
+            } elseif ($action === 'member_set_tier' && admin_database() instanceof PDO) {
+                // Unica via para marcar a alguien como artista destacado.
+                $tierNuevo = (string) ($_POST['tier'] ?? 'simpatizante');
+                $cambiado = admin_set_member_tier(
+                    admin_database(),
+                    (int) ($_POST['miembro_id'] ?? 0),
+                    $tierNuevo,
+                    (int) ($user['db_id'] ?? 0)
+                );
+                $adminMessages[] = $cambiado
+                    ? 'Membresia actualizada a ' . member_tier_label($tierNuevo) . '.'
+                    : 'No se encontro el miembro.';
             }
         } catch (Throwable $exception) {
             $adminErrors[] = $exception->getMessage();
@@ -456,7 +468,7 @@ $recentBlocks = [
                 <div class="section-heading-content">
                     <p class="section-kicker">Comunidad</p>
                     <h2>Miembros registrados</h2>
-                    <p>Estado de cuenta, tipo de espacio, membresia y perfil.</p>
+                    <p>Estado de cuenta, tipo de espacio, membresia y perfil. El nivel <strong>Artista destacado</strong> es el unico que habilita curriculum y microweb publica.</p>
                 </div>
             </div>
             <div class="admin-table-wrap">
@@ -476,10 +488,34 @@ $recentBlocks = [
                             <tr><td colspan="6">Todavia no hay miembros registrados.</td></tr>
                         <?php endif; ?>
                         <?php foreach ($members as $member): ?>
+                            <?php
+                            $miembroId = (int) ($member['miembro_id'] ?? 0);
+                            $miembroEstado = (string) ($member['miembro_estado'] ?? 'SIMPATIZANTE');
+                            $miembroTier = member_tier_from_estado($miembroEstado);
+                            // Los estados de cuenta (SUSPENDIDO, INACTIVO, PENDIENTE) no son
+                            // niveles: se muestran, pero no se editan desde este selector.
+                            $esNivelEditable = array_key_exists(strtolower($miembroEstado), member_tier_options());
+                            ?>
                             <tr>
                                 <td><strong><?= e((string) ($member['nombre_publico'] ?? $member['name'] ?? $member['nombre'] ?? 'Miembro')) ?></strong><small><?= e((string) ($member['email'] ?? '')) ?></small></td>
                                 <td><?= e((string) ($member['tipo_miembro'] ?? '-')) ?></td>
-                                <td><span class="status-pill status-pill-pending"><?= e((string) ($member['miembro_estado'] ?? 'SIMPATIZANTE')) ?></span></td>
+                                <td>
+                                    <?php if ($miembroId > 0 && $esNivelEditable): ?>
+                                        <form method="post" action="<?= e(admin_section_url('miembros')) ?>" class="admin-inline-form">
+                                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                            <input type="hidden" name="admin_action" value="member_set_tier">
+                                            <input type="hidden" name="miembro_id" value="<?= e((string) $miembroId) ?>">
+                                            <select name="tier" onchange="this.form.submit()" aria-label="Membresia de <?= e((string) ($member['nombre_publico'] ?? 'miembro')) ?>">
+                                                <?php foreach (member_tier_options() as $tierValor => $tierEtiqueta): ?>
+                                                    <option value="<?= e($tierValor) ?>"<?= $miembroTier === $tierValor ? ' selected' : '' ?>><?= e($tierEtiqueta) ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <noscript><button class="button button-small" type="submit">Guardar</button></noscript>
+                                        </form>
+                                    <?php else: ?>
+                                        <?= admin_status_badge($miembroEstado) ?>
+                                    <?php endif; ?>
+                                </td>
                                 <td><?= e((string) ($member['numero_miembro'] ?? '-')) ?></td>
                                 <td><?= !empty($member['perfil_completo_at']) ? 'Completo' : 'Pendiente' ?></td>
                                 <td><?= e(admin_date($member['created_at'] ?? null)) ?></td>

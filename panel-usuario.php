@@ -30,9 +30,17 @@ if ($panelPdo) {
 $userName = $user['name'] ?? 'Miembro';
 $memberNumber = member_number_for_user($user);
 $memberCode = member_code_for_user($user);
-$memberTier = strtolower((string) ($user['membership_tier'] ?? 'simpatizante'));
-$isVipMember = $memberTier === 'vip';
-$memberStatus = $isVipMember ? 'Miembro VIP' : 'Miembro simpatizante';
+$memberTier = member_tier_from_estado((string) ($user['membership_tier'] ?? 'simpatizante'));
+
+/* Tres cosas distintas que antes iban todas en $isVipMember:
+   - $isVipMember          la membresia VIP de pago: descuentos y tarjeta.
+   - $hasHighContentLimits limites altos de la microweb: VIP y destacado.
+   - $hasAdvancedProfile   curriculum y microweb: solo el artista destacado. */
+$isVipMember = member_tier_is_vip($memberTier);
+$hasHighContentLimits = member_tier_has_high_limits($memberTier);
+$hasAdvancedProfile = member_tier_has_advanced_profile($memberTier);
+
+$memberStatus = member_tier_label($memberTier);
 $vipMembershipPrice = '80 €/año';
 $discountStatus = $isVipMember ? 'Descuentos activos' : 'Sin descuentos';
 $discountStatusClass = $isVipMember ? 'status-pill-active' : 'status-pill-pending';
@@ -962,7 +970,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $profileAction === 'upload_cv_entry
     exit;
 }
 
-if ($hasWebPage && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') === 'update_web_page') {
+// El guardado de la microweb se valida tambien en servidor: no basta con no
+// pintar el formulario, porque un POST fabricado a mano lo saltaria.
+if ($hasWebPage && $hasAdvancedProfile && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_action'] ?? '') === 'update_web_page') {
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
         $profileErrors[] = 'La sesion ha caducado. Vuelve a intentarlo.';
     }
@@ -1036,7 +1046,7 @@ if ($hasWebPage && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_act
 
         $submittedVideos = is_array($_POST['web_videos'] ?? null) ? $_POST['web_videos'] : [];
         $removeVideos = array_map('intval', is_array($_POST['remove_web_videos'] ?? null) ? $_POST['remove_web_videos'] : []);
-        $maxVideos = $isVipMember ? 12 : 3;
+        $maxVideos = $hasHighContentLimits ? 12 : 3;
         $videos = [];
         foreach (array_slice($submittedVideos, 0, $maxVideos) as $videoIdx => $videoInput) {
             if (!is_array($videoInput) || in_array((int) $videoIdx, $removeVideos, true)) {
@@ -1066,7 +1076,7 @@ if ($hasWebPage && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_act
         $submittedEvents = is_array($_POST['web_events'] ?? null) ? $_POST['web_events'] : [];
         $existingEvents = is_array($webPage['events'] ?? null) ? $webPage['events'] : [];
         $eventUploads = is_array($_FILES['web_events'] ?? null) ? $_FILES['web_events'] : [];
-        $maxEvents = $isVipMember ? 20 : 3;
+        $maxEvents = $hasHighContentLimits ? 20 : 3;
         $events = [];
         foreach (array_slice($submittedEvents, 0, $maxEvents) as $evIdx => $evInput) {
             if (!is_array($evInput)) {
@@ -1101,7 +1111,7 @@ if ($hasWebPage && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['profile_act
         $existingNews = is_array($webPage['news'] ?? null) ? $webPage['news'] : [];
         $newsUploads = is_array($_FILES['web_news'] ?? null) ? $_FILES['web_news'] : [];
         $removeNews = array_map('intval', is_array($_POST['remove_web_news'] ?? null) ? $_POST['remove_web_news'] : []);
-        $maxNews = $isVipMember ? 20 : 5;
+        $maxNews = $hasHighContentLimits ? 20 : 5;
         $news = [];
         foreach (array_slice($submittedNews, 0, $maxNews) as $newsIdx => $newsInput) {
             if (!is_array($newsInput) || in_array((int) $newsIdx, $removeNews, true)) {
@@ -1446,9 +1456,9 @@ $webVideos = is_array($webPage['videos'] ?? null) ? $webPage['videos'] : [];
 $webEvents = is_array($webPage['events'] ?? null) ? $webPage['events'] : [];
 $webNews = is_array($webPage['news'] ?? null) ? $webPage['news'] : [];
 $webSocialLinks = is_array($webPage['social_links'] ?? null) ? $webPage['social_links'] : [];
-$maxWebVideos = $isVipMember ? 12 : 3;
-$maxWebEvents = $isVipMember ? 20 : 3;
-$maxWebNews = $isVipMember ? 20 : 5;
+$maxWebVideos = $hasHighContentLimits ? 12 : 3;
+$maxWebEvents = $hasHighContentLimits ? 20 : 3;
+$maxWebNews = $hasHighContentLimits ? 20 : 5;
 $socialNetworkLabels = ['instagram' => 'Instagram', 'facebook' => 'Facebook', 'youtube' => 'YouTube', 'tiktok' => 'TikTok', 'spotify' => 'Spotify', 'twitter' => 'Twitter / X'];
 $socialNetworkIcons = [
     'instagram' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>',
@@ -1626,30 +1636,41 @@ if ($fase1Activa) {
     ];
 }
 
-$panelPrimaryCards[] = [
-    'target' => 'curriculum',
-    'icon' => 'curriculum',
-    'title' => 'Mi curriculum',
-    'note' => 'Configura tu curriculum artistico, formacion, experiencia, premios y trayectoria profesional.',
-    'metric' => $totalCvEntries === 1 ? '1 entrada' : $totalCvEntries . ' entradas',
-    'metric_id' => 'curriculum-total',
-];
-if ($hasWebPage) {
+/* Curriculum artistico y microweb publica: solo para el artista destacado.
+   Simpatizantes y VIP no ven estas tarjetas en la portada.
+
+   Es una regla de VISIBILIDAD, no un borrado. Las pantallas #curriculum,
+   #pagina-web y sus bloques siguen en el fichero y los datos de quien ya
+   tuviera curriculum o microweb siguen guardados y publicandose. En cuanto la
+   administracion marque a ese miembro como artista destacado, vuelve a verlo
+   todo tal y como lo dejo. */
+if ($hasAdvancedProfile) {
     $panelPrimaryCards[] = [
-        'target' => 'pagina-web',
-        'icon' => 'web',
-        'title' => 'Mi pagina web',
-        'note' => 'Gestiona todo el contenido publico de tu espacio en Con Sabor Flamenco.',
-        'metric' => $webBlocksWithContent === 1 ? '1 bloque con contenido' : $webBlocksWithContent . ' bloques con contenido',
+        'target' => 'curriculum',
+        'icon' => 'curriculum',
+        'title' => 'Mi curriculum',
+        'note' => 'Configura tu curriculum artistico, formacion, experiencia, premios y trayectoria profesional.',
+        'metric' => $totalCvEntries === 1 ? '1 entrada' : $totalCvEntries . ' entradas',
+        'metric_id' => 'curriculum-total',
     ];
-    $panelPrimaryCards[] = [
-        'href' => $publicProfileUrl,
-        'external' => true,
-        'icon' => 'ver',
-        'title' => 'Ver mi web',
-        'note' => 'Accede directamente a tu microweb publica, tal y como la ve el visitante.',
-        'metric' => $memberTypePrefix . '/' . $publicSlug,
-    ];
+
+    if ($hasWebPage) {
+        $panelPrimaryCards[] = [
+            'target' => 'pagina-web',
+            'icon' => 'web',
+            'title' => 'Mi pagina web',
+            'note' => 'Gestiona todo el contenido publico de tu espacio en Con Sabor Flamenco.',
+            'metric' => $webBlocksWithContent === 1 ? '1 bloque con contenido' : $webBlocksWithContent . ' bloques con contenido',
+        ];
+        $panelPrimaryCards[] = [
+            'href' => $publicProfileUrl,
+            'external' => true,
+            'icon' => 'ver',
+            'title' => 'Ver mi web',
+            'note' => 'Accede directamente a tu microweb publica, tal y como la ve el visitante.',
+            'metric' => $memberTypePrefix . '/' . $publicSlug,
+        ];
+    }
 }
 
 // Atajos a cada bloque de la web. No son pantallas nuevas: llevan al bloque
@@ -1683,9 +1704,18 @@ if ($hasWebPage) {
        $ocultarTarjetasSustituidas a false. */
     $ocultarTarjetasSustituidas = $fase1Activa;
 
-    $panelWebCards = $ocultarTarjetasSustituidas
-        ? array_values(array_filter($webSectionCards, static fn (array $card): bool => !isset($card['legacy'])))
-        : $webSectionCards;
+    /* El bloque "Contenido de tu web" de la portada son los apartados DE la
+       microweb, asi que acompana a la tarjeta "Mi pagina web": si esa no se ve,
+       estos atajos tampoco tendrian a donde llevar.
+
+       $webSectionCards se sigue construyendo siempre porque lo necesita el hub
+       de "Mi pagina web", que continua existiendo para no perder el acceso a lo
+       que un miembro ya tuviera montado. */
+    if ($hasAdvancedProfile) {
+        $panelWebCards = $ocultarTarjetasSustituidas
+            ? array_values(array_filter($webSectionCards, static fn (array $card): bool => !isset($card['legacy'])))
+            : $webSectionCards;
+    }
 }
 
 $panelAccountCards = [
@@ -2441,9 +2471,18 @@ function panel_tile_markup(array $card, string $size = 'lg'): string
                         </section>
                 </div>
 
-                <?php if ($hasWebPage): ?>
-                <?php /* Hub de la web publica: una tarjeta por bloque, con el mismo
-                         lenguaje que "Mi curriculum". Cada tarjeta abre su pantalla. */ ?>
+                <?php /* La microweb publica es exclusiva del artista destacado. Se
+                         condiciona el bloque entero, no solo su tarjeta, para que
+                         tampoco se pueda llegar escribiendo #pagina-web a mano.
+
+                         Es seguro hacerlo aqui porque este bloque tiene su propio
+                         formulario (profile_action=update_web_page): si no se
+                         pinta, simplemente no se envia. El curriculum, en cambio,
+                         viaja dentro del formulario de perfil, asi que su marcado
+                         se conserva siempre: quitarlo haria que al guardar el
+                         perfil se enviaran las secciones vacias y se borrara el
+                         curriculum ya guardado. */ ?>
+                <?php if ($hasWebPage && $hasAdvancedProfile): ?>
                 <section id="pagina-web" class="content-section member-panel-section">
                     <div class="member-panel-heading">
                         <div class="member-panel-heading-main">
@@ -2588,7 +2627,7 @@ function panel_tile_markup(array $card, string $size = 'lg'): string
                                 <div class="card-header">
                                     <div>
                                         <h3>Eventos</h3>
-                                        <p><?= $isVipMember ? 'Como miembro VIP puedes publicar hasta 20 eventos.' : 'Como miembro simpatizante puedes publicar hasta 3 eventos.' ?></p>
+                                        <p>Como <?= e(mb_strtolower($memberStatus, 'UTF-8')) ?> puedes publicar hasta <?= e((string) $maxWebEvents) ?> eventos aquí.</p>
                                     </div>
                                     <span class="event-counter" data-event-count="<?= count($webEvents) ?>">
                                         <span class="event-count"><?= count($webEvents) ?></span> / <span class="event-max"><?= $maxWebEvents ?></span>
