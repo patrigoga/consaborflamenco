@@ -1718,12 +1718,22 @@ if ($hasWebPage) {
     }
 }
 
+/* Banners publicitarios: ocultos para todos los niveles de momento.
+   La contratacion depende de Stripe, que todavia no esta conectado, asi que la
+   pantalla solo ensena un boton deshabilitado.
+
+   Nada se borra. La pantalla #banners, sus estilos y la tabla `banners_miembro`
+   siguen intactos: para recuperarlo basta con poner esta constante a true. */
+$mostrarTarjetaBanners = false;
+
 $panelAccountCards = [
     ['target' => 'tarjeta-miembro', 'icon' => 'tarjeta', 'title' => 'Tarjeta de miembro', 'note' => 'Tu carnet digital y el QR para compartirlo.', 'metric' => $memberStatus],
-    ['target' => 'banners', 'icon' => 'banners', 'title' => 'Banners', 'note' => 'Espacios publicitarios contratables en tu provincia.'],
-    ['href' => 'servicios.php', 'external' => true, 'icon' => 'servicios', 'title' => 'Servicios', 'note' => 'Servicios digitales de Con Sabor Flamenco.'],
-    ['target' => 'seguridad', 'icon' => 'seguridad', 'title' => 'Seguridad', 'note' => 'Contrasena de acceso y ajustes de la cuenta.'],
 ];
+if ($mostrarTarjetaBanners) {
+    $panelAccountCards[] = ['target' => 'banners', 'icon' => 'banners', 'title' => 'Banners', 'note' => 'Espacios publicitarios contratables en tu provincia.'];
+}
+$panelAccountCards[] = ['href' => 'servicios.php', 'external' => true, 'icon' => 'servicios', 'title' => 'Servicios', 'note' => 'Servicios digitales de Con Sabor Flamenco.'];
+$panelAccountCards[] = ['target' => 'seguridad', 'icon' => 'seguridad', 'title' => 'Seguridad', 'note' => 'Contrasena de acceso y ajustes de la cuenta.'];
 if ($academiaPanelLink) {
     $panelAccountCards[] = ['href' => 'panel-academia.php', 'icon' => 'academia', 'title' => 'Mi academia', 'note' => 'Alumnos, profesores, cursos, grupos y matriculas.'];
 }
@@ -3247,6 +3257,11 @@ function panel_tile_markup(array $card, string $size = 'lg'): string
                     </div>
                 </section>
 
+                <?php /* Se condiciona la pantalla entera, y no solo su tarjeta,
+                         para no dejar un ancla #banners que lleve a un sitio al
+                         que ya no apunta nada. Es seguro: este bloque no tiene
+                         formulario ni guarda nada, solo informa. */ ?>
+                <?php if ($mostrarTarjetaBanners): ?>
                 <section id="banners" class="content-section member-panel-section">
                     <div class="section-heading">
                         <div class="section-heading-content">
@@ -3266,6 +3281,7 @@ function panel_tile_markup(array $card, string $size = 'lg'): string
                         </article>
                     </div>
                 </section>
+                <?php endif; ?>
 
                 <section id="seguridad" class="content-section member-panel-section">
                     <div class="section-heading">

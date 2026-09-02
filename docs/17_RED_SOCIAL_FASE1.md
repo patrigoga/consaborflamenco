@@ -149,18 +149,21 @@ database/20260831_fase1_red_social.sql         Migracion incremental
 
 ## Que se ha ocultado y que no
 
-Solo **dos tarjetas** de la portada del panel, y ninguna se ha borrado:
+Nada se ha borrado. Todo lo de esta tabla se recupera cambiando un valor:
 
-| Tarjeta | La sustituye | Estado |
-|---|---|---|
-| «Agenda» (`web-eventos`) | «Mis eventos» | Fuera de la portada; sigue en el hub de «Mi pagina web» marcada como *Version anterior* |
-| «Redes sociales» (`web-redes`) | «Redes sociales» con puntos | Igual |
+| Tarjeta | Motivo | Interruptor | Que queda en pie |
+|---|---|---|---|
+| «Agenda» (`web-eventos`) | La sustituye «Mis eventos» | `$ocultarTarjetasSustituidas` | Pantalla y datos; sigue en el hub de «Mi pagina web» marcada *Version anterior* |
+| «Redes sociales» (`web-redes`) | La sustituye la pantalla de redes con puntos | `$ocultarTarjetasSustituidas` | Igual |
+| «Mi curriculum» | Solo para artista destacado | `member_tier_has_advanced_profile()` | Pantalla `#curriculum` y datos intactos |
+| «Mi pagina web» y «Ver mi web» | Solo para artista destacado | `member_tier_has_advanced_profile()` | Datos intactos; la pantalla no se pinta y el guardado se rechaza en servidor |
+| «Banners» | La contratacion depende de Stripe, aun sin conectar | `$mostrarTarjetaBanners` | Pantalla `#banners`, estilos y tabla `banners_miembro` |
 
-Sus pantallas, sus formularios y sus datos siguen intactos y accesibles por su ancla (`#web-eventos`, `#web-redes`). Para revertirlo basta con poner `$ocultarTarjetasSustituidas` a `false` en `panel-usuario.php`.
+La tarjeta de banners esta oculta **para todos los niveles**. Solo afecta al panel del miembro: la publicidad por provincia de las paginas publicas, la seccion Banners del panel de administracion y la tabla `banners_miembro` siguen funcionando igual.
 
 En el perfil publico (`artista.php`), la agenda antigua guardada en `perfil_json` **se sigue mostrando** para los miembros que aun no han publicado ningun evento en la tabla nueva. Solo se oculta cuando hay agenda nueva, para no ensenar dos agendas a la vez.
 
-Nada mas se ha tocado: curriculum, microweb, tarjeta de miembro, banners, academias, alumnos, setters, legal, contacto, servicios, rankings y publicidad siguen exactamente igual.
+Nada mas se ha tocado: tarjeta de miembro, academias, alumnos, setters, legal, contacto, servicios, rankings y la publicidad por provincia de las paginas publicas siguen exactamente igual.
 
 ## Puesta en marcha
 

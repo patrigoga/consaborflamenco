@@ -470,3 +470,9 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Bajar de nivel no borra nada: el `perfil_json` con curriculum y microweb se conserva intacto y la ficha publica sigue publicandose.
 - Corregida la anchura de la cabecera del panel, que era de 1580 px fijos frente a los 1760 px del panel y no seguia sus cortes responsive, asi que aparecia metida hacia dentro en todas las resoluciones.
 - Corregida la barra de progreso del perfil en el resumen del panel: era un `span` en linea, donde no se aplican `height` ni `width`, y el `border-radius` la convertia en un ovalo azul desbordado.
+
+### 2026-09-02 - Fase 1 red social - Tarjeta de banners oculta en el panel del miembro
+
+- Ocultada la tarjeta "Banners" de la portada del panel para todos los niveles de membresia, junto con su pantalla `#banners`, para no dejar un ancla que no lleve a ninguna parte. La contratacion depende de Stripe, que todavia no esta conectado, asi que la pantalla solo ensenaba un boton deshabilitado.
+- No se ha borrado nada: la pantalla, sus estilos y la tabla `banners_miembro` siguen intactos. Se recupera poniendo `$mostrarTarjetaBanners` a true en `panel-usuario.php`.
+- El cambio afecta solo al panel del miembro. La publicidad por provincia de las paginas publicas, la seccion Banners del panel de administracion y la tabla `banners_miembro` siguen funcionando igual.
