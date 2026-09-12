@@ -3,6 +3,19 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/app/auth.php';
 require_once __DIR__ . '/app/layout.php';
+require_once __DIR__ . '/app/directory_helpers.php';
+require_once __DIR__ . '/app/geo_repository.php';
+
+$pdo = db();
+$directorio = $pdo
+    ? csf_render_member_type_directory(
+        $pdo,
+        'tablao',
+        'tablaos.php',
+        $_GET,
+        'Todavía no hay tablaos con ficha activa. Si tienes un tablao, hazte miembro y publica tu perfil.'
+    )
+    : '';
 
 section_page([
     'title' => 'Tablaos | Con Sabor Flamenco',
@@ -19,4 +32,5 @@ section_page([
     'ranking' => 'TABLAOS',
     'back_href' => 'index.php#tablaos',
     'modal_description' => 'Así te mostraremos primero tablaos y anunciantes cercanos. Guardaremos únicamente la provincia en este dispositivo.',
+    'after_ranking' => $directorio,
 ]);

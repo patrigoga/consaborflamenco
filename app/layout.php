@@ -60,7 +60,7 @@ function page_header(string $active = ''): void
     $headerRendered = true;
 
     $flamencoOpen = in_array($active, ['FLAMENCO', 'HISTORIA', 'PALOS_FLAMENCO', 'LLAVES_ORO'], true);
-    $revistaOpen = in_array($active, ['ARTISTAS', 'ACADEMIAS', 'FOTOGRAFIA', 'MODA', 'PENAS', 'TABLAOS', 'FESTIVALES'], true);
+    $revistaOpen = in_array($active, ['ARTISTAS', 'ACADEMIAS', 'FOTOGRAFIA', 'MODA', 'PENAS', 'TABLAOS', 'TIENDAS', 'FESTIVALES'], true);
     $revistaActive = $active === 'REVISTA' || $revistaOpen;
     $user = function_exists('current_user') ? current_user() : null;
     if ($user && ($user['role'] ?? 'user') !== 'admin' && function_exists('user_email_is_verified') && !user_email_is_verified($user)) {
@@ -111,6 +111,7 @@ function page_header(string $active = ''): void
                     <a href="moda.php" data-ad-nav="MODA"<?= nav_class($active, 'MODA') ?>>Moda</a>
                     <a href="penas.php" data-ad-nav="PENAS"<?= nav_class($active, 'PENAS') ?>>Peñas</a>
                     <a href="tablaos.php" data-ad-nav="TABLAOS"<?= nav_class($active, 'TABLAOS') ?>>Tablaos</a>
+                    <a href="tiendas.php" data-ad-nav="TIENDAS"<?= nav_class($active, 'TIENDAS') ?>>Tiendas</a>
                     <a href="festivales.php" data-ad-nav="FESTIVALES"<?= nav_class($active, 'FESTIVALES') ?>>Festivales</a>
                 </div>
             </div>
@@ -297,6 +298,10 @@ function section_page(array $config): void
     $backHref = $config['back_href'] ?? 'index.php#' . $sectionId;
     $modalDescription = $config['modal_description'] ?? 'Así te mostraremos primero contenido y anunciantes cercanos. Guardaremos únicamente la provincia en este dispositivo.';
     $subcategories = $config['subcategories'] ?? [];
+    // Contenido adicional opcional, pintado justo despues de la seccion de
+    // ranking y dentro de primary-content. Por defecto vacio: no cambia nada
+    // en las paginas que ya usan section_page() sin pasarlo.
+    $afterRanking = (string) ($config['after_ranking'] ?? '');
     ?>
     <!DOCTYPE html>
     <html lang="es">
@@ -337,6 +342,7 @@ function section_page(array $config): void
                         <?php endif; ?>
                         <div class="editorial-grid section-ranking" data-ranking-section="<?= e($ranking) ?>"></div>
                     </section>
+                    <?= $afterRanking ?>
                 </div>
                 <aside class="ad-sidebar" aria-label="Publicidad local">
                     <div class="ad-sidebar-inner">

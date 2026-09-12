@@ -405,6 +405,52 @@ function db_bootstrap(PDO $pdo): void
             INDEX idx_registro_entidad (entidad, entidad_id),
             INDEX idx_registro_usuario_fecha (usuario_id, created_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        // --- Mega agenda: reservas simples de tablao ---------------------------
+        // Espejo de database/20260912_tablao_reservas.sql. Depende de eventos y
+        // miembros, ya creados arriba en este mismo array.
+        "CREATE TABLE IF NOT EXISTS tablao_reservas (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            evento_id BIGINT UNSIGNED NOT NULL,
+            miembro_id BIGINT UNSIGNED NOT NULL,
+            nombre_solicitante VARCHAR(160) NOT NULL,
+            email VARCHAR(190) NOT NULL,
+            telefono VARCHAR(60) NULL,
+            num_personas SMALLINT UNSIGNED NOT NULL DEFAULT 1,
+            mensaje VARCHAR(500) NULL,
+            estado ENUM('PENDIENTE','CONFIRMADA','RECHAZADA','CANCELADA') NOT NULL DEFAULT 'PENDIENTE',
+            ip_hash CHAR(64) NULL,
+            gestionado_por BIGINT UNSIGNED NULL,
+            gestionado_at DATETIME NULL,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            CONSTRAINT fk_tablao_reservas_evento FOREIGN KEY (evento_id) REFERENCES eventos(id) ON DELETE CASCADE,
+            CONSTRAINT fk_tablao_reservas_miembro FOREIGN KEY (miembro_id) REFERENCES miembros(id) ON DELETE CASCADE,
+            CONSTRAINT fk_tablao_reservas_gestor FOREIGN KEY (gestionado_por) REFERENCES usuarios(id) ON DELETE SET NULL,
+            INDEX idx_tablao_reservas_evento (evento_id, estado),
+            INDEX idx_tablao_reservas_miembro (miembro_id, estado, created_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        // --- Mega agenda: catalogo de tienda (escaparate, sin carrito) ---------
+        // Espejo de database/20260912_tienda_productos.sql. El limite de fichas
+        // activas por nivel vive en codigo (csf_tienda_limite_productos()),
+        // nunca en esta tabla.
+        "CREATE TABLE IF NOT EXISTS tienda_productos (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            miembro_id BIGINT UNSIGNED NOT NULL,
+            titulo VARCHAR(160) NOT NULL,
+            descripcion TEXT NULL,
+            precio_centimos INT UNSIGNED NULL,
+            imagen_path VARCHAR(255) NULL,
+            enlace_externo VARCHAR(255) NULL,
+            estado ENUM('ACTIVO','PAUSADO') NOT NULL DEFAULT 'ACTIVO',
+            orden SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            deleted_at DATETIME NULL,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            CONSTRAINT fk_tienda_productos_miembro FOREIGN KEY (miembro_id) REFERENCES miembros(id) ON DELETE CASCADE,
+            INDEX idx_tienda_productos_miembro (miembro_id, estado, deleted_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     ];
 
     foreach ($statements as $statement) {
@@ -426,6 +472,9 @@ function db_bootstrap(PDO $pdo): void
     db_add_column_if_missing($pdo, 'miembros', 'provincia_id', 'BIGINT UNSIGNED NULL AFTER provincia_texto');
     db_add_column_if_missing($pdo, 'miembros', 'municipio_id', 'BIGINT UNSIGNED NULL AFTER provincia_id');
     db_normalize_member_status_column($pdo);
+    // Mega agenda: el tablao decide evento a evento si admite reservas. NOT
+    // NULL con DEFAULT FALSE: ningun evento existente cambia de comportamiento.
+    db_add_column_if_missing($pdo, 'eventos', 'acepta_reservas', 'BOOLEAN NOT NULL DEFAULT FALSE');
 
     db_seed_member_types($pdo);
     db_seed_article_categories($pdo);

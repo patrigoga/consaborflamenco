@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/app/auth.php';
 require_once __DIR__ . '/app/layout.php';
 require_once __DIR__ . '/app/events_ui.php';
+require_once __DIR__ . '/app/tablao_repository.php';
 
 /**
  * Pagina publica de un evento: /evento/{slug}
@@ -64,6 +65,14 @@ if ((string) $evento['estado'] !== 'PUBLICADO' && !$esPropietario) {
 
 if (!$esPropietario) {
     csf_evento_registrar_visita($pdo, (int) $evento['id']);
+}
+
+// Reservas de tablao (mega agenda, bloque 3): formulario publico simple, sin
+// pago online. Solo aplica si el evento es de un tablao y admite reservas.
+$aceptaReservas = csf_tablao_evento_acepta_reservas($evento);
+$reservaResultado = null;
+if ($aceptaReservas && $_SERVER['REQUEST_METHOD'] === 'POST' && (string) ($_POST['accion'] ?? '') === 'reservar_tablao') {
+    $reservaResultado = csf_tablao_reserva_enviar($pdo, $evento, $_POST, $_SERVER);
 }
 
 $titulo = (string) $evento['titulo'];
@@ -172,6 +181,55 @@ $textoCompartir = $titulo . ($ubicacion !== '' ? ' · ' . $ubicacion : '');
                         </div>
                     </article>
                 </section>
+
+                <?php if ($aceptaReservas): ?>
+                    <section class="content-section" id="reservar">
+                        <div class="section-heading">
+                            <div class="section-heading-content">
+                                <p class="section-kicker">Mesa reservada</p>
+                                <h2>Reserva tu sitio</h2>
+                                <p>El tablao confirma o rechaza cada solicitud a mano. No se realiza ningún cobro desde este formulario.</p>
+                            </div>
+                        </div>
+
+                        <?php if ($reservaResultado !== null && $reservaResultado['ok']): ?>
+                            <div class="form-alert form-alert-success" role="status"><p><?= e($reservaResultado['message']) ?></p></div>
+                        <?php else: ?>
+                            <?php if ($reservaResultado !== null && $reservaResultado['errors']): ?>
+                                <div class="form-alert form-alert-error" role="alert">
+                                    <ul><?php foreach ($reservaResultado['errors'] as $errorReserva): ?><li><?= e($errorReserva) ?></li><?php endforeach; ?></ul>
+                                </div>
+                            <?php endif; ?>
+                            <form method="post" action="<?= e($urlCanonica) ?>#reservar" class="public-contact-form" novalidate>
+                                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                <input type="hidden" name="accion" value="reservar_tablao">
+                                <label class="honeypot-field" for="reserva-website">Web</label>
+                                <input class="honeypot-field" id="reserva-website" name="website" type="text" tabindex="-1" autocomplete="off">
+
+                                <div class="form-grid-two">
+                                    <label for="reserva-nombre">Nombre
+                                        <input id="reserva-nombre" name="nombre_solicitante" type="text" value="<?= e((string) ($_POST['nombre_solicitante'] ?? '')) ?>" maxlength="160" required>
+                                    </label>
+                                    <label for="reserva-email">Email
+                                        <input id="reserva-email" name="email" type="email" value="<?= e((string) ($_POST['email'] ?? '')) ?>" maxlength="190" required>
+                                    </label>
+                                </div>
+                                <div class="form-grid-two">
+                                    <label for="reserva-telefono">Teléfono (opcional)
+                                        <input id="reserva-telefono" name="telefono" type="text" value="<?= e((string) ($_POST['telefono'] ?? '')) ?>" maxlength="60">
+                                    </label>
+                                    <label for="reserva-personas">Número de personas
+                                        <input id="reserva-personas" name="num_personas" type="number" min="1" max="<?= e((string) CSF_TABLAO_RESERVA_MAX_PERSONAS) ?>" value="<?= e((string) ($_POST['num_personas'] ?? '2')) ?>" required>
+                                    </label>
+                                </div>
+                                <label for="reserva-mensaje">Mensaje para el tablao (opcional)
+                                    <textarea id="reserva-mensaje" name="mensaje" rows="3" maxlength="500"><?= e((string) ($_POST['mensaje'] ?? '')) ?></textarea>
+                                </label>
+                                <button class="button button-primary" type="submit">Solicitar reserva</button>
+                            </form>
+                        <?php endif; ?>
+                    </section>
+                <?php endif; ?>
 
                 <?php if ($artistaNombre !== ''): ?>
                     <section class="content-section">

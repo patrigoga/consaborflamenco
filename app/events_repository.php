@@ -283,6 +283,9 @@ function csf_evento_guardar(
         'municipio_texto' => $geo['municipio_texto'] !== '' ? $geo['municipio_texto'] : null,
         'enlace_url' => csf_evento_url_valida((string) ($datos['enlace_url'] ?? '')),
         'estado' => csf_evento_estado_valido((string) ($datos['estado'] ?? 'PUBLICADO')),
+        // Mega agenda (bloque 3): solo tiene sentido para tablaos, pero el
+        // campo es generico a nivel de tabla, igual que el resto de eventos.
+        'acepta_reservas' => !empty($datos['acepta_reservas']) ? 1 : 0,
     ];
 
     if ($eventoId !== null && $eventoId > 0) {

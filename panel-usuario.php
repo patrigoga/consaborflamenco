@@ -8,6 +8,8 @@ require_once __DIR__ . '/app/academia_security.php';
 require_once __DIR__ . '/app/events_ui.php';
 require_once __DIR__ . '/app/points_ui.php';
 require_once __DIR__ . '/app/social_links_repository.php';
+require_once __DIR__ . '/app/tablao_repository.php';
+require_once __DIR__ . '/app/tienda_repository.php';
 
 $user = require_login();
 
@@ -70,6 +72,11 @@ $memberProfile = default_member_profile($user);
 // Las academias tienen su propia microweb publica en /academia/{slug}, servida
 // por academia.php, asi que no usan el constructor de pagina web del panel.
 $hasWebPage = ($memberProfile['member_type'] ?? 'artista') !== 'academia';
+// Mega agenda (bloque 3): algunas pantallas (reservas de tablao, mas adelante
+// tienda) solo tienen sentido para un tipo de miembro concreto.
+$memberType = (string) ($memberProfile['member_type'] ?? 'artista');
+$isTablao = $memberType === 'tablao';
+$isTienda = $memberType === 'tienda';
 $publicFieldOptions = [
     'phone' => 'Telefono',
     'birth_place' => 'Lugar de origen',
@@ -1209,7 +1216,10 @@ foreach (panel_flash_consumir() as $aviso) {
 }
 
 $panelAction = (string) ($_POST['panel_action'] ?? '');
-$fase1Acciones = ['evento_guardar', 'evento_eliminar', 'evento_promocionar', 'redes_guardar', 'red_activar', 'puntos_comprar'];
+$fase1Acciones = [
+    'evento_guardar', 'evento_eliminar', 'evento_promocionar', 'redes_guardar', 'red_activar', 'puntos_comprar',
+    'reserva_estado', 'tienda_producto_guardar', 'tienda_producto_eliminar',
+];
 
 if ($fase1Activa && $_SERVER['REQUEST_METHOD'] === 'POST' && in_array($panelAction, $fase1Acciones, true)) {
     if (!verify_csrf($_POST['csrf_token'] ?? null)) {
@@ -1221,6 +1231,8 @@ if ($fase1Activa && $_SERVER['REQUEST_METHOD'] === 'POST' && in_array($panelActi
     $destino = match ($panelAction) {
         'redes_guardar', 'red_activar' => 'mis-redes',
         'puntos_comprar' => 'mis-puntos',
+        'reserva_estado' => 'mis-reservas',
+        'tienda_producto_guardar', 'tienda_producto_eliminar' => 'mis-productos',
         default => 'mis-eventos',
     };
 
@@ -1241,6 +1253,9 @@ if ($fase1Activa && $_SERVER['REQUEST_METHOD'] === 'POST' && in_array($panelActi
                     'enlace_url' => (string) ($_POST['enlace_url'] ?? ''),
                     'video_url' => (string) ($_POST['video_url'] ?? ''),
                     'estado' => (string) ($_POST['estado'] ?? 'PUBLICADO'),
+                    // Solo se pinta en el formulario si el miembro es un tablao,
+                    // pero guardarlo aqui es inofensivo para el resto de tipos.
+                    'acepta_reservas' => !empty($_POST['acepta_reservas']),
                 ];
 
                 $erroresEvento = csf_evento_validar($datosEvento);
@@ -1335,6 +1350,80 @@ if ($fase1Activa && $_SERVER['REQUEST_METHOD'] === 'POST' && in_array($panelActi
                     ));
                 break;
 
+            case 'reserva_estado':
+                // csf_tablao_reserva_cambiar_estado() comprueba la propiedad:
+                // no basta con que el id de la reserva exista, tiene que ser de
+                // una funcion de este mismo tablao.
+                $cambiado = csf_tablao_reserva_cambiar_estado(
+                    $panelPdo,
+                    (int) ($_POST['reserva_id'] ?? 0),
+                    $miembroDbId,
+                    $usuarioDbId,
+                    (string) ($_POST['estado'] ?? '')
+                );
+                panel_flash_guardar(
+                    $cambiado ? 'ok' : 'error',
+                    $cambiado ? 'Reserva actualizada.' : 'No se pudo actualizar la reserva.'
+                );
+                break;
+
+            case 'tienda_producto_guardar':
+                $productoId = (int) ($_POST['producto_id'] ?? 0);
+                $datosProducto = [
+                    'titulo' => (string) ($_POST['titulo'] ?? ''),
+                    'descripcion' => (string) ($_POST['descripcion'] ?? ''),
+                    'precio' => (string) ($_POST['precio'] ?? ''),
+                    'enlace_externo' => (string) ($_POST['enlace_externo'] ?? ''),
+                    'estado' => (string) ($_POST['estado'] ?? 'ACTIVO'),
+                ];
+
+                $erroresProducto = [];
+                $imagenProducto = csf_tienda_guardar_imagen($_FILES['imagen'] ?? null, $erroresProducto);
+                if ($imagenProducto !== null) {
+                    $datosProducto['imagen_path'] = $imagenProducto;
+                } else {
+                    $datosProducto['imagen_path'] = clean_text((string) ($_POST['imagen_actual'] ?? ''));
+                }
+
+                if ($erroresProducto) {
+                    foreach ($erroresProducto as $errorProducto) {
+                        panel_flash_guardar('error', $errorProducto);
+                    }
+                    redirect_to('panel-usuario.php?producto=' . ($productoId > 0 ? $productoId : 'nuevo') . '#producto-form');
+                }
+
+                $resultadoProducto = csf_tienda_producto_guardar(
+                    $panelPdo,
+                    $miembroDbId,
+                    $usuarioDbId,
+                    $productoId > 0 ? $productoId : null,
+                    $datosProducto,
+                    $memberTier
+                );
+
+                if (!$resultadoProducto['ok']) {
+                    foreach ($resultadoProducto['errors'] as $errorProducto) {
+                        panel_flash_guardar('error', $errorProducto);
+                    }
+                    redirect_to('panel-usuario.php?producto=' . ($productoId > 0 ? $productoId : 'nuevo') . '#producto-form');
+                }
+
+                panel_flash_guardar('ok', $productoId > 0 ? 'Artículo actualizado.' : 'Artículo publicado en tu catálogo.');
+                break;
+
+            case 'tienda_producto_eliminar':
+                $eliminadoProducto = csf_tienda_producto_eliminar(
+                    $panelPdo,
+                    (int) ($_POST['producto_id'] ?? 0),
+                    $miembroDbId,
+                    $usuarioDbId
+                );
+                panel_flash_guardar(
+                    $eliminadoProducto ? 'ok' : 'error',
+                    $eliminadoProducto ? 'Artículo eliminado.' : 'No se pudo eliminar el artículo.'
+                );
+                break;
+
             case 'puntos_comprar':
                 // Solo registra la intencion. NO acredita puntos: eso ocurrira
                 // cuando Stripe confirme el pago de verdad.
@@ -1376,6 +1465,12 @@ $municipiosLista = [];
 $municipiosPerfil = [];
 $disciplinasCatalogo = [];
 $disciplinasMiembro = [];
+$reservasTablao = [];
+$reservasPendientesCount = 0;
+$productosTienda = [];
+$productosTiendaActivos = 0;
+$productosTiendaLimite = 0;
+$productoEnEdicion = null;
 
 if ($fase1Activa) {
     try {
@@ -1395,6 +1490,22 @@ if ($fase1Activa) {
         $redesMiembro = csf_redes_de_miembro($panelPdo, $miembroDbId);
         $redesActivas = csf_redes_contar_activas($panelPdo, $miembroDbId);
         $redesCosteSiguiente = csf_redes_coste_activacion($panelPdo, $miembroDbId);
+
+        if ($isTablao) {
+            $reservasTablao = csf_tablao_reservas_de_miembro($panelPdo, $miembroDbId);
+            $reservasPendientesCount = csf_tablao_reservas_contar_pendientes($panelPdo, $miembroDbId);
+        }
+
+        if ($isTienda) {
+            $productosTienda = csf_tienda_productos_de_miembro($panelPdo, $miembroDbId);
+            $productosTiendaActivos = csf_tienda_contar_activos($panelPdo, $miembroDbId);
+            $productosTiendaLimite = csf_tienda_limite_productos($memberTier);
+
+            $productoSolicitado = (int) ($_GET['producto'] ?? 0);
+            if ($productoSolicitado > 0) {
+                $productoEnEdicion = csf_tienda_producto_de_miembro($panelPdo, $productoSolicitado, $miembroDbId);
+            }
+        }
 
         $provinciasLista = csf_geo_provincias($panelPdo);
 
@@ -1634,6 +1745,26 @@ if ($fase1Activa) {
         'note' => 'Muestra todas tus redes. El primer enlace clicable es gratuito.',
         'metric' => $redesActivas === 1 ? '1 enlace activo' : $redesActivas . ' enlaces activos',
     ];
+
+    if ($isTablao) {
+        $panelPrimaryCards[] = [
+            'target' => 'mis-reservas',
+            'icon' => 'agenda',
+            'title' => 'Reservas',
+            'note' => 'Solicitudes de mesa de tus funciones. Actívalas evento a evento desde "Mis eventos".',
+            'metric' => $reservasPendientesCount === 1 ? '1 pendiente' : $reservasPendientesCount . ' pendientes',
+        ];
+    }
+
+    if ($isTienda) {
+        $panelPrimaryCards[] = [
+            'target' => 'mis-productos',
+            'icon' => 'curriculum',
+            'title' => 'Mi tienda',
+            'note' => 'Publica tus artículos. Plan gratuito: ' . CSF_TIENDA_LIMITE_FREE . '. Con VIP: ' . CSF_TIENDA_LIMITE_VIP . '.',
+            'metric' => $productosTiendaActivos . ' / ' . $productosTiendaLimite . ' activos',
+        ];
+    }
 }
 
 /* Curriculum artistico y microweb publica: solo para el artista destacado.
@@ -3004,6 +3135,17 @@ function panel_tile_markup(array $card, string $size = 'lg'): string
                                 <p class="csf-field-hint">JPG, PNG o WebP, hasta 5 MB. Si no subes cartel mostraremos la fecha destacada.</p>
                             </div>
 
+                            <?php if ($isTablao): ?>
+                                <div class="csf-field csf-field-full">
+                                    <label for="evento-acepta-reservas">
+                                        <input type="checkbox" id="evento-acepta-reservas" name="acepta_reservas" value="1"
+                                               <?= !empty($eventoEnEdicion['acepta_reservas']) ? 'checked' : '' ?>>
+                                        Admitir reservas de mesa para esta función
+                                    </label>
+                                    <p class="csf-field-hint">Si lo activas, en la ficha pública del evento aparecerá un formulario de reserva. Tú confirmas o rechazas cada solicitud desde "Reservas".</p>
+                                </div>
+                            <?php endif; ?>
+
                             <div class="csf-field">
                                 <label for="evento-estado">Estado</label>
                                 <select id="evento-estado" name="estado">
@@ -3026,6 +3168,228 @@ function panel_tile_markup(array $card, string $size = 'lg'): string
                         </div>
                     </form>
                 </section>
+
+                <?php if ($isTablao): ?>
+                <section id="mis-reservas" class="content-section member-panel-section">
+                    <div class="member-panel-heading">
+                        <div class="member-panel-heading-main">
+                            <div>
+                                <p class="section-kicker">Funciones</p>
+                                <h2>Reservas</h2>
+                                <p>Solicitudes de mesa de tus funciones. Sin cobro online: confirma o rechaza tú mismo.</p>
+                            </div>
+                            <span class="member-heading-count"><?= e($reservasPendientesCount === 1 ? '1 pendiente' : $reservasPendientesCount . ' pendientes') ?></span>
+                        </div>
+                    </div>
+
+                    <?php if ($reservasTablao): ?>
+                        <div class="admin-table-wrap">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Función</th>
+                                        <th>Solicitante</th>
+                                        <th>Personas</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($reservasTablao as $reserva): ?>
+                                        <tr>
+                                            <td>
+                                                <a href="<?= e(csf_evento_url(['slug' => $reserva['evento_slug']])) ?>" target="_blank" rel="noopener"><?= e((string) $reserva['evento_titulo']) ?></a>
+                                                <br><small><?= e(csf_evento_fecha_larga((string) $reserva['evento_fecha'])) ?></small>
+                                            </td>
+                                            <td>
+                                                <?= e((string) $reserva['nombre_solicitante']) ?>
+                                                <br><small><?= e((string) $reserva['email']) ?><?= trim((string) $reserva['telefono']) !== '' ? ' · ' . e((string) $reserva['telefono']) : '' ?></small>
+                                                <?php if (trim((string) $reserva['mensaje']) !== ''): ?><br><small><?= e((string) $reserva['mensaje']) ?></small><?php endif; ?>
+                                            </td>
+                                            <td><?= e((string) $reserva['num_personas']) ?></td>
+                                            <td>
+                                                <span class="status-pill <?= $reserva['estado'] === 'CONFIRMADA' ? 'status-pill-active' : ($reserva['estado'] === 'PENDIENTE' ? 'status-pill-pending' : 'status-pill-neutral') ?>">
+                                                    <?= e(csf_tablao_reserva_estados()[$reserva['estado']] ?? (string) $reserva['estado']) ?>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <?php if ((string) $reserva['estado'] === 'PENDIENTE'): ?>
+                                                    <form method="post" action="<?= e($accionFase1) ?>#mis-reservas" style="display:inline">
+                                                        <input type="hidden" name="csrf_token" value="<?= e($csrfFase1) ?>">
+                                                        <input type="hidden" name="panel_action" value="reserva_estado">
+                                                        <input type="hidden" name="reserva_id" value="<?= e((string) $reserva['id']) ?>">
+                                                        <input type="hidden" name="estado" value="CONFIRMADA">
+                                                        <button class="csf-event-tool is-promote" type="submit">Confirmar</button>
+                                                    </form>
+                                                    <form method="post" action="<?= e($accionFase1) ?>#mis-reservas" style="display:inline">
+                                                        <input type="hidden" name="csrf_token" value="<?= e($csrfFase1) ?>">
+                                                        <input type="hidden" name="panel_action" value="reserva_estado">
+                                                        <input type="hidden" name="reserva_id" value="<?= e((string) $reserva['id']) ?>">
+                                                        <input type="hidden" name="estado" value="RECHAZADA">
+                                                        <button class="csf-event-tool is-danger" type="submit">Rechazar</button>
+                                                    </form>
+                                                <?php else: ?>
+                                                    <span class="csf-field-hint">Gestionada</span>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php else: ?>
+                        <p class="csf-empty">Todavía no has recibido solicitudes de reserva. Actívalas desde el editor de cada evento.</p>
+                    <?php endif; ?>
+                </section>
+                <?php endif; ?>
+
+                <?php if ($isTienda): ?>
+                <section id="mis-productos" class="content-section member-panel-section">
+                    <div class="member-panel-heading">
+                        <div class="member-panel-heading-main">
+                            <div>
+                                <p class="section-kicker">Escaparate</p>
+                                <h2>Mi tienda</h2>
+                                <p>Ficha de producto con foto, precio orientativo y un enlace o contacto externo para comprar. Sin carrito ni pago dentro de la web.</p>
+                            </div>
+                            <span class="member-heading-count"><?= e($productosTiendaActivos . ' / ' . $productosTiendaLimite . ' activos') ?></span>
+                        </div>
+                    </div>
+
+                    <?php if ($productosTiendaActivos >= $productosTiendaLimite): ?>
+                        <p class="csf-social-note" style="margin-bottom: 18px;">
+                            Has llegado al límite de tu plan. <a href="panel-usuario.php#tarjeta-miembro">Hazte VIP</a> para publicar hasta <?= e((string) CSF_TIENDA_LIMITE_VIP) ?> artículos.
+                        </p>
+                    <?php endif; ?>
+
+                    <div class="csf-panel-cta" style="margin-bottom: 22px;">
+                        <a class="button button-primary" href="panel-usuario.php?producto=nuevo#producto-form" data-panel-link="producto-form">Publicar artículo</a>
+                    </div>
+
+                    <?php if ($productosTienda): ?>
+                        <div class="admin-table-wrap">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Artículo</th>
+                                        <th>Precio</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($productosTienda as $producto): ?>
+                                        <tr>
+                                            <td><?= e((string) $producto['titulo']) ?></td>
+                                            <td><?= e(csf_tienda_precio_formato($producto['precio_centimos'] !== null ? (int) $producto['precio_centimos'] : null) ?: '—') ?></td>
+                                            <td>
+                                                <span class="status-pill <?= $producto['estado'] === 'ACTIVO' ? 'status-pill-active' : 'status-pill-neutral' ?>">
+                                                    <?= e(csf_tienda_estados()[$producto['estado']] ?? (string) $producto['estado']) ?>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="csf-event-tools">
+                                                    <a class="csf-event-tool" href="panel-usuario.php?producto=<?= e((string) $producto['id']) ?>#producto-form" data-panel-link="producto-form">Editar</a>
+                                                    <form method="post" action="<?= e($accionFase1) ?>#mis-productos" style="display:inline">
+                                                        <input type="hidden" name="csrf_token" value="<?= e($csrfFase1) ?>">
+                                                        <input type="hidden" name="panel_action" value="tienda_producto_eliminar">
+                                                        <input type="hidden" name="producto_id" value="<?= e((string) $producto['id']) ?>">
+                                                        <button class="csf-event-tool is-danger" type="submit">Eliminar</button>
+                                                    </form>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php else: ?>
+                        <p class="csf-empty">Todavía no has publicado ningún artículo.</p>
+                    <?php endif; ?>
+                </section>
+
+                <section id="producto-form" class="content-section member-panel-section">
+                    <div class="member-panel-heading">
+                        <div class="member-panel-heading-main">
+                            <div>
+                                <p class="section-kicker">Escaparate</p>
+                                <h2><?= $productoEnEdicion !== null ? 'Editar artículo' : 'Publicar artículo' ?></h2>
+                                <p>Foto, precio orientativo y un enlace o contacto externo para comprar.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="post" action="<?= e($accionFase1) ?>" enctype="multipart/form-data" class="member-config-card">
+                        <input type="hidden" name="csrf_token" value="<?= e($csrfFase1) ?>">
+                        <input type="hidden" name="panel_action" value="tienda_producto_guardar">
+                        <input type="hidden" name="producto_id" value="<?= e((string) ($productoEnEdicion['id'] ?? 0)) ?>">
+                        <input type="hidden" name="imagen_actual" value="<?= e((string) ($productoEnEdicion['imagen_path'] ?? '')) ?>">
+
+                        <div class="csf-form-grid">
+                            <div class="csf-field csf-field-full">
+                                <label for="producto-titulo">Título *</label>
+                                <input type="text" id="producto-titulo" name="titulo" required maxlength="160"
+                                       value="<?= e((string) ($productoEnEdicion['titulo'] ?? '')) ?>"
+                                       placeholder="Traje de flamenca lunares">
+                            </div>
+
+                            <div class="csf-field">
+                                <label for="producto-precio">Precio (opcional)</label>
+                                <input type="text" id="producto-precio" name="precio" inputmode="decimal"
+                                       value="<?= e($productoEnEdicion !== null && $productoEnEdicion['precio_centimos'] !== null ? number_format(((int) $productoEnEdicion['precio_centimos']) / 100, 2, ',', '') : '') ?>"
+                                       placeholder="59,90">
+                                <p class="csf-field-hint">Déjalo en blanco para mostrar "consultar precio".</p>
+                            </div>
+
+                            <div class="csf-field">
+                                <label for="producto-estado">Estado</label>
+                                <select id="producto-estado" name="estado">
+                                    <?php foreach (csf_tienda_estados() as $valor => $etiqueta): ?>
+                                        <option value="<?= e($valor) ?>"<?= (string) ($productoEnEdicion['estado'] ?? 'ACTIVO') === $valor ? ' selected' : '' ?>><?= e($etiqueta) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <p class="csf-field-hint">Solo los activos cuentan para tu límite y se ven en tu ficha pública.</p>
+                            </div>
+
+                            <div class="csf-field csf-field-full">
+                                <label for="producto-descripcion">Descripción</label>
+                                <textarea id="producto-descripcion" name="descripcion" maxlength="2000"
+                                          placeholder="Materiales, tallas disponibles, tiempos de entrega..."><?= e((string) ($productoEnEdicion['descripcion'] ?? '')) ?></textarea>
+                            </div>
+
+                            <div class="csf-field">
+                                <label for="producto-enlace">Enlace o contacto externo</label>
+                                <input type="url" id="producto-enlace" name="enlace_externo" maxlength="255"
+                                       value="<?= e((string) ($productoEnEdicion['enlace_externo'] ?? '')) ?>"
+                                       placeholder="https://wa.me/34600000000">
+                                <p class="csf-field-hint">Adonde llega quien quiera comprar: tu WhatsApp, tu tienda online o tu email.</p>
+                            </div>
+
+                            <div class="csf-field csf-field-full">
+                                <label for="producto-imagen">Foto del artículo</label>
+                                <div class="csf-image-field">
+                                    <?php $fotoProductoActual = $productoEnEdicion !== null ? csf_tienda_imagen_url($productoEnEdicion) : ''; ?>
+                                    <img class="csf-image-preview" data-producto-preview
+                                         src="<?= e($fotoProductoActual) ?>"
+                                         alt="Foto actual"<?= $fotoProductoActual === '' ? ' hidden' : '' ?>>
+                                    <input type="file" id="producto-imagen" name="imagen" accept="image/jpeg,image/png,image/webp" data-producto-imagen>
+                                </div>
+                                <p class="csf-field-hint">JPG, PNG o WebP, hasta 5 MB.</p>
+                            </div>
+                        </div>
+
+                        <div class="member-form-savebar">
+                            <div>
+                                <strong><?= $productoEnEdicion !== null ? 'Guardar los cambios' : 'Publicar el artículo' ?></strong>
+                                <span><?= e((string) $productosTiendaActivos) ?> de <?= e((string) $productosTiendaLimite) ?> artículos activos usados.</span>
+                            </div>
+                            <button class="button button-primary member-save-button" type="submit">
+                                <?= $productoEnEdicion !== null ? 'Guardar artículo' : 'Publicar artículo' ?>
+                            </button>
+                        </div>
+                    </form>
+                </section>
+                <?php endif; ?>
 
                 <section id="mis-puntos" class="content-section member-panel-section">
                     <div class="member-panel-heading">

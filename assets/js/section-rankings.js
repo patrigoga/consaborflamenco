@@ -59,6 +59,11 @@
             { position: 2, type: "Programación", source: "Más votado", title: "Noches de cante", image: images.evento, alt: "Cantaora y guitarrista actuando", href: "#tablaos" },
             { position: 3, type: "Encuentro", source: "Más votado", title: "Tablao íntimo", image: images.pena, alt: "Encuentro flamenco en un espacio íntimo", href: "#tablaos" }
         ],
+        TIENDAS: [
+            { position: 1, type: "Moda", source: "Promocionado", title: "Comercio flamenco de referencia", description: "Moda, calzado y complementos para vestir la escena y el día a día.", image: images.artista, alt: "Escaparate de moda flamenca", href: "#tiendas" },
+            { position: 2, type: "Instrumentos", source: "Más votado", title: "Taller de guitarra flamenca", image: images.evento, alt: "Guitarra flamenca artesanal", href: "#tiendas" },
+            { position: 3, type: "Complementos", source: "Más votado", title: "Complementos con raíz", image: images.pena, alt: "Complementos flamencos", href: "#tiendas" }
+        ],
         MODA: [
             { position: 1, type: "Ropa", source: "Promocionado", title: "Colección flamenca actual", description: "Diseño, movimiento y tradición en una propuesta pensada para la escena.", image: images.artista, alt: "Vestuario flamenco durante una actuación", href: "#moda-ropa" },
             { position: 2, type: "Calzado", source: "Más votado", title: "Calzado para baile", image: images.academia, alt: "Artistas practicando baile flamenco", href: "#moda-calzado" },

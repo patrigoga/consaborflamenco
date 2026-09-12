@@ -476,3 +476,11 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Ocultada la tarjeta "Banners" de la portada del panel para todos los niveles de membresia, junto con su pantalla `#banners`, para no dejar un ancla que no lleve a ninguna parte. La contratacion depende de Stripe, que todavia no esta conectado, asi que la pantalla solo ensenaba un boton deshabilitado.
 - No se ha borrado nada: la pantalla, sus estilos y la tabla `banners_miembro` siguen intactos. Se recupera poniendo `$mostrarTarjetaBanners` a true en `panel-usuario.php`.
 - El cambio afecta solo al panel del miembro. La publicidad por provincia de las paginas publicas, la seccion Banners del panel de administracion y la tabla `banners_miembro` siguen funcionando igual.
+
+### 2026-09-12 - Mega agenda flamenca - Bloques 1 a 4
+
+- Bloque 1: franja de proximos eventos en la portada (`index.php`), reutilizando `csf_evento_agenda()` sin cambios de esquema.
+- Bloque 2: `tablaos.php` y `penas.php` pasan de ser solo una pagina de ranking a incluir tambien un directorio real y filtrable por provincia/municipio, con el mismo patron que `artistas.php`. `section_page()` (`app/layout.php`) admite ahora una clave opcional `after_ranking`; las otras diez paginas que la usan no cambian.
+- Bloque 3: reservas simples de tablao. Columna nueva `eventos.acepta_reservas` y tabla nueva `tablao_reservas` (migracion `database/20260912_tablao_reservas.sql`). Sin pago online ni control de aforo: el tablao confirma o rechaza a mano desde la pantalla nueva "Reservas" de su panel. Formulario publico en `evento.php` con el mismo patron anti-spam que el formulario de contacto (honeypot, CSRF, limite de intentos por sesion).
+- Bloque 4: catalogo de tienda (escaparate sin carrito). Tabla nueva `tienda_productos` (migracion `database/20260912_tienda_productos.sql`), limite de 5 articulos activos en el plan gratuito y 20 en VIP reutilizando `member_tier_has_high_limits()` (sin sistema de niveles paralelo). Pantalla nueva "Mi tienda" en el panel, pagina publica nueva `tiendas.php` y seccion "Catalogo" en la microweb de los miembros de tipo tienda.
+- Documentado en `docs/18_MEGA_AGENDA.md`, con la tabla de capacidades por nivel ampliada a tienda y tablao.

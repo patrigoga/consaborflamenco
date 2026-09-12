@@ -6,6 +6,7 @@ require_once __DIR__ . '/app/layout.php';
 // Fase 1 red social: agenda real y redes sociales con enlace de pago.
 require_once __DIR__ . '/app/events_ui.php';
 require_once __DIR__ . '/app/social_links_repository.php';
+require_once __DIR__ . '/app/tienda_repository.php';
 
 function artist_public_media_url(string $path): string
 {
@@ -261,6 +262,16 @@ if ($pdoPublico && $miembroPublicoId > 0) {
         $redesPublicas = csf_redes_publicas($pdoPublico, $miembroPublicoId);
     } catch (Throwable $exception) {
         error_log('[artista] fase1 no disponible: ' . $exception->getMessage());
+    }
+}
+
+// Mega agenda (bloque 4): catálogo público de la tienda, solo para ese tipo.
+$catalogoTienda = [];
+if ($pdoPublico && $miembroPublicoId > 0 && (string) ($profile['member_type'] ?? '') === 'tienda') {
+    try {
+        $catalogoTienda = csf_tienda_productos_publicos($pdoPublico, $miembroPublicoId);
+    } catch (Throwable $exception) {
+        error_log('[artista] catalogo de tienda no disponible: ' . $exception->getMessage());
     }
 }
 
@@ -687,6 +698,37 @@ $shareText = $displayName . ' — Galería';
                 <div class="csf-event-grid" data-reveal>
                     <?php foreach ($eventosPasadosDb as $eventoPublico): ?>
                         <?= csf_evento_card($eventoPublico, ['artista' => false, 'cta' => 'Ver ficha']) ?>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </section>
+    <?php endif; ?>
+
+    <?php if ($catalogoTienda): ?>
+        <section id="catalogo" class="ms-section">
+            <?php artist_render_section_band('Catálogo'); ?>
+            <div class="ms-shell">
+                <div class="service-public-grid" data-reveal>
+                    <?php foreach ($catalogoTienda as $producto): ?>
+                        <article class="service-public-card">
+                            <?php $imagenProducto = csf_tienda_imagen_url($producto); ?>
+                            <?php if ($imagenProducto !== ''): ?>
+                                <img src="<?= e($imagenProducto) ?>" alt="<?= e((string) $producto['titulo']) ?>" loading="lazy">
+                            <?php endif; ?>
+                            <div class="service-public-content">
+                                <h3><?= e((string) $producto['titulo']) ?></h3>
+                                <?php if (trim((string) $producto['descripcion']) !== ''): ?>
+                                    <p><?= e((string) $producto['descripcion']) ?></p>
+                                <?php endif; ?>
+                                <div class="service-public-footer">
+                                    <?php $precioProducto = csf_tienda_precio_formato($producto['precio_centimos'] !== null ? (int) $producto['precio_centimos'] : null); ?>
+                                    <?php if ($precioProducto !== ''): ?><strong><?= e($precioProducto) ?></strong><?php endif; ?>
+                                    <?php if (trim((string) $producto['enlace_externo']) !== ''): ?>
+                                        <a class="button button-secondary" href="<?= e((string) $producto['enlace_externo']) ?>" target="_blank" rel="noopener">Más información</a>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </article>
                     <?php endforeach; ?>
                 </div>
             </div>

@@ -64,10 +64,17 @@
         }
     });
 
-    // Vista previa del cartel antes de subirlo.
-    var campoImagen = document.querySelector('[data-evento-imagen]');
-    var vistaPrevia = document.querySelector('[data-evento-preview]');
-    if (campoImagen && vistaPrevia) {
+    // Vista previa de una imagen antes de subirla. Generico: cada par
+    // campo/vista se declara con sus propios atributos data-* (el cartel de
+    // evento y la foto de producto de tienda usan pares distintos porque
+    // ambos formularios pueden convivir en la misma pagina del panel).
+    function activarVistaPrevia(atributoCampo, atributoVista) {
+        var campoImagen = document.querySelector('[' + atributoCampo + ']');
+        var vistaPrevia = document.querySelector('[' + atributoVista + ']');
+        if (!campoImagen || !vistaPrevia) {
+            return;
+        }
+
         campoImagen.addEventListener('change', function () {
             var fichero = campoImagen.files && campoImagen.files[0];
             if (!fichero) {
@@ -81,4 +88,7 @@
             lector.readAsDataURL(fichero);
         });
     }
+
+    activarVistaPrevia('data-evento-imagen', 'data-evento-preview');
+    activarVistaPrevia('data-producto-imagen', 'data-producto-preview');
 })();

@@ -104,6 +104,129 @@ function csf_discipline_labels_from_text(string $haystack): array
     return $labels;
 }
 
+/**
+ * Directorio filtrable por territorio para tipos de miembro sin disciplinas
+ * (tablao, pena, tienda...). Misma filosofia que el directorio de artistas.php
+ * pero sin el filtro de disciplina, que no aplica a estos tipos. Se pinta
+ * como una seccion completa lista para inyectarse via section_page()
+ * (config 'after_ranking') o incluirse directamente en una pagina.
+ *
+ * @param array<string, mixed> $query Normalmente $_GET.
+ */
+function csf_render_member_type_directory(
+    PDO $pdo,
+    string $memberType,
+    string $basePath,
+    array $query,
+    string $emptyLabel
+): string {
+    $provincias = [];
+    $municipios = [];
+    $provinciaActual = null;
+    $municipioId = 0;
+    $provinciaSlug = slugify(clean_text((string) ($query['provincia'] ?? '')));
+
+    try {
+        $provincias = csf_geo_provincias($pdo);
+        $provinciaActual = $provinciaSlug !== '' ? csf_geo_provincia_por_slug($pdo, $provinciaSlug) : null;
+
+        if ($provinciaActual !== null) {
+            $municipios = csf_geo_municipios($pdo, $provinciaActual['id']);
+            $municipioId = (int) ($query['municipio'] ?? 0);
+            if ($municipioId > 0 && !in_array($municipioId, array_column($municipios, 'id'), true)) {
+                $municipioId = 0;
+            }
+        }
+    } catch (Throwable $exception) {
+        error_log('[directorio-' . $memberType . '] filtros geograficos no disponibles: ' . $exception->getMessage());
+    }
+
+    $geoFiltros = ['provincia_id' => $provinciaActual['id'] ?? 0, 'municipio_id' => $municipioId];
+    $miembros = [];
+    foreach (csf_fetch_member_directory($pdo, $memberType, 'todos', 48, $geoFiltros) as $row) {
+        $profile = csf_decode_profile((string) ($row['perfil_json'] ?? ''));
+        $slug = clean_text((string) ($row['slug'] ?? ''));
+        if ($slug === '') {
+            continue;
+        }
+
+        $city = clean_text((string) ($row['ciudad'] ?? $profile['city'] ?? ''));
+        $province = clean_text((string) ($row['provincia_texto'] ?? $profile['province'] ?? ''));
+
+        $miembros[] = [
+            'slug' => $slug,
+            'name' => clean_text((string) ($row['nombre_publico'] ?? $profile['public_name'] ?? $row['nombre'] ?? 'Con Sabor Flamenco')),
+            'location' => trim($city . ($city !== '' && $province !== '' ? ', ' : '') . $province),
+            'description' => clean_text((string) ($profile['cv_summary'] ?? $profile['short_description'] ?? $row['biografia'] ?? '')),
+            'photo' => clean_text((string) ($row['foto_principal_path'] ?? $profile['main_photo_path'] ?? '')),
+        ];
+    }
+
+    ob_start();
+    ?>
+    <section id="directorio-<?= e($memberType) ?>" class="content-section" data-ad-category="<?= e(mb_strtoupper($memberType, 'UTF-8')) ?>">
+        <div class="section-heading">
+            <div class="section-heading-content">
+                <p class="section-kicker">Perfiles reales</p>
+                <h2>Explorar</h2>
+                <p>Listado público de miembros con ficha activa. Cada tarjeta abre su landing individual.</p>
+            </div>
+        </div>
+
+        <form class="csf-directory-filters" method="get" action="<?= e($basePath) ?>">
+            <div>
+                <label for="filtro-provincia-<?= e($memberType) ?>">Provincia</label>
+                <select id="filtro-provincia-<?= e($memberType) ?>" name="provincia" onchange="this.form.municipio.value=''; this.form.submit();">
+                    <option value="">Toda España</option>
+                    <?php foreach ($provincias as $provincia): ?>
+                        <option value="<?= e($provincia['slug']) ?>"<?= ($provinciaActual['slug'] ?? '') === $provincia['slug'] ? ' selected' : '' ?>><?= e($provincia['nombre']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div>
+                <label for="filtro-municipio-<?= e($memberType) ?>">Municipio</label>
+                <select id="filtro-municipio-<?= e($memberType) ?>" name="municipio"<?= $municipios === [] ? ' disabled' : '' ?>>
+                    <option value="">Todos</option>
+                    <?php foreach ($municipios as $municipio): ?>
+                        <option value="<?= e((string) $municipio['id']) ?>"<?= $municipioId === $municipio['id'] ? ' selected' : '' ?>><?= e($municipio['nombre']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="csf-directory-filters-actions">
+                <button class="button button-primary" type="submit">Filtrar</button>
+                <?php if ($provinciaActual !== null): ?>
+                    <a class="button button-secondary" href="<?= e($basePath) ?>">Quitar filtros</a>
+                <?php endif; ?>
+            </div>
+        </form>
+
+        <?php if ($miembros): ?>
+            <div class="editorial-grid directory-grid">
+                <?php foreach ($miembros as $miembro): ?>
+                    <a class="editorial-story directory-card" href="<?= e(member_public_path($memberType, $miembro['slug'])) ?>">
+                        <?php if ($miembro['photo'] !== ''): ?>
+                            <img src="<?= e($miembro['photo']) ?>" alt="Foto de <?= e($miembro['name']) ?>" loading="lazy" width="640" height="480">
+                        <?php else: ?>
+                            <img src="assets/images/community/artista-bailaora.webp" alt="Imagen de perfil" loading="lazy" width="640" height="480">
+                        <?php endif; ?>
+                        <div class="editorial-story-content">
+                            <span class="editorial-meta"><strong><?= e($miembro['name']) ?></strong></span>
+                            <?php if ($miembro['location'] !== ''): ?><p><?= e($miembro['location']) ?></p><?php endif; ?>
+                            <?php if ($miembro['description'] !== ''): ?><p><?= e($miembro['description']) ?></p><?php endif; ?>
+                            <span class="editorial-read">Abrir ficha →</span>
+                        </div>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        <?php else: ?>
+            <p class="empty-state"><?= e($emptyLabel) ?></p>
+        <?php endif; ?>
+    </section>
+    <?php
+
+    return (string) ob_get_clean();
+}
+
 function csf_db_table_exists(PDO $pdo, string $table): bool
 {
     $statement = $pdo->prepare(

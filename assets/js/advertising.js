@@ -18,6 +18,7 @@
         LLAVES_ORO: "Llaves de Oro",
         PENAS: "Peñas",
         TABLAOS: "Tablaos",
+        TIENDAS: "Tiendas",
         FESTIVALES: "Festivales",
         CONCURSOS: "Concursos",
         GENERAL: "Selección local"
@@ -47,6 +48,7 @@
         LLAVES_ORO: ["Grandes nombres del cante", "Patrocina contenidos sobre legado, memoria y excelencia flamenca"],
         PENAS: ["La comunidad flamenca de {province}", "Haz visible tu peña y su programación"],
         TABLAOS: ["Flamenco en directo en {province}", "Llega a quienes buscan una noche especial"],
+        TIENDAS: ["Comercio flamenco en {province}", "Moda, calzado, complementos e instrumentos para tu público"],
         FESTIVALES: ["Festivales que se viven", "Promociona cartel, entradas y patrocinadores"],
         CONCURSOS: ["Convocatorias para nuevos talentos", "Lleva tu certamen a toda la comunidad"],
         GENERAL: ["Empresas con sabor local", "Publicidad relevante para visitantes de {province}"]

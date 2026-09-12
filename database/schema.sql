@@ -302,6 +302,8 @@ CREATE TABLE eventos (
     latitud DECIMAL(10,7) NULL,
     longitud DECIMAL(10,7) NULL,
     vistas INT UNSIGNED NOT NULL DEFAULT 0,
+    -- Mega agenda (bloque 3): el tablao decide evento a evento si admite reservas.
+    acepta_reservas BOOLEAN NOT NULL DEFAULT FALSE,
     deleted_at DATETIME NULL,
     created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -356,3 +358,46 @@ CREATE TABLE registro_actividad (
 --   ALTER TABLE miembros ADD COLUMN provincia_id BIGINT UNSIGNED NULL AFTER provincia_texto;
 --   ALTER TABLE miembros ADD COLUMN municipio_id BIGINT UNSIGNED NULL AFTER provincia_id;
 --   ALTER TABLE miembros ADD INDEX idx_miembros_geo (provincia_id, municipio_id);
+
+-- Mega agenda (bloque 3): reservas simples de tablao. Ver database/20260912_tablao_reservas.sql.
+
+CREATE TABLE tablao_reservas (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    evento_id BIGINT UNSIGNED NOT NULL,
+    miembro_id BIGINT UNSIGNED NOT NULL,
+    nombre_solicitante VARCHAR(160) NOT NULL,
+    email VARCHAR(190) NOT NULL,
+    telefono VARCHAR(60) NULL,
+    num_personas SMALLINT UNSIGNED NOT NULL DEFAULT 1,
+    mensaje VARCHAR(500) NULL,
+    estado ENUM('PENDIENTE','CONFIRMADA','RECHAZADA','CANCELADA') NOT NULL DEFAULT 'PENDIENTE',
+    ip_hash CHAR(64) NULL,
+    gestionado_por BIGINT UNSIGNED NULL,
+    gestionado_at DATETIME NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_tablao_reservas_evento FOREIGN KEY (evento_id) REFERENCES eventos(id) ON DELETE CASCADE,
+    CONSTRAINT fk_tablao_reservas_miembro FOREIGN KEY (miembro_id) REFERENCES miembros(id) ON DELETE CASCADE,
+    CONSTRAINT fk_tablao_reservas_gestor FOREIGN KEY (gestionado_por) REFERENCES usuarios(id) ON DELETE SET NULL,
+    INDEX idx_tablao_reservas_evento (evento_id, estado),
+    INDEX idx_tablao_reservas_miembro (miembro_id, estado, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Mega agenda (bloque 4): catalogo de tienda. Ver database/20260912_tienda_productos.sql.
+
+CREATE TABLE tienda_productos (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    miembro_id BIGINT UNSIGNED NOT NULL,
+    titulo VARCHAR(160) NOT NULL,
+    descripcion TEXT NULL,
+    precio_centimos INT UNSIGNED NULL,
+    imagen_path VARCHAR(255) NULL,
+    enlace_externo VARCHAR(255) NULL,
+    estado ENUM('ACTIVO','PAUSADO') NOT NULL DEFAULT 'ACTIVO',
+    orden SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    deleted_at DATETIME NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_tienda_productos_miembro FOREIGN KEY (miembro_id) REFERENCES miembros(id) ON DELETE CASCADE,
+    INDEX idx_tienda_productos_miembro (miembro_id, estado, deleted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

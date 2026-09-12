@@ -4,8 +4,23 @@ declare(strict_types=1);
 require_once __DIR__ . '/app/auth.php';
 require_once __DIR__ . '/app/site_content_repository.php';
 require_once __DIR__ . '/app/layout.php';
+require_once __DIR__ . '/app/events_ui.php';
 
 $featuredServices = site_services_active(true, 3);
+
+// Próximos eventos de la agenda (todos los tipos de miembro), para la portada.
+// Sin filtro de provincia: la home es nacional, igual que el resto de secciones
+// destacadas. Degrada con elegancia si la BD no está disponible, como el resto
+// del proyecto (ver agenda.php).
+$proximosEventosHome = [];
+$pdoHome = db();
+if ($pdoHome) {
+    try {
+        $proximosEventosHome = csf_evento_agenda($pdoHome, ['limite' => 6]);
+    } catch (Throwable $exception) {
+        error_log('[home] ' . $exception->getMessage());
+    }
+}
 
 $assetVersion = static function (string $path): string {
     return (string) (@filemtime(__DIR__ . '/' . ltrim($path, '/')) ?: time());
@@ -65,6 +80,29 @@ $stylesVersion = $assetVersion('assets/css/styles.css');
                 </div>
             </div>
         </section>
+
+        <?php if ($proximosEventosHome): ?>
+            <section class="content-section home-events-section" id="agenda-destacada">
+                <div class="section-heading">
+                    <div class="section-heading-content">
+                        <p class="section-kicker">Agenda</p>
+                        <h2>Qué se cuece en el flamenco</h2>
+                        <p>Próximos eventos publicados por artistas, tablaos, academias, peñas y festivales de toda España.</p>
+                    </div>
+                    <a class="section-enter-link" href="agenda.php">Ver toda la agenda</a>
+                </div>
+                <?= csf_evento_grid($proximosEventosHome, [
+                    'modificador' => 'csf-event-grid-home',
+                    'vacio' => 'Todavía no hay eventos publicados.',
+                ]) ?>
+                <div class="csf-social-note" style="margin-top: 24px;">
+                    <strong>¿Tienes un evento, función o curso?</strong>
+                    Publicarlo en la agenda es gratis.
+                    <a href="<?= e(app_url('panel-usuario.php#evento-form')) ?>">Publica el tuyo</a>
+                    o <a href="<?= e(app_url('registro.php')) ?>">hazte miembro</a>.
+                </div>
+            </section>
+        <?php endif; ?>
 
         <?php if ($featuredServices): ?>
             <section class="content-section home-services-section" id="servicios-destacados">
