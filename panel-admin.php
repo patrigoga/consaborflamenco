@@ -10,6 +10,8 @@ require_once __DIR__ . '/app/layout.php';
 // Fase 1 red social: supervision de eventos y de la economia de puntos.
 require_once __DIR__ . '/app/events_repository.php';
 require_once __DIR__ . '/app/points_repository.php';
+require_once __DIR__ . '/app/tablao_repository.php';
+require_once __DIR__ . '/app/tienda_repository.php';
 
 $user = require_login();
 if (($user['role'] ?? 'user') !== 'admin') {
@@ -1323,6 +1325,164 @@ $recentBlocks = [
                                     <td><?= e(csf_geo_etiqueta((string) $eventoAdmin['municipio_texto'], (string) $eventoAdmin['provincia_texto'])) ?></td>
                                     <td><?= $borrado ? admin_status_badge('ARCHIVADO', 'Eliminado') : admin_status_badge((string) $eventoAdmin['estado']) ?></td>
                                     <td><?= e((string) $eventoAdmin['vistas']) ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <?php
+        /* Mega agenda: supervision de reservas de tablao y catalogo de tienda.
+           Mismo espiritu de solo lectura que Eventos y Puntos: el admin
+           observa y audita, pero confirmar/rechazar reservas y dar de alta o
+           pausar productos sigue siendo cosa del propio miembro desde su
+           panel (app/tablao_repository.php, app/tienda_repository.php). */
+        $reservasTablaoAdmin = $pdo ? admin_safe_fetch_all($pdo, 'SELECT
+                r.id, r.nombre_solicitante, r.email, r.num_personas, r.estado, r.created_at,
+                e.titulo AS evento_titulo, e.slug AS evento_slug, e.fecha AS evento_fecha,
+                m.nombre_publico AS tablao
+            FROM tablao_reservas r
+            INNER JOIN eventos e ON e.id = r.evento_id
+            LEFT JOIN miembros m ON m.id = r.miembro_id
+            ORDER BY (r.estado = "PENDIENTE") DESC, r.created_at DESC
+            LIMIT 40') : [];
+
+        $reservasTotalAdmin = $pdo ? admin_safe_count($pdo, 'SELECT COUNT(*) FROM tablao_reservas') : 0;
+        $reservasPendientesAdmin = $pdo ? admin_safe_count($pdo, 'SELECT COUNT(*) FROM tablao_reservas WHERE estado = "PENDIENTE"') : 0;
+        $reservasConfirmadasAdmin = $pdo ? admin_safe_count($pdo, 'SELECT COUNT(*) FROM tablao_reservas WHERE estado = "CONFIRMADA"') : 0;
+        ?>
+
+        <section class="content-section admin-shell" id="tablao-reservas-admin">
+            <div class="section-heading">
+                <div class="section-heading-content">
+                    <p class="section-kicker">Contenido</p>
+                    <h2>Reservas de tablao</h2>
+                    <p>Solicitudes de reserva sobre funciones de tablao. Sin pago online: el tablao confirma o rechaza a mano desde su panel.</p>
+                </div>
+            </div>
+
+            <div class="admin-overview-grid admin-overview-grid-compact">
+                <article class="admin-overview-card">
+                    <span>Total</span>
+                    <strong><?= e(admin_metric_number($reservasTotalAdmin)) ?></strong>
+                    <small>Solicitudes recibidas</small>
+                </article>
+                <article class="admin-overview-card">
+                    <span>Pendientes</span>
+                    <strong><?= e(admin_metric_number($reservasPendientesAdmin)) ?></strong>
+                    <small>A la espera de respuesta del tablao</small>
+                </article>
+                <article class="admin-overview-card">
+                    <span>Confirmadas</span>
+                    <strong><?= e(admin_metric_number($reservasConfirmadasAdmin)) ?></strong>
+                    <small>Aceptadas por el tablao</small>
+                </article>
+            </div>
+
+            <div class="admin-table-wrapper">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Solicitante</th>
+                            <th>Tablao</th>
+                            <th>Funcion</th>
+                            <th>Personas</th>
+                            <th>Estado</th>
+                            <th>Solicitada</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (!$reservasTablaoAdmin): ?>
+                            <tr><td colspan="6">Todavia no hay reservas de tablao.</td></tr>
+                        <?php else: ?>
+                            <?php foreach ($reservasTablaoAdmin as $reservaAdmin): ?>
+                                <tr>
+                                    <td><?= e((string) $reservaAdmin['nombre_solicitante']) ?><br><small><?= e((string) $reservaAdmin['email']) ?></small></td>
+                                    <td><?= e((string) ($reservaAdmin['tablao'] ?? '—')) ?></td>
+                                    <td><a href="<?= e(app_url('evento/' . rawurlencode((string) $reservaAdmin['evento_slug']))) ?>" target="_blank" rel="noopener"><?= e((string) $reservaAdmin['evento_titulo']) ?></a><br><small><?= e((string) $reservaAdmin['evento_fecha']) ?></small></td>
+                                    <td><?= e((string) $reservaAdmin['num_personas']) ?></td>
+                                    <td><?= admin_status_badge((string) $reservaAdmin['estado'], csf_tablao_reserva_estados()[$reservaAdmin['estado']] ?? (string) $reservaAdmin['estado']) ?></td>
+                                    <td><?= e((string) $reservaAdmin['created_at']) ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <?php
+        $tiendaProductosAdmin = $pdo ? admin_safe_fetch_all($pdo, 'SELECT
+                p.id, p.titulo, p.precio_centimos, p.estado, p.created_at,
+                m.nombre_publico AS tienda, m.slug AS tienda_slug
+            FROM tienda_productos p
+            LEFT JOIN miembros m ON m.id = p.miembro_id
+            WHERE p.deleted_at IS NULL
+            ORDER BY p.created_at DESC
+            LIMIT 40') : [];
+
+        $productosTotalAdmin = $pdo ? admin_safe_count($pdo, 'SELECT COUNT(*) FROM tienda_productos WHERE deleted_at IS NULL') : 0;
+        $productosActivosAdmin = $pdo ? admin_safe_count($pdo, 'SELECT COUNT(*) FROM tienda_productos WHERE deleted_at IS NULL AND estado = "ACTIVO"') : 0;
+        $tiendasConCatalogoAdmin = $pdo ? admin_safe_count($pdo, 'SELECT COUNT(DISTINCT miembro_id) FROM tienda_productos WHERE deleted_at IS NULL') : 0;
+        ?>
+
+        <section class="content-section admin-shell" id="tienda-productos-admin">
+            <div class="section-heading">
+                <div class="section-heading-content">
+                    <p class="section-kicker">Contenido</p>
+                    <h2>Tienda: catalogo</h2>
+                    <p>Articulos publicados por las tiendas. Limite de fichas activas: <?= e((string) CSF_TIENDA_LIMITE_FREE) ?> en el plan gratuito, <?= e((string) CSF_TIENDA_LIMITE_VIP) ?> en VIP.</p>
+                </div>
+            </div>
+
+            <div class="admin-overview-grid admin-overview-grid-compact">
+                <article class="admin-overview-card">
+                    <span>Articulos</span>
+                    <strong><?= e(admin_metric_number($productosTotalAdmin)) ?></strong>
+                    <small>Fichas no eliminadas</small>
+                </article>
+                <article class="admin-overview-card">
+                    <span>Activos</span>
+                    <strong><?= e(admin_metric_number($productosActivosAdmin)) ?></strong>
+                    <small>Visibles ahora mismo en la web publica</small>
+                </article>
+                <article class="admin-overview-card">
+                    <span>Tiendas con catalogo</span>
+                    <strong><?= e(admin_metric_number($tiendasConCatalogoAdmin)) ?></strong>
+                    <small>Con al menos un articulo publicado</small>
+                </article>
+            </div>
+
+            <div class="admin-table-wrapper">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Articulo</th>
+                            <th>Tienda</th>
+                            <th>Precio</th>
+                            <th>Estado</th>
+                            <th>Publicado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (!$tiendaProductosAdmin): ?>
+                            <tr><td colspan="5">Todavia no hay articulos de tienda.</td></tr>
+                        <?php else: ?>
+                            <?php foreach ($tiendaProductosAdmin as $productoAdmin): ?>
+                                <tr>
+                                    <td><?= e((string) $productoAdmin['titulo']) ?></td>
+                                    <td>
+                                        <?php if (!empty($productoAdmin['tienda_slug'])): ?>
+                                            <a href="<?= e(member_public_url('tienda', (string) $productoAdmin['tienda_slug'])) ?>" target="_blank" rel="noopener"><?= e((string) ($productoAdmin['tienda'] ?? '—')) ?></a>
+                                        <?php else: ?>
+                                            <?= e((string) ($productoAdmin['tienda'] ?? '—')) ?>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?= e(csf_tienda_precio_formato($productoAdmin['precio_centimos'] !== null ? (int) $productoAdmin['precio_centimos'] : null) ?: 'Consultar') ?></td>
+                                    <td><?= admin_status_badge((string) $productoAdmin['estado'], csf_tienda_estados()[$productoAdmin['estado']] ?? (string) $productoAdmin['estado']) ?></td>
+                                    <td><?= e((string) $productoAdmin['created_at']) ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>

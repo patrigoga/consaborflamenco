@@ -74,6 +74,32 @@ limite; el limite solo se comprueba al crear uno nuevo o reactivar uno pausado.
   enlace "Tiendas" en el menu principal, y seccion "Catalogo" en la microweb (`artista.php`)
   para los miembros de tipo tienda.
 
+### Bloque 5 - Visibilidad total en el Dashboard del admin
+
+El administrador debe poder ver todo lo que trae esta fase sin salir de `panel-admin.php`, con
+el mismo principio de solo lectura que ya se aplico a Eventos y Puntos en la Fase 1: el admin
+audita, pero confirmar/rechazar una reserva o dar de alta/pausar un producto sigue siendo
+tarea exclusiva del propio miembro desde su panel.
+
+- Nueva seccion **"Reservas de tablao"** (`tablao-reservas-admin`, grupo Contenido): metricas de
+  total/pendientes/confirmadas y tabla con solicitante, tablao, funcion, personas, estado y
+  fecha de solicitud — todas las reservas de todos los tablaos, no solo las de un tablao.
+- Nueva seccion **"Tienda (catalogo)"** (`tienda-productos-admin`, grupo Contenido): metricas de
+  articulos totales/activos y tiendas con catalogo, y tabla con articulo, tienda, precio y
+  estado — el catalogo completo de todas las tiendas.
+- Ambas registradas en `admin_sections()` (`app/admin_ui.php`) junto a "Eventos", por lo que
+  aparecen solas en la barra lateral del admin sin tocar su renderizado.
+- `admin_badge_class()` (`app/admin_ui.php`) amplia sus listas para reconocer los estados nuevos:
+  `CONFIRMADA` (reserva) se pinta como activa y `PAUSADO` (producto) como pendiente, igual que
+  ya hacian `CONFIRMADA`/`PAUSADA` para otras entidades de la plataforma.
+- Los miembros de tipo `tablao`, `pena` y `tienda` ya eran visibles en la seccion existente
+  "Miembros" (es generica por `tipo_miembro`, sin distincion de tipo): no hizo falta ningun
+  cambio ahi, solo se confirmo.
+
+Ficheros nuevos: ninguno (solo se extienden `app/admin_ui.php` y `panel-admin.php`, reutilizando
+`csf_tablao_*`/`csf_tienda_*` y los helpers `admin_safe_fetch_all()`/`admin_safe_count()`/
+`admin_status_badge()` ya existentes).
+
 ## Tabla de capacidades por nivel de membresia
 
 Amplia la tabla de `docs/17_RED_SOCIAL_FASE1.md` con las areas nuevas. El nivel es el mismo
@@ -130,8 +156,14 @@ database/20260912_tienda_productos.sql           Migracion incremental (tabla)
 - `app/events_repository.php` — columna `acepta_reservas` en `csf_evento_guardar()`.
 - `app/database.php`, `database/schema.sql` — columna y tablas nuevas de los bloques 3 y 4.
 - `assets/js/advertising.js`, `assets/js/section-rankings.js` — categoria `TIENDAS`.
+- `app/admin_ui.php` — secciones nuevas "Reservas de tablao" y "Tienda (catalogo)" en
+  `admin_sections()`; `admin_badge_class()` reconoce `CONFIRMADA` y `PAUSADO`.
+- `panel-admin.php` — render de las dos secciones nuevas de solo lectura (bloque 5), requires de
+  `app/tablao_repository.php` y `app/tienda_repository.php`.
 
 ## Historial de cambios
 
 - 2026-09-12: Bloques 1 a 4 completos. Agenda en portada, directorios de tablaos y peñas,
   reservas simples de tablao y catalogo de tienda con limite por nivel de membresia.
+- 2026-09-12: Bloque 5. El Dashboard del admin gana visibilidad total sobre la mega agenda:
+  secciones de solo lectura para reservas de tablao y catalogo de tienda.

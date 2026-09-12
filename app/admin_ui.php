@@ -22,6 +22,8 @@ function admin_sections(): array
             'label' => 'Contenido',
             'items' => [
                 'eventos' => ['label' => 'Eventos', 'target' => 'eventos-admin'],
+                'reservas_tablao' => ['label' => 'Reservas de tablao', 'target' => 'tablao-reservas-admin'],
+                'tienda_productos' => ['label' => 'Tienda (catalogo)', 'target' => 'tienda-productos-admin'],
                 'articulos' => ['label' => 'Articulos', 'target' => 'articulos'],
                 'categorias' => ['label' => 'Categorias', 'target' => 'categorias'],
                 'servicios' => ['label' => 'Servicios', 'target' => 'servicios-admin'],
@@ -78,10 +80,10 @@ function admin_section_url(string $section, array $params = []): string
 function admin_badge_class(string $status): string
 {
     $status = strtoupper(trim($status));
-    if (in_array($status, ['ACTIVO', 'ACTIVE', 'ACTIVA', 'PUBLICADO', 'PUBLISHED', 'APROBADO', 'APPROVED', 'PAGADO', 'PAID', 'VALIDADA', 'AL_DIA', 'VIP', 'DESTACADO', 'COMPLETO', 'MATRICULA_ABIERTA', 'EN_CURSO', 'CONVERTIDA'], true)) {
+    if (in_array($status, ['ACTIVO', 'ACTIVE', 'ACTIVA', 'PUBLICADO', 'PUBLISHED', 'APROBADO', 'APPROVED', 'PAGADO', 'PAID', 'VALIDADA', 'AL_DIA', 'VIP', 'DESTACADO', 'COMPLETO', 'MATRICULA_ABIERTA', 'EN_CURSO', 'CONVERTIDA', 'CONFIRMADA'], true)) {
         return 'status-pill-active';
     }
-    if (in_array($status, ['PENDIENTE', 'PENDING', 'REVISION', 'VALIDATING', 'PENDIENTE_PAGO', 'PENDIENTE_COBRO', 'NEW', 'NUEVO', 'SIMPATIZANTE', 'SOLICITADA', 'PENDIENTE_DOCUMENTACION', 'PAUSADA', 'EN_PROCESO'], true)) {
+    if (in_array($status, ['PENDIENTE', 'PENDING', 'REVISION', 'VALIDATING', 'PENDIENTE_PAGO', 'PENDIENTE_COBRO', 'NEW', 'NUEVO', 'SIMPATIZANTE', 'SOLICITADA', 'PENDIENTE_DOCUMENTACION', 'PAUSADA', 'PAUSADO', 'EN_PROCESO'], true)) {
         return 'status-pill-pending';
     }
     if (in_array($status, ['SUSPENDIDO', 'SUSPENDIDA', 'RECHAZADO', 'RECHAZADA', 'REJECTED', 'SPAM', 'FALLIDO', 'BLOQUEADAS'], true)) {

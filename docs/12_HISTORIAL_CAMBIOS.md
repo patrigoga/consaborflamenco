@@ -484,3 +484,11 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Bloque 3: reservas simples de tablao. Columna nueva `eventos.acepta_reservas` y tabla nueva `tablao_reservas` (migracion `database/20260912_tablao_reservas.sql`). Sin pago online ni control de aforo: el tablao confirma o rechaza a mano desde la pantalla nueva "Reservas" de su panel. Formulario publico en `evento.php` con el mismo patron anti-spam que el formulario de contacto (honeypot, CSRF, limite de intentos por sesion).
 - Bloque 4: catalogo de tienda (escaparate sin carrito). Tabla nueva `tienda_productos` (migracion `database/20260912_tienda_productos.sql`), limite de 5 articulos activos en el plan gratuito y 20 en VIP reutilizando `member_tier_has_high_limits()` (sin sistema de niveles paralelo). Pantalla nueva "Mi tienda" en el panel, pagina publica nueva `tiendas.php` y seccion "Catalogo" en la microweb de los miembros de tipo tienda.
 - Documentado en `docs/18_MEGA_AGENDA.md`, con la tabla de capacidades por nivel ampliada a tienda y tablao.
+
+### 2026-09-12 - Mega agenda flamenca - Bloque 5: el Dashboard del admin ve todo
+
+- Dos secciones nuevas de solo lectura en `panel-admin.php`, siguiendo el mismo patron que "Eventos" y "Puntos" de la Fase 1: "Reservas de tablao" (`tablao-reservas-admin`) con todas las solicitudes de todos los tablaos y sus metricas de total/pendientes/confirmadas, y "Tienda (catalogo)" (`tienda-productos-admin`) con todos los articulos de todas las tiendas y sus metricas de total/activos/tiendas con catalogo.
+- Registradas en `admin_sections()` (`app/admin_ui.php`), grupo Contenido, junto a "Eventos": aparecen solas en la barra lateral sin tocar su renderizado.
+- `admin_badge_class()` reconoce ahora tambien `CONFIRMADA` (reserva, se pinta como activa) y `PAUSADO` (producto, se pinta como pendiente).
+- Confirmado que los miembros de tipo `tablao`, `pena` y `tienda` ya eran visibles en la seccion "Miembros" existente (es generica por `tipo_miembro`): no requirio cambios.
+- Sin tablas ni funciones nuevas: reutiliza `csf_tablao_*` / `csf_tienda_*` y los helpers `admin_safe_fetch_all()` / `admin_safe_count()` / `admin_status_badge()` ya existentes. Sigue siendo de solo lectura: confirmar/rechazar una reserva o publicar/pausar un producto se hace desde el panel del propio miembro.
