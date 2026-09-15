@@ -12626,3 +12626,65 @@ a.csf-social-chip:hover {
         padding: 12px 14px;
     }
 }
+
+/* --------------------------------------------------------------------------
+   Barra lateral del admin: grupos desplegables, uno abierto a la vez.
+   El <summary> hereda el aspecto de la antigua etiqueta de grupo y le anade
+   zona de clic, chevron y estados de hover y foco.
+   -------------------------------------------------------------------------- */
+
+.admin-sidebar-group {
+    display: block;
+}
+
+summary.admin-sidebar-group-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    list-style: none;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+summary.admin-sidebar-group-label::-webkit-details-marker {
+    display: none;
+}
+
+summary.admin-sidebar-group-label::after {
+    content: "";
+    width: 7px;
+    height: 7px;
+    flex: 0 0 7px;
+    margin-right: 3px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg) translate(-2px, -2px);
+    transition: transform 0.18s ease;
+}
+
+.admin-sidebar-group[open] > summary.admin-sidebar-group-label::after {
+    transform: rotate(-135deg) translate(-2px, -2px);
+}
+
+summary.admin-sidebar-group-label:hover {
+    background: rgba(255, 255, 255, 0.07);
+    color: rgba(255, 255, 255, 0.86);
+}
+
+summary.admin-sidebar-group-label:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.55);
+    outline-offset: 2px;
+}
+
+.admin-sidebar-group[open] > summary.admin-sidebar-group-label {
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.admin-sidebar-group-items {
+    display: grid;
+    gap: 6px;
+    padding: 6px 0 2px;
+}

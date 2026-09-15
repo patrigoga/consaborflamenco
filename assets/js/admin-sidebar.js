@@ -28,6 +28,25 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
+    // Acordeon de la barra lateral: solo un grupo abierto a la vez. Los
+    // navegadores modernos ya lo resuelven con el atributo name de <details>;
+    // esto es el respaldo para los que no lo soportan todavia.
+    const sidebarGroups = Array.from(document.querySelectorAll('.admin-sidebar-group'));
+    if (!('name' in document.createElement('details'))) {
+        sidebarGroups.forEach(function (group) {
+            group.addEventListener('toggle', function () {
+                if (!group.open) {
+                    return;
+                }
+                sidebarGroups.forEach(function (otroGrupo) {
+                    if (otroGrupo !== group) {
+                        otroGrupo.open = false;
+                    }
+                });
+            });
+        });
+    }
+
     if (sidebarToggle && adminSidebar) {
         sidebarToggle.addEventListener('click', function () {
             const isOpen = adminSidebar.classList.toggle('is-open');

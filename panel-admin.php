@@ -463,17 +463,24 @@ $recentBlocks = [
             </div>
             
             <nav class="admin-sidebar-nav admin-sidebar-nav-modern" aria-label="Navegacion del panel">
+                <?php /* Un grupo desplegable por bloque, y solo uno abierto a la vez: el
+                         atributo name de <details> ya hace el acordeon en los navegadores
+                         modernos, y admin-sidebar.js lo replica en los que no lo soportan.
+                         Abierto de salida, el grupo de la seccion activa. */ ?>
                 <?php foreach (admin_sections() as $group): ?>
-                    <div class="admin-sidebar-group">
-                        <span class="admin-sidebar-group-label"><?= e((string) $group['label']) ?></span>
-                        <?php foreach ($group['items'] as $sectionKey => $item): ?>
-                            <?php $isActiveSection = $sectionKey === $activeSectionKey; ?>
-                            <a href="<?= e(admin_section_url((string) $sectionKey)) ?>" class="admin-sidebar-link<?= $isActiveSection ? ' is-active' : '' ?>" data-target="<?= e((string) $item['target']) ?>" <?= $isActiveSection ? 'aria-current="page"' : '' ?>>
-                                <span class="admin-sidebar-dot" aria-hidden="true"></span>
-                                <span><?= e((string) $item['label']) ?></span>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
+                    <?php $grupoActivo = array_key_exists($activeSectionKey, $group['items']); ?>
+                    <details class="admin-sidebar-group" name="admin-sidebar-group" <?= $grupoActivo ? 'open' : '' ?>>
+                        <summary class="admin-sidebar-group-label"><?= e((string) $group['label']) ?></summary>
+                        <div class="admin-sidebar-group-items">
+                            <?php foreach ($group['items'] as $sectionKey => $item): ?>
+                                <?php $isActiveSection = $sectionKey === $activeSectionKey; ?>
+                                <a href="<?= e(admin_section_url((string) $sectionKey)) ?>" class="admin-sidebar-link<?= $isActiveSection ? ' is-active' : '' ?>" data-target="<?= e((string) $item['target']) ?>" <?= $isActiveSection ? 'aria-current="page"' : '' ?>>
+                                    <span class="admin-sidebar-dot" aria-hidden="true"></span>
+                                    <span><?= e((string) $item['label']) ?></span>
+                                </a>
+                            <?php endforeach; ?>
+                        </div>
+                    </details>
                 <?php endforeach; ?>
             </nav>
 

@@ -103,6 +103,22 @@ Se ha quitado la franja entera. Consecuencias:
 - El atributo `data-ad-category="GENERAL"` desaparece con la franja. No afecta a nada: el panel
   de administracion no tiene rail de publicidad.
 
+## Barra lateral con grupos desplegables (2026-09-15)
+
+Con las secciones nuevas de la mega agenda, la barra lateral pasaba de los 18 enlaces y no
+cabia en pantalla: habia que hacer scroll dentro del menu para llegar a Finanzas o Contacto.
+Cada grupo (`admin_sections()`) es ahora un `<details>` desplegable, con **solo uno abierto a la
+vez**, y de salida se abre el que contiene la seccion activa.
+
+- El acordeon lo resuelve el atributo `name` de `<details>`, nativo en los navegadores
+  actuales. `assets/js/admin-sidebar.js` lleva un respaldo que cierra los hermanos a mano solo
+  si el navegador no soporta ese atributo (`'name' in document.createElement('details')`).
+- El `<span class="admin-sidebar-group-label">` pasa a `<summary>` con el mismo aspecto, mas
+  zona de clic, chevron que gira al abrir, hover y `:focus-visible`. Los enlaces van dentro de
+  un `div.admin-sidebar-group-items`.
+- No cambia nada de la navegacion: los enlaces siguen siendo URLs reales
+  (`panel-admin.php?section=...`) y el JS sigue cambiando de seccion sin recargar.
+
 ## Pendiente de decidir
 
 - **Tildes en el panel de administracion.** `CLAUDE.md` pide tildes en la UI, pero todo el
@@ -119,3 +135,4 @@ Se ha quitado la franja entera. Consecuencias:
 - 2026-09-15: Rediseno completo de la vista general en cuatro franjas, 19 metricas nuevas de
   agenda/reservas/tienda/puntos y grupo de ingresos movido a Finanzas.
 - 2026-09-15: Eliminada la cabecera `page-intro` duplicada de todas las secciones del panel.
+- 2026-09-15: Barra lateral con grupos desplegables, uno abierto a la vez.
