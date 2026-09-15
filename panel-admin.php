@@ -159,11 +159,132 @@ function admin_metric_percent(int $part, int $total): string
     return number_format(($part / $total) * 100, 1, ',', '.') . '%';
 }
 
+/**
+ * Compara los ultimos 30 dias con los 30 anteriores y devuelve la etiqueta
+ * lista para pintar. Un acumulado historico no dice si la cosa va bien o mal;
+ * la comparativa si. Devuelve texto vacio cuando no hay nada que comparar
+ * (los dos periodos a cero), para no ensuciar la tarjeta con un 0% hueco.
+ *
+ * @return array{class: string, text: string}
+ */
+function admin_metric_trend(int $actual, int $previo): array
+{
+    if ($actual === 0 && $previo === 0) {
+        return ['class' => '', 'text' => ''];
+    }
+
+    $diferencia = $actual - $previo;
+    if ($diferencia === 0) {
+        return ['class' => 'admin-trend-flat', 'text' => 'igual que los 30 dias anteriores'];
+    }
+
+    $signo = $diferencia > 0 ? '+' : '-';
+    $texto = $signo . admin_metric_number(abs($diferencia));
+    if ($previo > 0) {
+        $texto .= ' (' . $signo . number_format(abs($diferencia) / $previo * 100, 0, ',', '.') . '%)';
+    }
+
+    return [
+        'class' => $diferencia > 0 ? 'admin-trend-up' : 'admin-trend-down',
+        'text' => $texto . ' vs. 30 dias antes',
+    ];
+}
+
 $paidPayments = admin_stat($stats, 'payments_paid');
 $paidRevenueCents = admin_stat($stats, 'revenue_paid_cents');
 $averageTicketCents = $paidPayments > 0 ? (int) round($paidRevenueCents / $paidPayments) : 0;
 $vipAnnualPotentialCents = admin_stat($stats, 'members_vip') * 8000;
 
+/* Vista general reordenada por prioridad (rediseno 2026-09-15).
+   Antes esta pantalla pintaba 10 tarjetas de acceso, 4 listas de novedades y
+   41 KPIs del mismo tamano: mas de cincuenta numeros compitiendo entre si, y
+   ninguno de la agenda, que es el producto actual. Ahora va en cuatro franjas
+   de menos a mas detalle: lo que hay que atender hoy, el pulso de la agenda,
+   la actividad reciente y, plegado al final, el detalle completo.
+   No se ha perdido ninguna metrica: las de las tarjetas de acceso viven en las
+   dos primeras franjas y en el detalle, y las secciones siguen a un clic en la
+   barra lateral. */
+
+// --- Franja 1: solo lo accionable. Cada linea es algo que espera por ti; las
+// que estan a cero no se pintan, y si no queda ninguna la franja lo dice.
+$attentionItems = array_values(array_filter([
+    ['label' => 'Mensajes nuevos', 'value' => admin_stat($stats, 'contact_messages_new'), 'detail' => 'Formulario de contacto sin leer', 'section' => 'mensajes', 'status' => 'NEW'],
+    ['label' => 'Reservas de tablao', 'value' => admin_stat($stats, 'tablao_reservations_pending'), 'detail' => 'Solicitudes sin respuesta del tablao', 'section' => 'reservas_tablao', 'status' => ''],
+    ['label' => 'Miembros pendientes', 'value' => admin_stat($stats, 'members_pending'), 'detail' => 'Altas por revisar', 'section' => 'miembros', 'status' => 'PENDIENTE'],
+    ['label' => 'Academias pendientes', 'value' => admin_stat($stats, 'academias_pendientes'), 'detail' => 'Solicitudes de alta de academia', 'section' => 'academias', 'status' => 'PENDIENTE'],
+    ['label' => 'Articulos en revision', 'value' => admin_stat($stats, 'articles_review'), 'detail' => 'Esperando publicacion', 'section' => 'articulos', 'status' => 'REVISION'],
+    ['label' => 'Documentacion de setters', 'value' => admin_stat($stats, 'setters_docs_pending'), 'detail' => 'Pendiente de validar', 'section' => 'setters', 'status' => ''],
+    ['label' => 'Comisiones pendientes', 'value' => admin_stat($stats, 'setters_commissions_pending'), 'detail' => 'Setters a la espera de cobro', 'section' => 'comisiones', 'status' => ''],
+    ['label' => 'Banners sin pagar', 'value' => admin_stat($stats, 'banners_pending_payment'), 'detail' => 'A la espera de la pasarela de pago', 'section' => 'banners', 'status' => 'PENDIENTE_PAGO'],
+], static fn (array $item): bool => $item['value'] > 0));
+
+// --- Franja 2: el producto de hoy. Cifra grande, contexto debajo y, donde
+// tiene sentido, comparativa con el periodo anterior.
+$membersTotal = admin_stat($stats, 'members');
+$membersVipTotal = admin_stat($stats, 'members_vip') + admin_stat($stats, 'members_destacado');
+
+$pulseCards = [
+    [
+        'label' => 'Eventos proximos',
+        'value' => admin_metric_number(admin_stat($stats, 'events_upcoming')),
+        'detail' => 'En los proximos 7 dias: ' . admin_metric_number(admin_stat($stats, 'events_upcoming_7d')),
+        'trend' => admin_metric_trend(admin_stat($stats, 'events_new_30d'), admin_stat($stats, 'events_prev_30d')),
+        'trend_note' => 'eventos publicados',
+        'section' => 'eventos',
+    ],
+    [
+        'label' => 'Eventos promocionados',
+        'value' => admin_metric_number(admin_stat($stats, 'events_promoted')),
+        'detail' => 'Con promocion vigente, a ' . admin_metric_number(csf_puntos_coste('promocion_evento')) . ' puntos cada una',
+        'trend' => ['class' => '', 'text' => ''],
+        'trend_note' => '',
+        'section' => 'eventos',
+    ],
+    [
+        'label' => 'Reservas de tablao',
+        'value' => admin_metric_number(admin_stat($stats, 'tablao_reservations')),
+        'detail' => 'Pendientes ahora: ' . admin_metric_number(admin_stat($stats, 'tablao_reservations_pending')),
+        'trend' => admin_metric_trend(admin_stat($stats, 'tablao_reservations_new_30d'), admin_stat($stats, 'tablao_reservations_prev_30d')),
+        'trend_note' => 'solicitudes recibidas',
+        'section' => 'reservas_tablao',
+    ],
+    [
+        'label' => 'Altas de miembros',
+        'value' => admin_metric_number(admin_stat($stats, 'members_new_30d')),
+        'detail' => 'Ultimos 30 dias. Comunidad total: ' . admin_metric_number($membersTotal),
+        'trend' => admin_metric_trend(admin_stat($stats, 'members_new_30d'), admin_stat($stats, 'members_prev_30d')),
+        'trend_note' => '',
+        'section' => 'miembros',
+    ],
+    [
+        'label' => 'VIP y destacados',
+        'value' => admin_metric_number($membersVipTotal),
+        'detail' => admin_metric_percent($membersVipTotal, $membersTotal) . ' de la comunidad',
+        'trend' => ['class' => '', 'text' => ''],
+        'trend_note' => '',
+        'section' => 'miembros',
+    ],
+    [
+        'label' => 'Articulos de tienda',
+        'value' => admin_metric_number(admin_stat($stats, 'shop_products_active')),
+        'detail' => 'Activos en ' . admin_metric_number(admin_stat($stats, 'shops_with_catalog')) . ' tiendas',
+        'trend' => ['class' => '', 'text' => ''],
+        'trend_note' => '',
+        'section' => 'tienda_productos',
+    ],
+    [
+        'label' => 'Puntos en circulacion',
+        'value' => admin_metric_number(admin_stat($stats, 'points_in_circulation')),
+        'detail' => 'Consumidos: ' . admin_metric_number(admin_stat($stats, 'points_spent')) . ' en ' . admin_metric_number(admin_stat($stats, 'points_wallets')) . ' carteras',
+        'trend' => ['class' => '', 'text' => ''],
+        'trend_note' => '',
+        'section' => 'puntos',
+    ],
+];
+
+// --- Franja 4: el detalle de siempre, intacto pero plegado. Mismo contenido
+// que antes, salvo el grupo de Stripe, que se ha movido a Finanzas (seccion
+// Comisiones), que es donde se busca.
 $kpiGroups = [
     [
         'title' => 'Comunidad',
@@ -184,7 +305,8 @@ $kpiGroups = [
             ['label' => 'Miembros', 'value' => admin_metric_number(admin_stat($stats, 'members')), 'detail' => 'Total con rol miembro'],
             ['label' => 'Simpatizantes', 'value' => admin_metric_number(admin_stat($stats, 'members_sympathizer')), 'detail' => 'Sin descuentos VIP'],
             ['label' => 'Miembros VIP', 'value' => admin_metric_number(admin_stat($stats, 'members_vip')), 'detail' => admin_metric_percent(admin_stat($stats, 'members_vip'), admin_stat($stats, 'members')) . ' de miembros'],
-            ['label' => 'Potencial VIP anual', 'value' => admin_metric_money($vipAnnualPotentialCents), 'detail' => '80 €/ano por VIP actual'],
+            ['label' => 'Miembros destacados', 'value' => admin_metric_number(admin_stat($stats, 'members_destacado')), 'detail' => 'Con microweb y curriculum publico'],
+            ['label' => 'Potencial VIP anual', 'value' => admin_metric_money($vipAnnualPotentialCents), 'detail' => 'Proyeccion: 80 €/ano por VIP actual'],
             ['label' => 'Perfiles completos', 'value' => admin_metric_number(admin_stat($stats, 'profiles_complete')), 'detail' => admin_metric_percent(admin_stat($stats, 'profiles_complete'), admin_stat($stats, 'members')) . ' completado'],
             ['label' => 'Perfiles pendientes', 'value' => admin_metric_number(admin_stat($stats, 'profiles_pending')), 'detail' => 'Fichas por completar'],
             ['label' => 'Tarjetas creadas', 'value' => admin_metric_number(admin_stat($stats, 'member_cards')), 'detail' => 'Activas: ' . admin_metric_number(admin_stat($stats, 'member_cards_active'))],
@@ -193,14 +315,17 @@ $kpiGroups = [
         ],
     ],
     [
-        'title' => 'Appointment setters',
-        'kicker' => 'Comercial',
+        'title' => 'Agenda y mega agenda',
+        'kicker' => 'Producto actual',
         'items' => [
-            ['label' => 'Setters', 'value' => admin_metric_number(admin_stat($stats, 'setters')), 'detail' => 'Usuarios comerciales'],
-            ['label' => 'Setters activos', 'value' => admin_metric_number(admin_stat($stats, 'setters_active')), 'detail' => admin_metric_percent(admin_stat($stats, 'setters_active'), admin_stat($stats, 'setters')) . ' activos'],
-            ['label' => 'Setters pendientes', 'value' => admin_metric_number(admin_stat($stats, 'setters_pending')), 'detail' => 'Pausados: ' . admin_metric_number(admin_stat($stats, 'setters_paused'))],
-            ['label' => 'Documentacion pendiente', 'value' => admin_metric_number(admin_stat($stats, 'setters_docs_pending')), 'detail' => 'Validada: ' . admin_metric_number(admin_stat($stats, 'setters_docs_validated'))],
-            ['label' => 'Comisiones pendientes', 'value' => admin_metric_number(admin_stat($stats, 'setters_commissions_pending')), 'detail' => 'Al dia: ' . admin_metric_number(admin_stat($stats, 'setters_commissions_paid'))],
+            ['label' => 'Eventos totales', 'value' => admin_metric_number(admin_stat($stats, 'events')), 'detail' => 'Nuevos 30 dias: ' . admin_metric_number(admin_stat($stats, 'events_new_30d'))],
+            ['label' => 'Eventos proximos', 'value' => admin_metric_number(admin_stat($stats, 'events_upcoming')), 'detail' => 'Visibles en la agenda publica'],
+            ['label' => 'Promocionados', 'value' => admin_metric_number(admin_stat($stats, 'events_promoted')), 'detail' => 'Con promocion vigente'],
+            ['label' => 'Reservas de tablao', 'value' => admin_metric_number(admin_stat($stats, 'tablao_reservations')), 'detail' => 'Pendientes: ' . admin_metric_number(admin_stat($stats, 'tablao_reservations_pending'))],
+            ['label' => 'Articulos de tienda', 'value' => admin_metric_number(admin_stat($stats, 'shop_products')), 'detail' => 'Activos: ' . admin_metric_number(admin_stat($stats, 'shop_products_active'))],
+            ['label' => 'Tiendas con catalogo', 'value' => admin_metric_number(admin_stat($stats, 'shops_with_catalog')), 'detail' => 'Con al menos un articulo'],
+            ['label' => 'Puntos en circulacion', 'value' => admin_metric_number(admin_stat($stats, 'points_in_circulation')), 'detail' => 'Consumidos: ' . admin_metric_number(admin_stat($stats, 'points_spent'))],
+            ['label' => 'Carteras abiertas', 'value' => admin_metric_number(admin_stat($stats, 'points_wallets')), 'detail' => 'Miembros con saldo de puntos'],
         ],
     ],
     [
@@ -217,6 +342,7 @@ $kpiGroups = [
     [
         'title' => 'Publicidad y banners',
         'kicker' => 'Inventario',
+        'note' => 'La contratacion de banners depende de Stripe, que todavia no esta conectado: estas cifras no se mueven hasta entonces.',
         'items' => [
             ['label' => 'Banners totales', 'value' => admin_metric_number(admin_stat($stats, 'banners')), 'detail' => 'Todos los estados'],
             ['label' => 'Banners activos', 'value' => admin_metric_number(admin_stat($stats, 'banners_active')), 'detail' => 'Vigentes ahora: ' . admin_metric_number(admin_stat($stats, 'banners_current'))],
@@ -226,17 +352,14 @@ $kpiGroups = [
         ],
     ],
     [
-        'title' => 'Ventas, leads y cobros',
-        'kicker' => 'Ingresos',
+        'title' => 'Appointment setters',
+        'kicker' => 'Comercial',
         'items' => [
-            ['label' => 'Leads por codigo', 'value' => admin_metric_number(admin_stat($stats, 'leads')), 'detail' => 'Ultimos 30 dias: ' . admin_metric_number(admin_stat($stats, 'leads_30d'))],
-            ['label' => 'Pagos totales', 'value' => admin_metric_number(admin_stat($stats, 'sales')), 'detail' => 'Registros Stripe'],
-            ['label' => 'Pagos cobrados', 'value' => admin_metric_number(admin_stat($stats, 'payments_paid')), 'detail' => 'Fallidos: ' . admin_metric_number(admin_stat($stats, 'payments_failed'))],
-            ['label' => 'Pagos pendientes', 'value' => admin_metric_number(admin_stat($stats, 'payments_pending')), 'detail' => 'Cancelados: ' . admin_metric_number(admin_stat($stats, 'payments_cancelled'))],
-            ['label' => 'Ingresos cobrados', 'value' => admin_metric_money($paidRevenueCents), 'detail' => 'Importe pagado confirmado'],
-            ['label' => 'Ingresos pendientes', 'value' => admin_metric_money(admin_stat($stats, 'revenue_pending_cents')), 'detail' => 'Pendiente de confirmar'],
-            ['label' => 'Ticket medio cobrado', 'value' => admin_metric_money($averageTicketCents), 'detail' => 'Sobre pagos cobrados'],
-            ['label' => 'Reembolsos', 'value' => admin_metric_number(admin_stat($stats, 'payments_refunded')), 'detail' => 'Pagos reembolsados'],
+            ['label' => 'Setters', 'value' => admin_metric_number(admin_stat($stats, 'setters')), 'detail' => 'Usuarios comerciales'],
+            ['label' => 'Setters activos', 'value' => admin_metric_number(admin_stat($stats, 'setters_active')), 'detail' => admin_metric_percent(admin_stat($stats, 'setters_active'), admin_stat($stats, 'setters')) . ' activos'],
+            ['label' => 'Setters pendientes', 'value' => admin_metric_number(admin_stat($stats, 'setters_pending')), 'detail' => 'Pausados: ' . admin_metric_number(admin_stat($stats, 'setters_paused'))],
+            ['label' => 'Documentacion pendiente', 'value' => admin_metric_number(admin_stat($stats, 'setters_docs_pending')), 'detail' => 'Validada: ' . admin_metric_number(admin_stat($stats, 'setters_docs_validated'))],
+            ['label' => 'Comisiones pendientes', 'value' => admin_metric_number(admin_stat($stats, 'setters_commissions_pending')), 'detail' => 'Al dia: ' . admin_metric_number(admin_stat($stats, 'setters_commissions_paid'))],
         ],
     ],
     [
@@ -250,17 +373,23 @@ $kpiGroups = [
     ],
 ];
 
-$overviewCards = [
-    ['label' => 'Miembros', 'value' => admin_stat($stats, 'members'), 'detail' => 'Activos/VIP: ' . admin_metric_number(admin_stat($stats, 'members_vip')), 'section' => 'miembros', 'status' => 'ACTIVO'],
-    ['label' => 'Miembros pendientes', 'value' => admin_stat($stats, 'members_pending'), 'detail' => 'Perfiles pendientes: ' . admin_metric_number(admin_stat($stats, 'profiles_pending')), 'section' => 'miembros', 'status' => 'PENDIENTE'],
-    ['label' => 'Academias', 'value' => admin_stat($stats, 'academias'), 'detail' => 'Activas: ' . admin_metric_number(admin_stat($stats, 'academias_activas')), 'section' => 'academias', 'status' => 'ACTIVA'],
-    ['label' => 'Academias pendientes', 'value' => admin_stat($stats, 'academias_pendientes'), 'detail' => 'Alumnos activos: ' . admin_metric_number(admin_stat($stats, 'academia_alumnos')), 'section' => 'academias', 'status' => 'PENDIENTE'],
-    ['label' => 'Articulos', 'value' => admin_stat($stats, 'articles'), 'detail' => 'Publicados: ' . admin_metric_number(admin_stat($stats, 'articles_published')), 'section' => 'articulos', 'status' => 'PUBLICADO'],
-    ['label' => 'Borradores', 'value' => admin_stat($stats, 'articles_draft'), 'detail' => 'Revision: ' . admin_metric_number(admin_stat($stats, 'articles_review')), 'section' => 'articulos', 'status' => 'BORRADOR'],
-    ['label' => 'Banners activos', 'value' => admin_stat($stats, 'banners_active'), 'detail' => 'Pendientes pago: ' . admin_metric_number(admin_stat($stats, 'banners_pending_payment')), 'section' => 'banners', 'status' => 'ACTIVO'],
-    ['label' => 'Setters', 'value' => admin_stat($stats, 'setters'), 'detail' => 'Activos: ' . admin_metric_number(admin_stat($stats, 'setters_active')), 'section' => 'setters', 'status' => 'ACTIVO'],
-    ['label' => 'Comisiones pendientes', 'value' => admin_stat($stats, 'setters_commissions_pending'), 'detail' => 'Estado comercial agregado', 'section' => 'comisiones', 'status' => 'PENDIENTE'],
-    ['label' => 'Mensajes nuevos', 'value' => admin_stat($stats, 'contact_messages_new'), 'detail' => 'Total mensajes: ' . admin_metric_number(admin_stat($stats, 'contact_messages')), 'section' => 'mensajes', 'status' => 'NEW'],
+/* Grupo de ingresos: ya no vive en la portada del admin, sino en Finanzas >
+   Comisiones. Son ocho cifras de pagos_stripe que hoy no se mueven porque la
+   pasarela no esta conectada; en la vista general solo hacian ruido. */
+$kpiVentasGroup = [
+    'title' => 'Ventas, leads y cobros',
+    'kicker' => 'Ingresos',
+    'note' => 'Lectura de pagos_stripe. Mientras la pasarela no este conectada, estas cifras se quedan a cero.',
+    'items' => [
+        ['label' => 'Leads por codigo', 'value' => admin_metric_number(admin_stat($stats, 'leads')), 'detail' => 'Ultimos 30 dias: ' . admin_metric_number(admin_stat($stats, 'leads_30d'))],
+        ['label' => 'Pagos totales', 'value' => admin_metric_number(admin_stat($stats, 'sales')), 'detail' => 'Registros Stripe'],
+        ['label' => 'Pagos cobrados', 'value' => admin_metric_number(admin_stat($stats, 'payments_paid')), 'detail' => 'Fallidos: ' . admin_metric_number(admin_stat($stats, 'payments_failed'))],
+        ['label' => 'Pagos pendientes', 'value' => admin_metric_number(admin_stat($stats, 'payments_pending')), 'detail' => 'Cancelados: ' . admin_metric_number(admin_stat($stats, 'payments_cancelled'))],
+        ['label' => 'Ingresos cobrados', 'value' => admin_metric_money($paidRevenueCents), 'detail' => 'Importe pagado confirmado'],
+        ['label' => 'Ingresos pendientes', 'value' => admin_metric_money(admin_stat($stats, 'revenue_pending_cents')), 'detail' => 'Pendiente de confirmar'],
+        ['label' => 'Ticket medio cobrado', 'value' => admin_metric_money($averageTicketCents), 'detail' => 'Sobre pagos cobrados'],
+        ['label' => 'Reembolsos', 'value' => admin_metric_number(admin_stat($stats, 'payments_refunded')), 'detail' => 'Pagos reembolsados'],
+    ],
 ];
 
 $recentBlocks = [
@@ -408,60 +537,124 @@ $recentBlocks = [
                 </div>
             <?php endif; ?>
 
-            <div class="admin-overview-grid">
-                <?php foreach ($overviewCards as $card): ?>
-                    <a class="admin-overview-card" href="<?= e(admin_section_url((string) $card['section'], ['status' => (string) $card['status']])) ?>">
-                        <span><?= e((string) $card['label']) ?></span>
-                        <strong><?= e(admin_metric_number((int) $card['value'])) ?></strong>
-                        <small><?= e((string) $card['detail']) ?></small>
-                    </a>
-                <?php endforeach; ?>
+            <div class="admin-attention<?= $attentionItems ? '' : ' admin-attention-empty' ?>">
+                <div class="admin-band-heading">
+                    <div>
+                        <span>Ahora mismo</span>
+                        <h3>Requiere tu atencion</h3>
+                    </div>
+                    <?php if ($attentionItems): ?>
+                        <small><?= e(admin_metric_number(count($attentionItems))) ?> <?= count($attentionItems) === 1 ? 'asunto abierto' : 'asuntos abiertos' ?></small>
+                    <?php endif; ?>
+                </div>
+
+                <?php if (!$attentionItems): ?>
+                    <p class="admin-attention-clear">Nada pendiente: ni mensajes sin leer, ni altas por revisar, ni reservas sin responder.</p>
+                <?php else: ?>
+                    <div class="admin-attention-grid">
+                        <?php foreach ($attentionItems as $item): ?>
+                            <a class="admin-attention-card" href="<?= e(admin_section_url((string) $item['section'], ['status' => (string) $item['status']])) ?>">
+                                <strong><?= e(admin_metric_number((int) $item['value'])) ?></strong>
+                                <span><?= e((string) $item['label']) ?></span>
+                                <small><?= e((string) $item['detail']) ?></small>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
             </div>
 
-            <div class="admin-recent-grid">
-                <?php foreach ($recentBlocks as $block): ?>
-                    <article class="admin-recent-card">
-                        <header>
-                            <h3><?= e((string) $block['title']) ?></h3>
-                            <a href="<?= e(admin_section_url((string) $block['section'])) ?>">Ver listado</a>
-                        </header>
-                        <?php if (empty($block['items'])): ?>
-                            <p class="admin-empty-note"><?= e((string) $block['empty']) ?></p>
-                        <?php else: ?>
-                            <ul>
-                                <?php foreach ($block['items'] as $item): ?>
-                                    <li>
-                                        <div>
-                                            <strong><?= e((string) $item['title']) ?></strong>
-                                            <small><?= e((string) $item['meta']) ?> · <?= e(admin_date($item['date'] ?? null)) ?></small>
-                                        </div>
-                                        <?= admin_status_badge((string) $item['status']) ?>
-                                    </li>
+            <div class="admin-pulse">
+                <div class="admin-band-heading">
+                    <div>
+                        <span>Como va la plataforma</span>
+                        <h3>Pulso de la agenda</h3>
+                    </div>
+                    <small>Comparativa: ultimos 30 dias frente a los 30 anteriores</small>
+                </div>
+
+                <div class="admin-pulse-grid">
+                    <?php foreach ($pulseCards as $card): ?>
+                        <a class="admin-pulse-card" href="<?= e(admin_section_url((string) $card['section'])) ?>">
+                            <span><?= e((string) $card['label']) ?></span>
+                            <strong><?= e((string) $card['value']) ?></strong>
+                            <small><?= e((string) $card['detail']) ?></small>
+                            <?php if (($card['trend']['text'] ?? '') !== ''): ?>
+                                <em class="admin-trend <?= e((string) $card['trend']['class']) ?>">
+                                    <?= e((string) $card['trend']['text']) ?><?= $card['trend_note'] !== '' ? ' · ' . e((string) $card['trend_note']) : '' ?>
+                                </em>
+                            <?php endif; ?>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
+            <div class="admin-recent-band">
+                <div class="admin-band-heading">
+                    <div>
+                        <span>Ultimo movimiento</span>
+                        <h3>Actividad reciente</h3>
+                    </div>
+                </div>
+
+                <div class="admin-recent-grid">
+                    <?php foreach ($recentBlocks as $block): ?>
+                        <article class="admin-recent-card">
+                            <header>
+                                <h3><?= e((string) $block['title']) ?></h3>
+                                <a href="<?= e(admin_section_url((string) $block['section'])) ?>">Ver listado</a>
+                            </header>
+                            <?php if (empty($block['items'])): ?>
+                                <p class="admin-empty-note"><?= e((string) $block['empty']) ?></p>
+                            <?php else: ?>
+                                <ul>
+                                    <?php foreach ($block['items'] as $item): ?>
+                                        <li>
+                                            <div>
+                                                <strong><?= e((string) $item['title']) ?></strong>
+                                                <small><?= e((string) $item['meta']) ?> · <?= e(admin_date($item['date'] ?? null)) ?></small>
+                                            </div>
+                                            <?= admin_status_badge((string) $item['status']) ?>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
+            <div class="admin-detail-band">
+                <div class="admin-band-heading">
+                    <div>
+                        <span>Si necesitas el dato exacto</span>
+                        <h3>Detalle completo</h3>
+                    </div>
+                    <small>Plegado a proposito: abre solo el grupo que te interese</small>
+                </div>
+
+                <div class="admin-kpi-groups">
+                    <?php foreach ($kpiGroups as $group): ?>
+                        <details class="admin-kpi-details">
+                            <summary>
+                                <span class="admin-kpi-details-kicker"><?= e((string) $group['kicker']) ?></span>
+                                <span class="admin-kpi-details-title"><?= e((string) $group['title']) ?></span>
+                                <span class="admin-kpi-details-count"><?= e((string) count($group['items'])) ?> metricas</span>
+                            </summary>
+                            <?php if (!empty($group['note'])): ?>
+                                <p class="admin-kpi-details-note"><?= e((string) $group['note']) ?></p>
+                            <?php endif; ?>
+                            <div class="admin-metric-grid admin-kpi-grid">
+                                <?php foreach ($group['items'] as $item): ?>
+                                    <article class="admin-metric-card admin-kpi-card">
+                                        <span><?= e((string) $item['label']) ?></span>
+                                        <strong><?= e((string) $item['value']) ?></strong>
+                                        <?php if (!empty($item['detail'])): ?><small><?= e((string) $item['detail']) ?></small><?php endif; ?>
+                                    </article>
                                 <?php endforeach; ?>
-                            </ul>
-                        <?php endif; ?>
-                    </article>
-                <?php endforeach; ?>
-            </div>
-
-            <div class="admin-kpi-groups">
-                <?php foreach ($kpiGroups as $group): ?>
-                    <section class="admin-kpi-group" aria-label="<?= e($group['title']) ?>">
-                        <div class="admin-kpi-group-heading">
-                            <span><?= e($group['kicker']) ?></span>
-                            <h3><?= e($group['title']) ?></h3>
-                        </div>
-                        <div class="admin-metric-grid admin-kpi-grid">
-                            <?php foreach ($group['items'] as $item): ?>
-                                <article class="admin-metric-card admin-kpi-card">
-                                    <span><?= e($item['label']) ?></span>
-                                    <strong><?= e((string) $item['value']) ?></strong>
-                                    <?php if (!empty($item['detail'])): ?><small><?= e((string) $item['detail']) ?></small><?php endif; ?>
-                                </article>
-                            <?php endforeach; ?>
-                        </div>
-                    </section>
-                <?php endforeach; ?>
+                            </div>
+                        </details>
+                    <?php endforeach; ?>
+                </div>
             </div>
         </section>
 
@@ -1593,6 +1786,28 @@ $recentBlocks = [
                         <strong><?= e(admin_metric_number(admin_stat($stats, 'setters_commissions_paid'))) ?></strong>
                         <small>Setters sin pagos pendientes</small>
                     </article>
+                </div>
+            </div>
+
+            <?php /* Ingresos de plataforma. Estaba en la vista general, donde
+                     competia con todo lo demas sin que nadie lo mirase; aqui,
+                     en Finanzas, es donde se busca. Solo lectura. */ ?>
+            <div class="admin-kpi-group">
+                <div class="admin-kpi-group-heading">
+                    <span><?= e((string) $kpiVentasGroup['kicker']) ?></span>
+                    <h3><?= e((string) $kpiVentasGroup['title']) ?></h3>
+                </div>
+                <?php if (!empty($kpiVentasGroup['note'])): ?>
+                    <p class="admin-kpi-details-note"><?= e((string) $kpiVentasGroup['note']) ?></p>
+                <?php endif; ?>
+                <div class="admin-metric-grid admin-kpi-grid">
+                    <?php foreach ($kpiVentasGroup['items'] as $item): ?>
+                        <article class="admin-metric-card admin-kpi-card">
+                            <span><?= e((string) $item['label']) ?></span>
+                            <strong><?= e((string) $item['value']) ?></strong>
+                            <?php if (!empty($item['detail'])): ?><small><?= e((string) $item['detail']) ?></small><?php endif; ?>
+                        </article>
+                    <?php endforeach; ?>
                 </div>
             </div>
         </section>

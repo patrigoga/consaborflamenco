@@ -12356,3 +12356,271 @@ a.csf-social-chip:hover {
     letter-spacing: 0.08em;
     text-transform: uppercase;
 }
+
+/* ==========================================================================
+   Vista general del panel de administracion (rediseno 2026-09-15)
+   Cuatro franjas de menos a mas detalle: atencion, pulso, actividad reciente
+   y detalle plegado. Reutiliza la paleta y las sombras ya definidas arriba;
+   no toca ninguna clase que use otra pantalla.
+   ========================================================================== */
+
+.admin-band-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--color-line);
+}
+
+.admin-band-heading > div {
+    display: grid;
+    gap: 2px;
+}
+
+.admin-band-heading span {
+    color: var(--color-red);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.admin-band-heading h3 {
+    margin: 0;
+    color: var(--color-black);
+    font-size: clamp(1.2rem, 2vw, 1.7rem);
+}
+
+.admin-band-heading small {
+    color: var(--color-muted);
+    font-size: 0.82rem;
+}
+
+.admin-attention,
+.admin-pulse,
+.admin-recent-band,
+.admin-detail-band {
+    display: grid;
+    gap: 16px;
+}
+
+/* Franja 1: lo que espera por ti. Se pinta con el rojo de la casa porque es
+   la unica franja que pide accion; cuando no hay nada pendiente se apaga. */
+.admin-attention-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 14px;
+}
+
+.admin-attention-card {
+    display: grid;
+    gap: 4px;
+    padding: 18px;
+    border: 1px solid rgba(201, 79, 92, 0.28);
+    border-left: 4px solid var(--color-red);
+    border-radius: var(--csf-card-radius);
+    background: var(--color-white);
+    box-shadow: var(--csf-card-shadow);
+    color: var(--color-black);
+    text-decoration: none;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.admin-attention-card:hover,
+.admin-attention-card:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: var(--csf-card-shadow-hover);
+}
+
+.admin-attention-card strong {
+    color: var(--color-red);
+    font-family: var(--font-display);
+    font-size: clamp(1.9rem, 3.4vw, 2.6rem);
+    line-height: 1;
+}
+
+.admin-attention-card span {
+    font-weight: 800;
+}
+
+.admin-attention-card small {
+    color: var(--color-muted);
+}
+
+.admin-attention-clear {
+    margin: 0;
+    padding: 16px 18px;
+    border: 1px dashed rgba(17, 17, 20, 0.16);
+    border-radius: var(--csf-card-radius);
+    background: rgba(35, 84, 59, 0.05);
+    color: #23543b;
+    font-weight: 700;
+}
+
+.admin-attention-empty .admin-band-heading span {
+    color: var(--color-muted);
+}
+
+/* Franja 2: el pulso del producto. Misma tarjeta que el resto del panel, con
+   una linea extra de tendencia cuando hay periodo anterior con el que
+   comparar. */
+.admin-pulse-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+    gap: 14px;
+}
+
+.admin-pulse-card {
+    display: grid;
+    align-content: start;
+    gap: 6px;
+    padding: 18px;
+    border: 1px solid var(--csf-card-line);
+    border-radius: var(--csf-card-radius);
+    background: var(--color-white);
+    box-shadow: var(--csf-card-shadow);
+    color: var(--color-black);
+    text-decoration: none;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.admin-pulse-card:hover,
+.admin-pulse-card:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: var(--csf-card-shadow-hover);
+}
+
+.admin-pulse-card span {
+    color: var(--color-muted);
+    font-size: 0.76rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.admin-pulse-card strong {
+    font-family: var(--font-display);
+    font-size: clamp(1.9rem, 3.4vw, 2.7rem);
+    line-height: 1;
+}
+
+.admin-pulse-card small {
+    color: var(--color-muted);
+    font-size: 0.84rem;
+}
+
+.admin-trend {
+    width: max-content;
+    max-width: 100%;
+    margin-top: 2px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-style: normal;
+    font-weight: 800;
+}
+
+.admin-trend-up {
+    background: #dcf2e6;
+    color: #23543b;
+}
+
+.admin-trend-down {
+    background: rgba(201, 79, 92, 0.14);
+    color: #9f2432;
+}
+
+.admin-trend-flat {
+    background: rgba(17, 17, 20, 0.08);
+    color: #4b4b52;
+}
+
+/* Franja 4: el detalle de siempre, plegado. */
+.admin-kpi-details {
+    border: 1px solid var(--csf-card-line);
+    border-radius: var(--csf-card-radius);
+    background: rgba(255, 252, 246, 0.6);
+}
+
+.admin-kpi-details > summary {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 14px 18px;
+    border-radius: var(--csf-card-radius);
+    cursor: pointer;
+    list-style: none;
+}
+
+.admin-kpi-details > summary::-webkit-details-marker {
+    display: none;
+}
+
+.admin-kpi-details > summary::before {
+    content: "+";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(201, 79, 92, 0.12);
+    color: var(--color-red);
+    font-weight: 900;
+    line-height: 1;
+}
+
+.admin-kpi-details[open] > summary::before {
+    content: "\2212";
+}
+
+.admin-kpi-details[open] > summary {
+    border-bottom: 1px solid var(--color-line);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.admin-kpi-details-kicker {
+    color: var(--color-red);
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.admin-kpi-details-title {
+    flex: 1 1 auto;
+    color: var(--color-black);
+    font-family: var(--font-display);
+    font-size: 1.12rem;
+    font-weight: 700;
+}
+
+.admin-kpi-details-count {
+    color: var(--color-muted);
+    font-size: 0.8rem;
+}
+
+.admin-kpi-details-note {
+    margin: 0;
+    padding: 12px 18px 0;
+    color: var(--color-muted);
+    font-size: 0.86rem;
+}
+
+.admin-kpi-details > .admin-metric-grid {
+    padding: 16px 18px 18px;
+}
+
+@media (max-width: 720px) {
+    .admin-band-heading {
+        align-items: flex-start;
+    }
+
+    .admin-kpi-details > summary {
+        padding: 12px 14px;
+    }
+}

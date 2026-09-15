@@ -137,3 +137,5 @@ El administrador debera poder revisar conversaciones, cambiar estados, asignarla
 - 2026-06-30: Corregida la carga del panel admin para evitar error 500 si falta una tabla de metricas; el bootstrap crea `usos_codigo_descuento` y las lecturas admin son tolerantes a migraciones incompletas.
 - 2026-06-30: Ampliada la vista general del panel admin con KPIs operativos completos de usuarios, verificacion, membresias, perfiles, setters, contenidos, banners, leads, pagos e ingresos.
 - 2026-07-18: Iniciada la Fase 1 del redisenado del panel admin con sidebar agrupado, secciones por URL, tarjetas de resumen, actividad reciente, categorias separadas y base visual responsive.
+- 2026-09-12: Secciones nuevas de solo lectura "Reservas de tablao" y "Tienda (catalogo)" (ver `18_MEGA_AGENDA.md`).
+- 2026-09-15: Rediseno de la vista general en cuatro franjas por prioridad: atencion, pulso de la agenda, actividad reciente y detalle plegado. Detalle completo en `19_PANEL_ADMIN_VISTA_GENERAL.md`.

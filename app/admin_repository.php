@@ -109,6 +109,29 @@ function admin_dashboard_default_stats(array $overrides = []): array
         'password_reset_tokens' => 0,
         'password_reset_tokens_active' => 0,
         'password_reset_tokens_used' => 0,
+        // Agenda, reservas, tienda y puntos: el producto actual de la
+        // plataforma (Fase 1 red social + mega agenda). Van con su
+        // comparativa de 30 dias frente a los 30 anteriores para que la
+        // vista general pueda mostrar tendencia y no solo acumulado.
+        'events' => 0,
+        'events_upcoming' => 0,
+        'events_upcoming_7d' => 0,
+        'events_promoted' => 0,
+        'events_new_30d' => 0,
+        'events_prev_30d' => 0,
+        'members_destacado' => 0,
+        'members_new_30d' => 0,
+        'members_prev_30d' => 0,
+        'tablao_reservations' => 0,
+        'tablao_reservations_pending' => 0,
+        'tablao_reservations_new_30d' => 0,
+        'tablao_reservations_prev_30d' => 0,
+        'shop_products' => 0,
+        'shop_products_active' => 0,
+        'shops_with_catalog' => 0,
+        'points_in_circulation' => 0,
+        'points_spent' => 0,
+        'points_wallets' => 0,
     ], $overrides);
 }
 
@@ -211,6 +234,27 @@ function admin_dashboard_stats(): array
         'academia_alumnos' => admin_safe_count($pdo, "SELECT COUNT(*) FROM academia_alumnos WHERE estado = 'ACTIVO'"),
         'academia_profesores' => admin_safe_count($pdo, "SELECT COUNT(*) FROM academia_miembros WHERE rol = 'PROFESOR' AND estado = 'ACTIVO'"),
         'academia_cursos' => admin_safe_count($pdo, 'SELECT COUNT(*) FROM academia_cursos'),
+        // Agenda y mega agenda. Si la base todavia no tiene estas tablas,
+        // admin_safe_count() devuelve 0 en vez de romper el panel.
+        'events' => admin_safe_count($pdo, 'SELECT COUNT(*) FROM eventos WHERE deleted_at IS NULL'),
+        'events_upcoming' => admin_safe_count($pdo, "SELECT COUNT(*) FROM eventos WHERE deleted_at IS NULL AND estado = 'PUBLICADO' AND COALESCE(fecha_fin, fecha) >= CURDATE()"),
+        'events_upcoming_7d' => admin_safe_count($pdo, "SELECT COUNT(*) FROM eventos WHERE deleted_at IS NULL AND estado = 'PUBLICADO' AND fecha BETWEEN CURDATE() AND (CURDATE() + INTERVAL 7 DAY)"),
+        'events_promoted' => admin_safe_count($pdo, 'SELECT COUNT(*) FROM eventos WHERE deleted_at IS NULL AND promocionado = 1 AND (promocion_expira_at IS NULL OR promocion_expira_at > NOW())'),
+        'events_new_30d' => admin_safe_count($pdo, 'SELECT COUNT(*) FROM eventos WHERE deleted_at IS NULL AND created_at >= (UTC_TIMESTAMP() - INTERVAL 30 DAY)'),
+        'events_prev_30d' => admin_safe_count($pdo, 'SELECT COUNT(*) FROM eventos WHERE deleted_at IS NULL AND created_at >= (UTC_TIMESTAMP() - INTERVAL 60 DAY) AND created_at < (UTC_TIMESTAMP() - INTERVAL 30 DAY)'),
+        'members_destacado' => admin_safe_count($pdo, "SELECT COUNT(*) FROM miembros WHERE estado = 'DESTACADO'"),
+        'members_new_30d' => admin_safe_count($pdo, 'SELECT COUNT(*) FROM miembros WHERE created_at >= (UTC_TIMESTAMP() - INTERVAL 30 DAY)'),
+        'members_prev_30d' => admin_safe_count($pdo, 'SELECT COUNT(*) FROM miembros WHERE created_at >= (UTC_TIMESTAMP() - INTERVAL 60 DAY) AND created_at < (UTC_TIMESTAMP() - INTERVAL 30 DAY)'),
+        'tablao_reservations' => admin_safe_count($pdo, 'SELECT COUNT(*) FROM tablao_reservas'),
+        'tablao_reservations_pending' => admin_safe_count($pdo, "SELECT COUNT(*) FROM tablao_reservas WHERE estado = 'PENDIENTE'"),
+        'tablao_reservations_new_30d' => admin_safe_count($pdo, 'SELECT COUNT(*) FROM tablao_reservas WHERE created_at >= (UTC_TIMESTAMP() - INTERVAL 30 DAY)'),
+        'tablao_reservations_prev_30d' => admin_safe_count($pdo, 'SELECT COUNT(*) FROM tablao_reservas WHERE created_at >= (UTC_TIMESTAMP() - INTERVAL 60 DAY) AND created_at < (UTC_TIMESTAMP() - INTERVAL 30 DAY)'),
+        'shop_products' => admin_safe_count($pdo, 'SELECT COUNT(*) FROM tienda_productos WHERE deleted_at IS NULL'),
+        'shop_products_active' => admin_safe_count($pdo, "SELECT COUNT(*) FROM tienda_productos WHERE deleted_at IS NULL AND estado = 'ACTIVO'"),
+        'shops_with_catalog' => admin_safe_count($pdo, 'SELECT COUNT(DISTINCT miembro_id) FROM tienda_productos WHERE deleted_at IS NULL'),
+        'points_in_circulation' => admin_safe_count($pdo, 'SELECT COALESCE(SUM(saldo), 0) FROM puntos_saldos'),
+        'points_spent' => admin_safe_count($pdo, 'SELECT COALESCE(SUM(total_gastado), 0) FROM puntos_saldos'),
+        'points_wallets' => admin_safe_count($pdo, 'SELECT COUNT(*) FROM puntos_saldos'),
     ]);
 }
 

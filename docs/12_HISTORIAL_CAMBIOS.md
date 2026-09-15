@@ -492,3 +492,13 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - `admin_badge_class()` reconoce ahora tambien `CONFIRMADA` (reserva, se pinta como activa) y `PAUSADO` (producto, se pinta como pendiente).
 - Confirmado que los miembros de tipo `tablao`, `pena` y `tienda` ya eran visibles en la seccion "Miembros" existente (es generica por `tipo_miembro`): no requirio cambios.
 - Sin tablas ni funciones nuevas: reutiliza `csf_tablao_*` / `csf_tienda_*` y los helpers `admin_safe_fetch_all()` / `admin_safe_count()` / `admin_status_badge()` ya existentes. Sigue siendo de solo lectura: confirmar/rechazar una reserva o publicar/pausar un producto se hace desde el panel del propio miembro.
+
+### 2026-09-15 - Panel admin - Rediseno de la vista general
+
+- La vista general pasa de mas de cincuenta cifras planas (10 tarjetas de acceso + 4 listas + 41 KPIs del mismo tamano) a cuatro franjas por prioridad: "Requiere tu atencion" (solo lo accionable, las lineas a cero no se pintan), "Pulso de la agenda" (el producto actual, con comparativa de 30 dias frente a los 30 anteriores), "Actividad reciente" (las 4 listas de siempre) y "Detalle completo" (los 41 KPIs intactos, plegados por grupo).
+- La portada del admin muestra por fin la agenda: eventos proximos y promocionados, reservas de tablao, articulos de tienda y puntos en circulacion. Antes no aparecia ninguno.
+- 19 metricas nuevas en `admin_dashboard_stats()` (`app/admin_repository.php`), todas via `admin_safe_count()`: valen 0 en una base sin migrar en vez de romper el panel.
+- Helper nuevo `admin_metric_trend()` en `panel-admin.php`: compara los ultimos 30 dias con los 30 anteriores y solo pinta la etiqueta cuando hay algo que comparar.
+- El grupo "Ventas, leads y cobros" (8 KPIs de `pagos_stripe`) se mueve de la vista general a Finanzas > Comisiones, con una nota que aclara que se queda a cero mientras Stripe no este conectado. No se ha borrado ninguna metrica.
+- CSS nuevo al final de `assets/css/styles.css`; no se ha modificado ninguna clase existente, asi que ninguna otra pantalla del panel cambia.
+- Documentado en `docs/19_PANEL_ADMIN_VISTA_GENERAL.md`, con las dos decisiones que quedan abiertas (tildes en el panel admin y barra lateral duplicada oculta por CSS).
