@@ -441,7 +441,9 @@ $recentBlocks = [
 ?>
 <!DOCTYPE html>
 <html lang="es">
-<?php page_head('Panel de administracion | Con Sabor Flamenco', 'Panel de administracion de Con Sabor Flamenco.', false); ?>
+<?php /* El nombre de la seccion activa va en el titulo de la pestana: es lo unico
+     que necesitaba el h1 que se quito de la cabecera duplicada. */ ?>
+<?php page_head($activeSectionLabel . ' | Panel de administracion | Con Sabor Flamenco', 'Panel de administracion de Con Sabor Flamenco.', false); ?>
 <body>
     <?php page_header(); ?>
     
@@ -454,7 +456,7 @@ $recentBlocks = [
         
         <aside class="admin-sidebar">
             <div class="admin-sidebar-header">
-                <h2>Panel Admin</h2>
+                <h1>Panel Admin</h1>
                 <button class="admin-sidebar-close" aria-label="Cerrar menú" style="display: none;">
                     <span aria-hidden="true">✕</span>
                 </button>
@@ -507,14 +509,12 @@ $recentBlocks = [
         </aside>
         
         <main class="admin-main-content">
-        <section class="page-intro" data-ad-category="GENERAL">
-            <div>
-                <p class="section-kicker">Administracion</p>
-                <h1><?= e($activeSectionLabel) ?></h1>
-                <p>Panel operativo para gestionar comunidad, contenido, publicidad, finanzas y contacto.</p>
-            </div>
-            <a class="button button-primary" href="<?= e(admin_section_url('articulos')) ?>">Crear contenido</a>
-        </section>
+        <?php /* Aqui vivia una cabecera "page-intro" que repetia el nombre de la
+                 seccion que ya titula cada seccion debajo, con un subtitulo
+                 generico y un boton fijo a Articulos. Dos cabeceras para una
+                 pantalla. El titulo de cada vista lo pone ya su propia
+                 seccion, y el h1 de la pagina es "Panel Admin", en la barra
+                 lateral. */ ?>
 
         <section class="content-section admin-shell" id="general">
             <div class="section-heading">

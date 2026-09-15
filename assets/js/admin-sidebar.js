@@ -4,11 +4,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const sidebarToggle = document.getElementById('admin-sidebar-toggle');
     const sidebarClose = document.querySelector('.admin-sidebar-close');
     const adminSidebar = document.querySelector('.admin-sidebar');
-    const pageIntro = document.querySelector('.page-intro');
-    const pageTitle = pageIntro ? pageIntro.querySelector('h1') : null;
     const allAdminShells = Array.from(document.querySelectorAll('.admin-shell'));
 
-    const showSection = function (targetId, title) {
+    const showSection = function (targetId) {
         const section = targetId ? document.getElementById(targetId) : null;
 
         sidebarLinks.forEach(function (link) {
@@ -21,20 +19,12 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        if (pageIntro) {
-            pageIntro.style.display = 'flex';
-        }
-
         allAdminShells.forEach(function (adminShell) {
             adminShell.style.display = 'none';
         });
 
         if (section) {
             section.style.display = 'grid';
-        }
-
-        if (pageTitle && title) {
-            pageTitle.textContent = title;
         }
     };
 
@@ -65,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             event.preventDefault();
-            showSection(targetId, link.textContent.trim());
+            showSection(targetId);
             if (href !== '#') {
                 window.history.pushState({}, '', href);
             }
@@ -85,12 +75,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const matchingLink = sidebarLinks.find(function (link) {
             return link.getAttribute('href') && link.getAttribute('href').indexOf('section=' + encodeURIComponent(sectionKey)) !== -1;
         });
-        showSection(matchingLink ? matchingLink.getAttribute('data-target') : 'general', matchingLink ? matchingLink.textContent.trim() : 'Vista general');
+        showSection(matchingLink ? matchingLink.getAttribute('data-target') : 'general');
     });
 
     const initialTarget = container ? container.getAttribute('data-admin-current-section') || 'general' : 'general';
-    const initialLink = sidebarLinks.find(function (link) {
-        return link.getAttribute('data-target') === initialTarget && link.closest('.admin-sidebar-nav-modern');
-    });
-    showSection(initialTarget, initialLink ? initialLink.textContent.trim() : null);
+    showSection(initialTarget);
 });

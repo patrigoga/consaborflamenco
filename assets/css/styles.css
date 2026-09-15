@@ -6057,6 +6057,7 @@ h3 {
     align-items: center;
 }
 
+.admin-sidebar-header h1,
 .admin-sidebar-header h2 {
     margin: 0;
     font-size: 18px;
@@ -8888,6 +8889,7 @@ body.artist-public-body .artist-web-contact-grid {
     text-transform: uppercase;
 }
 
+.admin-sidebar-header h1,
 .admin-sidebar-header h2 {
     margin: 6px 0 0;
     color: var(--color-white);

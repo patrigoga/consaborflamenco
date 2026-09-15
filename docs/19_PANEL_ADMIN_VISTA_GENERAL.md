@@ -80,6 +80,29 @@ Las claves `*_prev_30d` cuentan la ventana de hace 60 a 30 dias, que es contra l
   `admin-attention-*`, `admin-pulse-*`, `admin-trend-*`, `admin-kpi-details-*`). No se ha
   modificado ninguna clase existente.
 
+## Cabecera duplicada (2026-09-15)
+
+Cada pantalla del panel mostraba **dos cabeceras**: una franja `page-intro` con el nombre de la
+seccion activa en `<h1>`, un subtitulo generico ("Panel operativo para gestionar comunidad,
+contenido, publicidad, finanzas y contacto") y un boton fijo "Crear contenido" que llevaba
+siempre a Articulos; y justo debajo, el `section-heading` propio de la seccion, que ya dice de
+que va la pantalla. El `<h1>` de la franja lo reescribia `assets/js/admin-sidebar.js` al cambiar
+de seccion, asi que su unica funcion era repetir el nombre de la seccion que ya titulaba la
+seccion de abajo y que ya estaba marcada en la barra lateral.
+
+Se ha quitado la franja entera. Consecuencias:
+
+- El titulo de cada vista lo pone ahora solo su `section-heading`.
+- El `<h1>` de la pagina pasa a ser "Panel Admin", el de la barra lateral (antes `<h2>`), para
+  que la pagina siga teniendo exactamente un `<h1>`. El CSS acepta los dos elementos
+  (`.admin-sidebar-header h1, .admin-sidebar-header h2`).
+- El nombre de la seccion activa se aprovecha ahora en el titulo de la pestana del navegador
+  ("Miembros | Panel de administracion | Con Sabor Flamenco").
+- `assets/js/admin-sidebar.js` pierde el manejo de esa cabecera (`pageIntro`, `pageTitle`) y el
+  parametro `title` de `showSection()`, que ya no tenia a quien escribir.
+- El atributo `data-ad-category="GENERAL"` desaparece con la franja. No afecta a nada: el panel
+  de administracion no tiene rail de publicidad.
+
 ## Pendiente de decidir
 
 - **Tildes en el panel de administracion.** `CLAUDE.md` pide tildes en la UI, pero todo el
@@ -95,3 +118,4 @@ Las claves `*_prev_30d` cuentan la ventana de hace 60 a 30 dias, que es contra l
 
 - 2026-09-15: Rediseno completo de la vista general en cuatro franjas, 19 metricas nuevas de
   agenda/reservas/tienda/puntos y grupo de ingresos movido a Finanzas.
+- 2026-09-15: Eliminada la cabecera `page-intro` duplicada de todas las secciones del panel.
