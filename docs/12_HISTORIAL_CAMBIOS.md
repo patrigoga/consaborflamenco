@@ -504,3 +504,14 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Documentado en `docs/19_PANEL_ADMIN_VISTA_GENERAL.md`, con las dos decisiones que quedan abiertas (tildes en el panel admin y barra lateral duplicada oculta por CSS).
 - Eliminada la cabecera duplicada del panel: cada seccion mostraba una franja `page-intro` con el nombre de la seccion (reescrito por JS) mas un subtitulo generico y un boton fijo a Articulos, justo encima del `section-heading` que ya titula la pantalla. Ahora el titulo lo pone solo la seccion; el `<h1>` de la pagina es "Panel Admin" (barra lateral) y el nombre de la seccion activa se usa en el titulo de la pestana del navegador.
 - Barra lateral del panel con grupos desplegables y solo uno abierto a la vez (`<details name>` nativo, con respaldo en `admin-sidebar.js` para navegadores que no lo soporten). De salida se abre el grupo de la seccion activa. Con 18 secciones el menu ya no cabia en pantalla sin scroll.
+
+### 2026-09-18 - Fase 1 de lanzamiento - Documento de decisiones
+
+- Nuevo `docs/20_FASE1_LANZAMIENTO.md` con el alcance del lanzamiento publico: que publica cada tipo de miembro, la economia de puntos, los cambios de esquema que pide y la propuesta de portada. Manda sobre `17_RED_SOCIAL_FASE1.md` y `18_MEGA_AGENDA.md` donde discrepen.
+- Cambio de regla frente a la Fase 1 anterior: publicar deja de ser gratis y cuesta 10 puntos (evento, curso o producto). Editar sigue siendo gratis siempre; destacar cuesta 10 adicionales.
+- Puntos con reinicio mensual (lo no gastado se pierde) resuelto sin cron: la primera peticion del mes detecta el cambio de periodo, reinicia el saldo y deja el movimiento en el libro mayor.
+- Asignaciones: artista/peña/tablao/festival 20 al mes (80 VIP); academia 60 en bolsa unica (120 VIP); tienda 60 (120 VIP) conservando el tope de fichas activas.
+- Un evento puede llevar varias fechas y cuesta una sola publicacion, con tope de 12 fechas en gratuito y 30 en VIP: sin eso un tablao que programa cada semana no cabe en la agenda.
+- Detectada una incoherencia de precios que hay que resolver antes de cobrar: el VIP a 60 €/ano entrega 1.060 puntos, que a los 0,50 € por punto del codigo actual son 530 €. Recomendacion: no vender puntos en Fase 1 y dejar el VIP como unico producto de pago, que ademas permite lanzar sin pasarela porque el nivel lo asigna administracion.
+- Propuesta de portada: buscador, dos banners de cabecera, destacados, agenda dia a dia con filtros pegados y ficha de evento en modal `<dialog>`, con los tres tamanos definidos.
+
