@@ -525,3 +525,10 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Por debajo de 1480 px la cabecera es de una columna, asi que las acciones van en fila pegadas a la izquierda; en movil, a ancho completo.
 - Documentado en `docs/21_PANEL_MIEMBRO_CABECERA.md`.
 
+
+### 2026-09-23 - Revista - Articulos de historia y artistas
+
+- Nueva migracion `database/20260923_revista_maestros_guitarra.sql` con 11 articulos en `BORRADOR` redactados a partir del capitulo "Los grandes maestros de la guitarra flamenca" del libro "Arte Flamenco": un panorama, nueve artistas y uno de tecnica. Texto propio y fechas contrastadas; idempotente con `INSERT IGNORE` sobre el slug, asi que no pisa correcciones.
+- Nuevas categorias de articulo **Historia** y **Artistas**, tambien en `db_seed_article_categories()`.
+- Nueva herramienta `tools/filtro_artistico.php`: conserva la foto original y genera una portada filtrada (estampa en tinta y marfil, 1200x675, WebP), con opcion de enlazarla al articulo. Las fotos del libro no se publican; las portadas saldran de fotos con permiso o licencia libre.
+- Documentado en `docs/22_REVISTA_CONTENIDOS.md`, con la lista de portadas pendientes y lo que falta para que los articulos se vean en la parte publica.

@@ -631,6 +631,8 @@ function db_seed_article_categories(PDO $pdo): void
         'Formacion',
         'Moda flamenca',
         'Comunidad',
+        'Historia',
+        'Artistas',
     ];
 
     $statement = $pdo->prepare('INSERT IGNORE INTO categorias_articulos (nombre, slug) VALUES (:nombre, :slug)');
