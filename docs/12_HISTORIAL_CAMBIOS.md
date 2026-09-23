@@ -515,3 +515,13 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Detectada una incoherencia de precios que hay que resolver antes de cobrar: el VIP a 60 €/ano entrega 1.060 puntos, que a los 0,50 € por punto del codigo actual son 530 €. Recomendacion: no vender puntos en Fase 1 y dejar el VIP como unico producto de pago, que ademas permite lanzar sin pasarela porque el nivel lo asigna administracion.
 - Propuesta de portada: buscador, dos banners de cabecera, destacados, agenda dia a dia con filtros pegados y ficha de evento en modal `<dialog>`, con los tres tamanos definidos.
 
+### 2026-09-23 - Panel del miembro - Cabecera unica
+
+- El panel decia nombre, tipo y ciudad dos veces y el porcentaje de perfil tres (cabecera, franja y tarjeta), dos de ellas con barra de progreso. Ahora la identidad se dice una vez, en la cabecera.
+- "Crear evento" sube a la cabecera como accion principal y el QR de la tarjeta baja a acceso secundario: era lo que ocupaba el mejor sitio de la pantalla.
+- La franja blanca pasa a llevar solo cifras que cambian: puntos, proximos eventos y **visitas acumuladas a tus eventos**, dato que estaba guardado en `eventos.vistas` desde la Fase 1 y que el miembro no veia en ninguna parte. Se calcula sumando las filas ya cargadas, sin consulta nueva.
+- El porcentaje de perfil solo aparece si es menor que 100, y entonces como aviso con enlace en vez de barra.
+- Corregido el titular "¿Que quieres hacer hoy?" (ahora con tilde) y su texto, que prometia curriculum y pagina web a miembros que no los tienen: cambia segun el nivel.
+- Por debajo de 1480 px la cabecera es de una columna, asi que las acciones van en fila pegadas a la izquierda; en movil, a ancho completo.
+- Documentado en `docs/21_PANEL_MIEMBRO_CABECERA.md`.
+

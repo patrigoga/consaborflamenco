@@ -1456,6 +1456,7 @@ $eventosProximos = [];
 $eventosPasados = [];
 $eventosTotales = 0;
 $proximosCount = 0;
+$visitasEventos = 0;
 $redesMiembro = [];
 $redesActivas = 0;
 $redesCosteSiguiente = 0;
@@ -1486,6 +1487,15 @@ if ($fase1Activa) {
         $eventosPasados = csf_evento_listar_miembro($panelPdo, $miembroDbId, 'pasados');
         $eventosTotales = count($eventosProximos) + count($eventosPasados);
         $proximosCount = csf_evento_contar_proximos($panelPdo, $miembroDbId);
+
+        /* Visitas acumuladas de todo lo que ha publicado. Es el dato que le
+           dice al artista si publicar le sirve de algo, y el unico de los tres
+           que no tenia a la vista en ninguna pantalla. No hace falta consulta
+           nueva: csf_evento_select_sql() ya devuelve `e.*`, que incluye
+           `vistas`. */
+        foreach (array_merge($eventosProximos, $eventosPasados) as $eventoDelMiembro) {
+            $visitasEventos += (int) ($eventoDelMiembro['vistas'] ?? 0);
+        }
 
         $redesMiembro = csf_redes_de_miembro($panelPdo, $miembroDbId);
         $redesActivas = csf_redes_contar_activas($panelPdo, $miembroDbId);
@@ -1932,17 +1942,23 @@ function panel_tile_markup(array $card, string $size = 'lg'): string
                     <h1><?= e($displayName) ?></h1>
                     <p><?= e($memberProfile['city']) ?><?= $memberProfile['city'] && $memberProfile['province'] ? ', ' : '' ?><?= e($memberProfile['province']) ?></p>
                     <?php /* Datos que antes vivian en la barra lateral. */ ?>
+                    <?php /* El porcentaje de perfil ya no vive aqui: se decia tres
+                             veces en la misma pantalla (cabecera, franja de cifras y
+                             tarjeta "Mi perfil"), dos de ellas con barra. Ahora solo
+                             aparece en la franja de abajo, y unicamente cuando falta
+                             algo por completar. */ ?>
                     <ul class="member-dashboard-meta">
                         <li><?= e($memberStatus) ?></li>
                         <li>Nº <?= e($memberNumber) ?></li>
-                        <li class="member-dashboard-progress">
-                            <span>Perfil <?= e((string) $profileCompletion) ?>%</span>
-                            <span class="member-dashboard-bar" aria-hidden="true"><i style="width: <?= e((string) $profileCompletion) ?>%"></i></span>
-                        </li>
                     </ul>
                 </div>
             </div>
             <div class="member-dashboard-actions">
+                <?php if ($fase1Activa): ?>
+                    <?php /* Nueve de cada diez visitas al panel son para publicar algo:
+                             ese es el boton que manda. */ ?>
+                    <a class="button button-primary member-dashboard-cta" href="#evento-form" data-panel-link="evento-form">Crear evento</a>
+                <?php endif; ?>
                 <a class="member-card-qr-link member-dashboard-qr-link" href="<?= e($memberCardPublicUrl) ?>" target="_blank" rel="noopener" data-member-card-link data-card-url-base="<?= e($memberCardPublicUrlBase) ?>">
                     <img src="<?= e($memberCardQrUrl) ?>" alt="Codigo QR para ver la tarjeta de miembro" loading="lazy" data-member-card-qr data-qr-base="<?= e($memberCardQrBase) ?>">
                     <span>
@@ -1979,14 +1995,12 @@ function panel_tile_markup(array $card, string $size = 'lg'): string
 
                 <section id="inicio" class="content-section member-panel-section active">
                     <?php if ($fase1Activa): ?>
-                        <?php /* Resumen de un vistazo: quien eres, con cuanto
-                                 cuentas y que puedes hacer ahora mismo. */ ?>
-                        <div class="csf-panel-summary">
-                            <div>
-                                <p class="csf-panel-greeting">Hola, <?= e($displayName) ?></p>
-                                <p class="csf-panel-greeting-note"><?= e($memberTypeLabel) ?><?= $memberProfile['city'] !== '' ? ' · ' . e($memberProfile['city']) : '' ?></p>
-                            </div>
-
+                        <?php /* Solo las tres cifras que cambian. El saludo, el tipo de
+                                 miembro y la ciudad estaban repetidos palabra por palabra
+                                 en la cabecera de arriba, y los botones se han ido con
+                                 ella. El porcentaje de perfil solo aparece si falta algo,
+                                 y entonces como aviso con enlace, no como barra llena. */ ?>
+                        <div class="csf-panel-summary csf-panel-summary-cifras">
                             <ul class="csf-panel-stats">
                                 <li class="csf-panel-stat">
                                     <strong><?= e((string) $puntosSaldo) ?></strong>
@@ -1997,23 +2011,28 @@ function panel_tile_markup(array $card, string $size = 'lg'): string
                                     <span><?= e($proximosCount === 1 ? 'próximo evento' : 'próximos eventos') ?></span>
                                 </li>
                                 <li class="csf-panel-stat">
-                                    <strong><?= e((string) $profileCompletion) ?>%</strong>
-                                    <span>perfil completado</span>
-                                    <span class="csf-panel-progress" aria-hidden="true"><i style="width: <?= e((string) $profileCompletion) ?>%"></i></span>
+                                    <strong><?= e(number_format($visitasEventos, 0, ',', '.')) ?></strong>
+                                    <span><?= e($visitasEventos === 1 ? 'visita a tus eventos' : 'visitas a tus eventos') ?></span>
                                 </li>
                             </ul>
 
-                            <div class="csf-panel-cta">
-                                <a class="button button-primary" href="#evento-form" data-panel-link="evento-form">Crear evento</a>
-                                <a class="button button-secondary" href="#perfil" data-panel-link="perfil">Editar perfil</a>
-                            </div>
+                            <?php if ($profileCompletion < 100): ?>
+                                <a class="csf-panel-aviso" href="#perfil" data-panel-link="perfil">
+                                    <strong>Tu perfil está al <?= e((string) $profileCompletion) ?>%.</strong>
+                                    <span>Complétalo para que te encuentren mejor en los directorios →</span>
+                                </a>
+                            <?php endif; ?>
                         </div>
                     <?php endif; ?>
 
                     <header class="member-home-intro">
                         <p class="section-kicker">Tu panel</p>
-                        <h2>¿Que quieres hacer hoy?</h2>
-                        <p>Gestiona tu perfil, curriculum, pagina web y servicios desde un unico lugar.</p>
+                        <h2>¿Qué quieres hacer hoy?</h2>
+                        <?php /* El currículum y la página web son del artista destacado:
+                                 al simpatizante no se le nombra lo que no puede abrir. */ ?>
+                        <p><?= $hasAdvancedProfile
+                            ? 'Gestiona tu perfil, tu currículum y tu página web desde un único lugar.'
+                            : 'Publica tus eventos, cuida tu perfil y gestiona tu cuenta desde un único lugar.' ?></p>
                     </header>
 
                     <div class="member-tile-grid member-tile-grid-lg">
