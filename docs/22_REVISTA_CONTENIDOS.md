@@ -1,4 +1,4 @@
-# Revista: contenidos de historia y artistas
+# Revista: articulos de historia y tecnica
 
 ## Que hay
 
