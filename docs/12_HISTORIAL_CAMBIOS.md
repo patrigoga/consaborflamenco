@@ -532,3 +532,12 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Nuevas categorias de articulo **Historia** y **Artistas**, tambien en `db_seed_article_categories()`.
 - Nueva herramienta `tools/filtro_artistico.php`: conserva la foto original y genera una portada filtrada (estampa en tinta y marfil, 1200x675, WebP), con opcion de enlazarla al articulo. Las fotos del libro no se publican; las portadas saldran de fotos con permiso o licencia libre.
 - Documentado en `docs/22_REVISTA_CONTENIDOS.md`, con la lista de portadas pendientes y lo que falta para que los articulos se vean en la parte publica.
+
+### 2026-09-28 - Revista - Figuras del flamenco
+
+- Nuevas tablas `figuras_flamenco`, `figura_disciplinas` y `figura_fuentes` (migracion `database/20260928_figuras_flamenco.sql`, `schema.sql` y `db_bootstrap()`): fichas editoriales de artistas, vivos o no, que solo crea administracion. No son miembros; `miembro_id` las enlaza si el artista tiene cuenta.
+- Fechas partidas en ano y fecha completa (muchas veces solo se sabe el ano), provincia de nacimiento enlazada al filtro por provincia, disciplinas compartidas con los miembros, imagen con credito, `por_verificar` para no inventar datos y `vistas` para medir audiencia.
+- `figura_fuentes` registra de donde sale cada dato: sirve para saber si unas paginas nuevas ya se procesaron y para citar fuentes. Busqueda de duplicados por nombre artistico, real y alias con indice FULLTEXT.
+- Carga inicial: 10 guitarristas en `BORRADOR` (Sabicas, Serranito, Manuel Cano, Andres Batista, Luis Maravilla, Mario Escudero, Juan y Pepe Habichuela, Enrique de Melchor, Pedro Bacan). Salen de los 9 articulos de artista de la entrada anterior, que dejan de ser articulos; la migracion de la revista queda en 2 articulos y sin la categoria Artistas.
+- `tools/filtro_artistico.php` acepta `--figura=slug` para enlazar la foto filtrada a la ficha.
+- Documentado en `docs/23_FIGURAS_FLAMENCO.md`, con el flujo de trabajo y las consultas de uso (duplicados, fuentes procesadas, alta, ampliacion, publicacion, listado, efemerides, pendientes y visitas).

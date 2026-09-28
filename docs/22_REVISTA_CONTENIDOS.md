@@ -5,15 +5,16 @@
 Primera tanda de articulos de la revista, redactados a partir de paginas escaneadas del libro
 "Arte Flamenco" (capitulo "Los grandes maestros de la guitarra flamenca", pp. 105-108).
 
-- Migracion `database/20260923_revista_maestros_guitarra.sql`: 11 articulos en estado
-  `BORRADOR` y dos categorias nuevas, **Historia** y **Artistas** (anadidas tambien a
+- Migracion `database/20260923_revista_maestros_guitarra.sql`: 2 articulos en estado
+  `BORRADOR` y la categoria nueva **Historia** (anadida tambien a
   `db_seed_article_categories()`).
+- Las biografias de cada artista no son articulos sino **fichas de figuras**: ver
+  `docs/23_FIGURAS_FLAMENCO.md`.
 - Herramienta `tools/filtro_artistico.php` para las portadas.
 
 | Categoria | Articulos |
 |---|---|
 | Historia | Panorama: de Sabicas a la generacion intermedia |
-| Artistas | Sabicas, Serranito, Manuel Cano, Andres Batista, Luis Maravilla, Mario Escudero, los Habichuela, Enrique de Melchor, Pedro Bacan |
 | Formacion | Tecnicas del toque: rasgueado, picado, alzapua, arpegio, tremolo, ligado |
 
 ## Reglas de contenido
@@ -34,29 +35,17 @@ Primera tanda de articulos de la revista, redactados a partir de paginas escanea
   los derechos del fotografo o la editorial.
 - Las portadas salen de fotos propias, con permiso del autor o con licencia libre (Wikimedia
   Commons u otras), manteniendo el credito que pida la licencia.
-- `php tools/filtro_artistico.php foto.jpg nombre [--articulo=slug]`:
+- `php tools/filtro_artistico.php foto.jpg nombre [--articulo=slug | --figura=slug]`:
   - conserva el original intacto en `assets/images/revista/originales/`;
   - genera la version filtrada (estampa en tinta y marfil, 1200x675, WebP) en
     `assets/images/revista/<nombre>.webp`;
-  - con `--articulo`, guarda esa ruta en `articulos.imagen_principal_path`.
+  - con `--articulo`, guarda esa ruta en `articulos.imagen_principal_path`; con `--figura`,
+    en `figuras_flamenco.imagen_path`.
 - Son imagenes editoriales versionadas en el repo, no subidas de usuario, por eso no pasan
   por `media.php` ni por `RUNTIME_UPLOADS_DIR`.
 
-Fotos pendientes (nombre sugerido para la herramienta):
-
-| Articulo (slug) | Nombre de la portada |
-|---|---|
-| los-grandes-maestros-de-la-guitarra-flamenca | guitarra-flamenca-concierto |
-| sabicas-el-guitarrista-que-llevo-el-flamenco-al-mundo | sabicas |
-| victor-monge-serranito-el-guitarrista-de-guitarristas | serranito |
-| manuel-cano-la-guitarra-flamenca-en-el-conservatorio | manuel-cano |
-| andres-batista-concertista-y-maestro | andres-batista |
-| luis-maravilla-del-colmao-a-los-grandes-escenarios | luis-maravilla |
-| mario-escudero-el-flamenco-en-el-carnegie-hall | mario-escudero |
-| los-habichuela-una-saga-granadina-de-la-guitarra | los-habichuela |
-| enrique-de-melchor-herencia-de-marchena | enrique-de-melchor |
-| pedro-bacan-el-toque-de-lebrija | pedro-bacan |
-| picado-alzapua-tremolo-como-suena-la-tecnica-flamenca | tecnica-flamenca |
+Portadas pendientes: `guitarra-flamenca-concierto` para el panorama y `tecnica-flamenca` para
+el articulo de tecnica.
 
 ## Pendiente
 
@@ -65,5 +54,3 @@ Fotos pendientes (nombre sugerido para la herramienta):
   articulos solo se ven en el panel admin (seccion Articulos) hasta que se construya.
 - El panel admin permite crear articulos pero no editarlos: las correcciones de estos
   borradores, por ahora, en la base de datos o en la migracion antes de ejecutarla.
-- Por verificar: si Andres Batista sigue vivo y el ano exacto de nacimiento de Manuel Cano
-  (el libro dice 1926; otras fuentes, 1925). Los textos evitan afirmar ninguno de los dos.

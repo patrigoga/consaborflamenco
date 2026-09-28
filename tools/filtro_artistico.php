@@ -12,11 +12,14 @@ declare(strict_types=1);
  * assets/images/revista/<nombre>.webp, que es la que usa la web.
  *
  * Uso:
- *   php tools/filtro_artistico.php ruta/a/foto.jpg nombre [--articulo=slug]
+ *   php tools/filtro_artistico.php ruta/a/foto.jpg nombre [--articulo=slug | --figura=slug]
  *
  *   nombre     Nombre del fichero de salida, sin extension (p. ej. sabicas).
  *   --articulo Opcional: slug del articulo cuya imagen_principal_path se
  *              actualiza con la version filtrada (requiere base de datos).
+ *   --figura   Opcional: slug de la ficha de figuras_flamenco cuya
+ *              imagen_path se actualiza (requiere base de datos). El credito
+ *              de la foto se rellena aparte, en imagen_credito.
  *
  * IMPORTANTE: usa solo fotos propias, con permiso del autor o con licencia
  * libre. Filtrar una foto no cambia sus derechos: el credito que pida la
@@ -42,7 +45,7 @@ function csf_filtro_uso(string $mensaje = ''): never
     if ($mensaje !== '') {
         fwrite(STDERR, $mensaje . "\n\n");
     }
-    fwrite(STDERR, "Uso: php tools/filtro_artistico.php ruta/a/foto.jpg nombre [--articulo=slug]\n");
+    fwrite(STDERR, "Uso: php tools/filtro_artistico.php ruta/a/foto.jpg nombre [--articulo=slug | --figura=slug]\n");
     exit(1);
 }
 
@@ -192,11 +195,23 @@ function csf_filtro_aplicar(GdImage $imagen): void
 // --- Programa -------------------------------------------------------------
 
 $argumentos = array_slice($argv, 1);
-$articulo = null;
+// Destino opcional en base de datos: tabla y columna de la imagen por opcion.
+$destinos = [
+    '--articulo=' => ['articulos', 'imagen_principal_path', 'el articulo'],
+    '--figura=' => ['figuras_flamenco', 'imagen_path', 'la ficha'],
+];
+$destino = null;
+$slugDestino = null;
 foreach ($argumentos as $i => $argumento) {
-    if (str_starts_with($argumento, '--articulo=')) {
-        $articulo = substr($argumento, strlen('--articulo='));
-        unset($argumentos[$i]);
+    foreach ($destinos as $prefijo => $config) {
+        if (str_starts_with($argumento, $prefijo)) {
+            if ($destino !== null) {
+                csf_filtro_uso('Indica solo un destino: --articulo o --figura.');
+            }
+            $destino = $config;
+            $slugDestino = substr($argumento, strlen($prefijo));
+            unset($argumentos[$i]);
+        }
     }
 }
 $argumentos = array_values($argumentos);
@@ -211,7 +226,7 @@ if (!is_file($rutaOriginal)) {
 if (!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $nombre)) {
     csf_filtro_uso('El nombre solo admite minusculas, numeros y guiones (p. ej. mario-escudero).');
 }
-if ($articulo !== null) {
+if ($destino !== null) {
     // Se carga antes de escribir nada por pantalla: auth.php arranca la sesion
     // y eso falla si ya se ha enviado salida.
     require_once __DIR__ . '/../app/auth.php';
@@ -244,16 +259,18 @@ $rutaWeb = 'assets/images/revista/' . $nombre . '.webp';
 echo "Original conservado: assets/images/revista/originales/{$nombre}.{$extension}\n";
 echo "Version filtrada:    {$rutaWeb}\n";
 
-// 3) Opcional: enlazar la portada al articulo.
-if ($articulo !== null) {
+// 3) Opcional: enlazar la imagen al articulo o a la ficha.
+if ($destino !== null) {
+    [$tabla, $columna, $etiqueta] = $destino;
     $pdo = db();
     if (!$pdo) {
-        fwrite(STDERR, "Sin base de datos: la imagen no se ha enlazado a ningun articulo.\n");
+        fwrite(STDERR, "Sin base de datos: la imagen no se ha enlazado.\n");
         exit(1);
     }
-    $statement = $pdo->prepare('UPDATE articulos SET imagen_principal_path = :ruta WHERE slug = :slug');
-    $statement->execute(['ruta' => $rutaWeb, 'slug' => $articulo]);
+    // Tabla y columna salen de la lista fija de arriba, nunca de la entrada.
+    $statement = $pdo->prepare("UPDATE `{$tabla}` SET `{$columna}` = :ruta WHERE slug = :slug");
+    $statement->execute(['ruta' => $rutaWeb, 'slug' => $slugDestino]);
     echo $statement->rowCount() > 0
-        ? "Enlazada al articulo: {$articulo}\n"
-        : "No hay ningun articulo con slug {$articulo} (o ya tenia esa imagen).\n";
+        ? "Enlazada a {$etiqueta}: {$slugDestino}\n"
+        : "No existe {$etiqueta} con slug {$slugDestino} (o ya tenia esa imagen).\n";
 }

@@ -401,3 +401,68 @@ CREATE TABLE tienda_productos (
     CONSTRAINT fk_tienda_productos_miembro FOREIGN KEY (miembro_id) REFERENCES miembros(id) ON DELETE CASCADE,
     INDEX idx_tienda_productos_miembro (miembro_id, estado, deleted_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Figuras del flamenco: fichas editoriales de artistas (vivos o no) que crea
+-- solo administracion. No son miembros; miembro_id las enlaza si el artista
+-- tiene cuenta. Ver docs/23_FIGURAS_FLAMENCO.md.
+
+CREATE TABLE figuras_flamenco (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    slug VARCHAR(180) NOT NULL UNIQUE,
+    nombre_artistico VARCHAR(160) NOT NULL,
+    nombre_real VARCHAR(200) NULL,
+    otros_nombres VARCHAR(255) NULL,
+    rol VARCHAR(120) NULL,
+    nacimiento_anio SMALLINT UNSIGNED NULL,
+    nacimiento_fecha DATE NULL,
+    nacimiento_lugar VARCHAR(160) NULL,
+    nacimiento_provincia_id BIGINT UNSIGNED NULL,
+    fallecimiento_anio SMALLINT UNSIGNED NULL,
+    fallecimiento_fecha DATE NULL,
+    fallecimiento_lugar VARCHAR(160) NULL,
+    resumen VARCHAR(320) NULL,
+    trayectoria MEDIUMTEXT NULL,
+    aportaciones TEXT NULL,
+    obra_destacada TEXT NULL,
+    premios TEXT NULL,
+    anecdotas TEXT NULL,
+    imagen_path VARCHAR(255) NULL,
+    imagen_credito VARCHAR(255) NULL,
+    miembro_id BIGINT UNSIGNED NULL UNIQUE,
+    por_verificar VARCHAR(500) NULL,
+    estado ENUM('BORRADOR','REVISION','PUBLICADO','ARCHIVADO') NOT NULL DEFAULT 'BORRADOR',
+    destacada BOOLEAN NOT NULL DEFAULT FALSE,
+    vistas INT UNSIGNED NOT NULL DEFAULT 0,
+    publicado_at TIMESTAMP NULL,
+    creado_por_usuario_id BIGINT UNSIGNED NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_figuras_provincia FOREIGN KEY (nacimiento_provincia_id) REFERENCES provincias(id) ON DELETE SET NULL,
+    CONSTRAINT fk_figuras_miembro FOREIGN KEY (miembro_id) REFERENCES miembros(id) ON DELETE SET NULL,
+    CONSTRAINT fk_figuras_autor FOREIGN KEY (creado_por_usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL,
+    INDEX idx_figuras_estado (estado, publicado_at),
+    INDEX idx_figuras_provincia (nacimiento_provincia_id),
+    FULLTEXT KEY ft_figuras_nombres (nombre_artistico, nombre_real, otros_nombres)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE figura_disciplinas (
+    figura_id BIGINT UNSIGNED NOT NULL,
+    disciplina_id BIGINT UNSIGNED NOT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (figura_id, disciplina_id),
+    CONSTRAINT fk_figura_disciplinas_figura FOREIGN KEY (figura_id) REFERENCES figuras_flamenco(id) ON DELETE CASCADE,
+    CONSTRAINT fk_figura_disciplinas_disciplina FOREIGN KEY (disciplina_id) REFERENCES disciplinas(id) ON DELETE CASCADE,
+    INDEX idx_figura_disciplinas_disciplina (disciplina_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE figura_fuentes (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    figura_id BIGINT UNSIGNED NOT NULL,
+    fuente VARCHAR(255) NOT NULL,
+    detalle VARCHAR(255) NULL,
+    url VARCHAR(500) NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_figura_fuentes_figura FOREIGN KEY (figura_id) REFERENCES figuras_flamenco(id) ON DELETE CASCADE,
+    INDEX idx_figura_fuentes_figura (figura_id),
+    INDEX idx_figura_fuentes_fuente (fuente)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
