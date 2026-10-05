@@ -19,6 +19,10 @@
 -- tools/filtro_artistico.php a partir de fotos con permiso o licencia libre,
 -- y esa herramienta enlaza la imagen al articulo con --articulo=<slug>.
 
+-- SET NAMES: el fichero esta en UTF-8. Sin esto, el cliente mysql de consola
+-- lo lee como latin1 y guarda las tildes y enes corrompidas.
+SET NAMES utf8mb4;
+
 -- Categoria nueva (tambien esta en db_seed_article_categories()).
 INSERT IGNORE INTO categorias_articulos (nombre, slug) VALUES ('Historia', 'historia');
 

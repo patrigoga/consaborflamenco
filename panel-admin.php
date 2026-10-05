@@ -12,6 +12,8 @@ require_once __DIR__ . '/app/events_repository.php';
 require_once __DIR__ . '/app/points_repository.php';
 require_once __DIR__ . '/app/tablao_repository.php';
 require_once __DIR__ . '/app/tienda_repository.php';
+// Revista: fichas editoriales de figuras del flamenco.
+require_once __DIR__ . '/app/figuras_repository.php';
 
 $user = require_login();
 if (($user['role'] ?? 'user') !== 'admin') {
@@ -60,6 +62,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($action === 'delete_contact_message') {
                 site_delete_contact_message((int) ($_POST['message_id'] ?? 0));
                 $adminMessages[] = 'Mensaje eliminado.';
+            } elseif ($action === 'save_figura') {
+                $figuraGuardadaId = figuras_guardar($_POST, $_FILES, $user);
+                $adminMessages[] = !empty($_POST['figura_id']) ? 'Ficha actualizada.' : 'Ficha creada.';
+            } elseif ($action === 'figura_set_estado') {
+                figuras_cambiar_estado((int) ($_POST['figura_id'] ?? 0), (string) ($_POST['estado'] ?? ''));
+                $adminMessages[] = 'Estado de la ficha actualizado.';
+            } elseif ($action === 'figura_add_fuente') {
+                figuras_anadir_fuente((int) ($_POST['figura_id'] ?? 0), $_POST);
+                $adminMessages[] = 'Fuente anadida.';
+            } elseif ($action === 'figura_delete_fuente') {
+                figuras_quitar_fuente((int) ($_POST['figura_id'] ?? 0), (int) ($_POST['fuente_id'] ?? 0));
+                $adminMessages[] = 'Fuente eliminada.';
             } elseif ($action === 'academia_set_estado' && admin_database() instanceof PDO) {
                 academia_admin_set_estado(admin_database(), (int) ($_POST['academia_id'] ?? 0), (string) ($_POST['estado'] ?? 'PENDIENTE'), academia_user_id($user));
                 $adminMessages[] = 'Estado de la academia actualizado.';
@@ -110,6 +124,19 @@ $editingService = null;
 if (isset($_GET['edit_service'])) {
     $editingService = site_service_by_id((int) $_GET['edit_service']);
 }
+// Figuras del flamenco. Tras guardar se sigue editando la misma ficha; si el
+// guardado falla, el formulario se repinta con lo que se habia escrito.
+$figurasFiltroEstado = isset(figuras_estados()[(string) ($_GET['figura_estado'] ?? '')]) ? (string) $_GET['figura_estado'] : '';
+$figurasBusqueda = clean_text((string) ($_GET['figura_q'] ?? ''));
+$figurasListado = figuras_admin_listado(['estado' => $figurasFiltroEstado, 'q' => $figurasBusqueda]);
+$figurasRecuento = figuras_admin_recuento();
+$figurasDisciplinas = figuras_disciplinas_disponibles();
+$figurasProvincias = figuras_provincias_disponibles();
+$figurasFuentes = figuras_fuentes_procesadas();
+$figuraAccion = (string) ($_POST['admin_action'] ?? '');
+$figuraEditId = (int) ($figuraGuardadaId ?? ($_POST['figura_id'] ?? ($_GET['edit_figura'] ?? 0)));
+$editingFigura = $figuraEditId > 0 ? figuras_por_id($figuraEditId) : null;
+$figuraFormFallido = $figuraAccion === 'save_figura' && $adminErrors;
 $selectedContactMessage = null;
 if (isset($_GET['contact_message'])) {
     $selectedContactMessage = site_contact_message_by_id((int) $_GET['contact_message']);
@@ -523,6 +550,19 @@ $recentBlocks = [
                  seccion, y el h1 de la pagina es "Panel Admin", en la barra
                  lateral. */ ?>
 
+        <?php /* Avisos del ultimo guardado. Van fuera de las secciones: dentro
+                 de "Vista general" no se veian al guardar desde cualquier otra. */ ?>
+        <?php if ($adminMessages): ?>
+            <div class="form-alert form-alert-success admin-flash" role="status">
+                <?php foreach ($adminMessages as $message): ?><p><?= e($message) ?></p><?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+        <?php if ($adminErrors): ?>
+            <div class="form-alert form-alert-error admin-flash" role="alert">
+                <?php foreach ($adminErrors as $error): ?><p><?= e($error) ?></p><?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+
         <section class="content-section admin-shell" id="general">
             <div class="section-heading">
                 <div class="section-heading-content">
@@ -533,16 +573,6 @@ $recentBlocks = [
                 <a class="section-enter-link" href="panel-usuario.php">Vista usuario</a>
             </div>
 
-            <?php if ($adminMessages): ?>
-                <div class="form-alert form-alert-success" role="status">
-                    <?php foreach ($adminMessages as $message): ?><p><?= e($message) ?></p><?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-            <?php if ($adminErrors): ?>
-                <div class="form-alert form-alert-error" role="alert">
-                    <?php foreach ($adminErrors as $error): ?><p><?= e($error) ?></p><?php endforeach; ?>
-                </div>
-            <?php endif; ?>
 
             <div class="admin-attention<?= $attentionItems ? '' : ' admin-attention-empty' ?>">
                 <div class="admin-band-heading">
@@ -1255,6 +1285,297 @@ $recentBlocks = [
                             </tbody>
                         </table>
                     </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="content-section admin-shell" id="figuras-admin">
+            <?php
+            // Valor de un campo del formulario: lo recien escrito si el guardado
+            // ha fallado; si no, lo que tiene la ficha en edicion.
+            $figuraValor = static function (string $campo) use ($figuraFormFallido, $editingFigura): string {
+                if ($figuraFormFallido) {
+                    return is_scalar($_POST[$campo] ?? null) ? (string) $_POST[$campo] : '';
+                }
+                return (string) ($editingFigura[$campo] ?? '');
+            };
+            $figuraDisciplinasMarcadas = $figuraFormFallido
+                ? array_map('intval', (array) ($_POST['disciplinas'] ?? []))
+                : (array) ($editingFigura['disciplinas'] ?? []);
+            $figuraDestacada = $figuraFormFallido ? !empty($_POST['destacada']) : !empty($editingFigura['destacada']);
+            $figuraEstadoActual = $figuraValor('estado') !== '' ? $figuraValor('estado') : 'BORRADOR';
+            ?>
+            <div class="section-heading">
+                <div class="section-heading-content">
+                    <p class="section-kicker">Revista</p>
+                    <h2>Figuras del flamenco</h2>
+                    <p>Fichas de artistas escritas por la redaccion. Solo se crean desde aqui; no son miembros.</p>
+                </div>
+                <?php if ($editingFigura): ?><a class="section-enter-link" href="<?= e(admin_section_url('figuras')) ?>">Nueva ficha</a><?php endif; ?>
+            </div>
+
+            <div class="admin-editor-grid service-admin-grid">
+                <article class="admin-editor-card">
+                    <p class="section-kicker"><?= $editingFigura ? 'Editar' : 'Crear' ?></p>
+                    <h3><?= $editingFigura ? e((string) $editingFigura['nombre_artistico']) : 'Nueva ficha' ?></h3>
+                    <form method="post" action="<?= e(admin_section_url('figuras')) ?>" class="admin-form" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                        <input type="hidden" name="admin_action" value="save_figura">
+                        <input type="hidden" name="figura_id" value="<?= e((string) ($editingFigura['id'] ?? '')) ?>">
+
+                        <div class="form-grid-two">
+                            <label for="figura-nombre">Nombre artistico
+                                <input id="figura-nombre" name="nombre_artistico" type="text" maxlength="160" value="<?= e($figuraValor('nombre_artistico')) ?>" required>
+                            </label>
+                            <label for="figura-nombre-real">Nombre real
+                                <input id="figura-nombre-real" name="nombre_real" type="text" maxlength="200" value="<?= e($figuraValor('nombre_real')) ?>">
+                            </label>
+                        </div>
+                        <div class="form-grid-two">
+                            <label for="figura-otros">Otros nombres o apodos
+                                <input id="figura-otros" name="otros_nombres" type="text" maxlength="255" value="<?= e($figuraValor('otros_nombres')) ?>" placeholder="separados por comas">
+                            </label>
+                            <label for="figura-rol">Que es
+                                <input id="figura-rol" name="rol" type="text" maxlength="120" value="<?= e($figuraValor('rol')) ?>" placeholder="Guitarrista, cantaora, bailaor...">
+                            </label>
+                        </div>
+
+                        <fieldset class="admin-fieldset">
+                            <legend>Disciplinas</legend>
+                            <?php foreach ($figurasDisciplinas as $disciplina): ?>
+                                <label class="visibility-toggle">
+                                    <input type="checkbox" name="disciplinas[]" value="<?= e((string) $disciplina['id']) ?>" <?= in_array((int) $disciplina['id'], $figuraDisciplinasMarcadas, true) ? 'checked' : '' ?>>
+                                    <span><?= e((string) $disciplina['nombre']) ?></span>
+                                </label>
+                            <?php endforeach; ?>
+                        </fieldset>
+
+                        <div class="form-grid-three">
+                            <label for="figura-nac-anio">Ano de nacimiento
+                                <input id="figura-nac-anio" name="nacimiento_anio" type="number" min="1700" max="<?= e(date('Y')) ?>" value="<?= e($figuraValor('nacimiento_anio')) ?>">
+                            </label>
+                            <label for="figura-nac-fecha">Fecha exacta (si se sabe)
+                                <input id="figura-nac-fecha" name="nacimiento_fecha" type="date" value="<?= e($figuraValor('nacimiento_fecha')) ?>">
+                            </label>
+                            <label for="figura-nac-lugar">Lugar de nacimiento
+                                <input id="figura-nac-lugar" name="nacimiento_lugar" type="text" maxlength="160" value="<?= e($figuraValor('nacimiento_lugar')) ?>">
+                            </label>
+                        </div>
+                        <label for="figura-provincia">Provincia de nacimiento</label>
+                        <select id="figura-provincia" name="nacimiento_provincia_id">
+                            <option value="">Fuera de Espana o sin determinar</option>
+                            <?php foreach ($figurasProvincias as $provincia): ?>
+                                <option value="<?= e((string) $provincia['id']) ?>" <?= $figuraValor('nacimiento_provincia_id') === (string) $provincia['id'] ? 'selected' : '' ?>><?= e((string) $provincia['nombre']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="form-grid-three">
+                            <label for="figura-fal-anio">Ano de fallecimiento
+                                <input id="figura-fal-anio" name="fallecimiento_anio" type="number" min="1700" max="<?= e(date('Y')) ?>" value="<?= e($figuraValor('fallecimiento_anio')) ?>">
+                            </label>
+                            <label for="figura-fal-fecha">Fecha exacta (si se sabe)
+                                <input id="figura-fal-fecha" name="fallecimiento_fecha" type="date" value="<?= e($figuraValor('fallecimiento_fecha')) ?>">
+                            </label>
+                            <label for="figura-fal-lugar">Lugar de fallecimiento
+                                <input id="figura-fal-lugar" name="fallecimiento_lugar" type="text" maxlength="160" value="<?= e($figuraValor('fallecimiento_lugar')) ?>">
+                            </label>
+                        </div>
+                        <p class="field-help">Si solo se conoce el ano, deja la fecha vacia. La fecha completa sirve para las efemerides.</p>
+
+                        <label for="figura-resumen">Resumen</label>
+                        <textarea id="figura-resumen" name="resumen" rows="3" maxlength="320"><?= e($figuraValor('resumen')) ?></textarea>
+                        <p class="field-help">Hasta 320 caracteres. Es la entradilla, la descripcion para buscadores y el texto base para redes.</p>
+
+                        <?php foreach (figuras_campos_texto() as $campoTexto => $etiquetaTexto): ?>
+                            <label for="figura-<?= e($campoTexto) ?>"><?= e($etiquetaTexto) ?></label>
+                            <textarea id="figura-<?= e($campoTexto) ?>" name="<?= e($campoTexto) ?>" rows="<?= $campoTexto === 'trayectoria' ? '10' : '5' ?>"><?= e($figuraValor($campoTexto)) ?></textarea>
+                        <?php endforeach; ?>
+                        <p class="field-help">HTML permitido: p, h3, ul, ol, li, strong, em, blockquote y br. Texto siempre de redaccion propia.</p>
+
+                        <label for="figura-imagen">Imagen</label>
+                        <input id="figura-imagen" name="imagen" type="file" accept="image/jpeg,image/png,image/webp">
+                        <?php if (!empty($editingFigura['imagen_path'])): ?>
+                            <img class="admin-image-preview" src="<?= e((string) $editingFigura['imagen_path']) ?>" alt="">
+                            <label class="visibility-toggle">
+                                <input type="checkbox" name="quitar_imagen" value="1">
+                                <span>Quitar la imagen actual</span>
+                            </label>
+                        <?php endif; ?>
+                        <label for="figura-credito">Credito de la imagen</label>
+                        <input id="figura-credito" name="imagen_credito" type="text" maxlength="255" value="<?= e($figuraValor('imagen_credito')) ?>" placeholder="Foto: autor, licencia o permiso">
+                        <p class="field-help">JPG, PNG o WebP, maximo 3 MB. Usa solo fotos propias, con permiso o con licencia libre.</p>
+
+                        <label for="figura-verificar">Datos por verificar</label>
+                        <input id="figura-verificar" name="por_verificar" type="text" maxlength="500" value="<?= e($figuraValor('por_verificar')) ?>" placeholder="Lo que no esta confirmado todavia">
+
+                        <div class="form-grid-two">
+                            <label for="figura-estado">Estado
+                                <select id="figura-estado" name="estado">
+                                    <?php foreach (figuras_estados() as $estadoClave => $estadoEtiqueta): ?>
+                                        <option value="<?= e($estadoClave) ?>" <?= $figuraEstadoActual === $estadoClave ? 'selected' : '' ?>><?= e($estadoEtiqueta) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </label>
+                            <label for="figura-slug">Slug (URL)
+                                <input id="figura-slug" name="slug" type="text" maxlength="180" value="<?= e($figuraFormFallido ? $figuraValor('slug') : '') ?>" placeholder="<?= $editingFigura ? e((string) $editingFigura['slug']) : 'se genera con el nombre' ?>">
+                            </label>
+                        </div>
+                        <label class="visibility-toggle">
+                            <input type="checkbox" name="destacada" value="1" <?= $figuraDestacada ? 'checked' : '' ?>>
+                            <span>Figura destacada</span>
+                        </label>
+
+                        <fieldset class="admin-fieldset">
+                            <legend><?= $editingFigura ? 'Anadir fuente (opcional)' : 'Fuente de los datos' ?></legend>
+                            <div class="form-grid-three">
+                                <label for="figura-fuente">Fuente
+                                    <input id="figura-fuente" name="fuente" type="text" maxlength="255" value="<?= e($figuraFormFallido ? $figuraValor('fuente') : '') ?>" placeholder="Titulo del libro, web...">
+                                </label>
+                                <label for="figura-fuente-detalle">Paginas o detalle
+                                    <input id="figura-fuente-detalle" name="fuente_detalle" type="text" maxlength="255" value="<?= e($figuraFormFallido ? $figuraValor('fuente_detalle') : '') ?>" placeholder="pp. 105-108">
+                                </label>
+                                <label for="figura-fuente-url">URL
+                                    <input id="figura-fuente-url" name="fuente_url" type="url" maxlength="500" value="<?= e($figuraFormFallido ? $figuraValor('fuente_url') : '') ?>" placeholder="https://">
+                                </label>
+                            </div>
+                        </fieldset>
+
+                        <?php if (!$editingFigura): ?>
+                            <label class="visibility-toggle">
+                                <input type="checkbox" name="confirmar_distinta" value="1" <?= $figuraFormFallido && !empty($_POST['confirmar_distinta']) ? 'checked' : '' ?>>
+                                <span>Es una figura distinta de las que ya existen con nombre parecido</span>
+                            </label>
+                        <?php endif; ?>
+
+                        <button class="button button-primary" type="submit" <?= !$databaseReady ? 'disabled' : '' ?>><?= $editingFigura ? 'Guardar cambios' : 'Crear ficha' ?></button>
+                    </form>
+
+                    <?php if ($editingFigura): ?>
+                        <h3>Fuentes de esta ficha</h3>
+                        <?php if (empty($editingFigura['fuentes'])): ?>
+                            <p class="field-help">Todavia no hay fuentes registradas.</p>
+                        <?php else: ?>
+                            <div class="admin-table-wrap">
+                                <table class="admin-table">
+                                    <thead><tr><th>Fuente</th><th>Detalle</th><th></th></tr></thead>
+                                    <tbody>
+                                        <?php foreach ($editingFigura['fuentes'] as $fuente): ?>
+                                            <tr>
+                                                <td>
+                                                    <?php if (!empty($fuente['url'])): ?>
+                                                        <a href="<?= e((string) $fuente['url']) ?>" target="_blank" rel="noopener noreferrer"><?= e((string) $fuente['fuente']) ?></a>
+                                                    <?php else: ?>
+                                                        <?= e((string) $fuente['fuente']) ?>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td><?= e((string) ($fuente['detalle'] ?? '')) ?></td>
+                                                <td class="admin-actions-cell">
+                                                    <form method="post" action="<?= e(admin_section_url('figuras')) ?>" onsubmit="return confirm('Quitar esta fuente de la ficha?');">
+                                                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                                        <input type="hidden" name="admin_action" value="figura_delete_fuente">
+                                                        <input type="hidden" name="figura_id" value="<?= e((string) $editingFigura['id']) ?>">
+                                                        <input type="hidden" name="fuente_id" value="<?= e((string) $fuente['id']) ?>">
+                                                        <button type="submit" <?= !$databaseReady ? 'disabled' : '' ?>>Quitar</button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                </article>
+
+                <article class="admin-editor-card service-list-card">
+                    <p class="section-kicker">Listado</p>
+                    <h3><?= e((string) $figurasRecuento['TOTAL']) ?> fichas · <?= e((string) $figurasRecuento['PUBLICADO']) ?> publicadas · <?= e((string) ($figurasRecuento['BORRADOR'] + $figurasRecuento['REVISION'])) ?> por publicar</h3>
+                    <form method="get" action="panel-admin.php" class="admin-form">
+                        <input type="hidden" name="section" value="figuras">
+                        <div class="form-grid-two">
+                            <label for="figura-q">Buscar por nombre
+                                <input id="figura-q" name="figura_q" type="search" value="<?= e($figurasBusqueda) ?>" placeholder="Artistico, real o apodo">
+                            </label>
+                            <label for="figura-filtro-estado">Estado
+                                <select id="figura-filtro-estado" name="figura_estado">
+                                    <option value="">Todos</option>
+                                    <?php foreach (figuras_estados() as $estadoClave => $estadoEtiqueta): ?>
+                                        <option value="<?= e($estadoClave) ?>" <?= $figurasFiltroEstado === $estadoClave ? 'selected' : '' ?>><?= e($estadoEtiqueta) ?> (<?= e((string) $figurasRecuento[$estadoClave]) ?>)</option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </label>
+                        </div>
+                        <button class="button button-secondary" type="submit">Filtrar</button>
+                    </form>
+                    <p class="field-help">Antes de crear una ficha, busca aqui el nombre: asi se ve si ya existe y solo hay que ampliarla.</p>
+
+                    <div class="admin-table-wrap">
+                        <table class="admin-table">
+                            <caption>Figuras del flamenco</caption>
+                            <thead><tr><th>Figura</th><th>Estado</th><th>Le falta</th><th>Visitas</th><th>Acciones</th></tr></thead>
+                            <tbody>
+                                <?php if (!$figurasListado): ?><tr><td colspan="5"><?= $figurasBusqueda !== '' || $figurasFiltroEstado !== '' ? 'Ninguna ficha coincide con el filtro.' : 'Todavia no hay fichas.' ?></td></tr><?php endif; ?>
+                                <?php foreach ($figurasListado as $figura): ?>
+                                    <?php
+                                    $figuraFaltas = [];
+                                    if (empty($figura['imagen_path'])) {
+                                        $figuraFaltas[] = 'imagen';
+                                    }
+                                    if (empty($figura['nacimiento_anio'])) {
+                                        $figuraFaltas[] = 'ano de nacimiento';
+                                    }
+                                    if ((int) $figura['total_fuentes'] === 0) {
+                                        $figuraFaltas[] = 'fuentes';
+                                    }
+                                    if (!empty($figura['por_verificar'])) {
+                                        $figuraFaltas[] = 'verificar: ' . (string) $figura['por_verificar'];
+                                    }
+                                    $figuraAnios = trim(($figura['nacimiento_anio'] ?: '?') . ' - ' . ($figura['fallecimiento_anio'] ?: ''), ' -');
+                                    ?>
+                                    <tr>
+                                        <td>
+                                            <strong><?= e((string) $figura['nombre_artistico']) ?></strong>
+                                            <small><?= e(trim((string) ($figura['rol'] ?? '') . ' · ' . $figuraAnios, ' ·')) ?><?= !empty($figura['destacada']) ? ' · destacada' : '' ?></small>
+                                        </td>
+                                        <td><?= admin_status_badge((string) $figura['estado'], figuras_estados()[(string) $figura['estado']] ?? null) ?></td>
+                                        <td><small><?= e($figuraFaltas ? implode('; ', $figuraFaltas) : 'Completa') ?></small></td>
+                                        <td><?= e(admin_metric_number((int) $figura['vistas'])) ?></td>
+                                        <td class="admin-actions-cell">
+                                            <a href="<?= e(admin_section_url('figuras', ['edit_figura' => (string) $figura['id']])) ?>">Editar</a>
+                                            <?php $figuraSiguienteEstado = $figura['estado'] === 'PUBLICADO' ? 'BORRADOR' : 'PUBLICADO'; ?>
+                                            <form method="post" action="<?= e(admin_section_url('figuras', ['figura_estado' => $figurasFiltroEstado, 'figura_q' => $figurasBusqueda])) ?>">
+                                                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                                <input type="hidden" name="admin_action" value="figura_set_estado">
+                                                <input type="hidden" name="figura_id" value="<?= e((string) $figura['id']) ?>">
+                                                <input type="hidden" name="estado" value="<?= e($figuraSiguienteEstado) ?>">
+                                                <button type="submit" <?= !$databaseReady ? 'disabled' : '' ?>><?= $figura['estado'] === 'PUBLICADO' ? 'Pasar a borrador' : 'Publicar' ?></button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3>Fuentes ya procesadas</h3>
+                    <?php if (!$figurasFuentes): ?>
+                        <p class="field-help">Todavia no hay fuentes registradas.</p>
+                    <?php else: ?>
+                        <div class="admin-table-wrap">
+                            <table class="admin-table">
+                                <caption>Libros y documentos de los que ya se han sacado fichas</caption>
+                                <thead><tr><th>Fuente</th><th>Paginas o detalle</th><th>Figuras</th></tr></thead>
+                                <tbody>
+                                    <?php foreach ($figurasFuentes as $fuenteProcesada): ?>
+                                        <tr>
+                                            <td><strong><?= e((string) $fuenteProcesada['fuente']) ?></strong></td>
+                                            <td><?= e((string) ($fuenteProcesada['detalle'] ?? '')) ?></td>
+                                            <td><small><?= e((string) $fuenteProcesada['total_figuras']) ?>: <?= e((string) $fuenteProcesada['figuras']) ?></small></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
                 </article>
             </div>
         </section>

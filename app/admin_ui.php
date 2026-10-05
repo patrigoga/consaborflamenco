@@ -26,6 +26,7 @@ function admin_sections(): array
                 'tienda_productos' => ['label' => 'Tienda (catalogo)', 'target' => 'tienda-productos-admin'],
                 'articulos' => ['label' => 'Articulos', 'target' => 'articulos'],
                 'categorias' => ['label' => 'Categorias', 'target' => 'categorias'],
+                'figuras' => ['label' => 'Figuras del flamenco', 'target' => 'figuras-admin'],
                 'servicios' => ['label' => 'Servicios', 'target' => 'servicios-admin'],
                 'legal' => ['label' => 'Contenido legal', 'target' => 'legal'],
             ],

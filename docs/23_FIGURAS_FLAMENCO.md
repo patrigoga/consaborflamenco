@@ -51,6 +51,25 @@ De donde sale cada dato: libro y paginas, web, entrevista. Sirve para dos cosas:
   esa fuente y esas paginas ya estan registradas.
 - **Citar las fuentes** al pie de la ficha publica.
 
+## Panel de administracion
+
+Seccion **Contenido > Figuras del flamenco** (`panel-admin.php?section=figuras`). La logica
+vive en `app/figuras_repository.php` (prefijo `figuras_`).
+
+- **Crear y editar** la ficha completa: nombres, rol, disciplinas, fechas, provincia, textos,
+  estado y destacada. Tras guardar se sigue editando la misma ficha.
+- **Imagen:** se sube desde el formulario (JPG, PNG o WebP, 3 MB) y se guarda como el resto de
+  subidas, fuera del repo y servida por `media.php`. El credito va en su propio campo.
+- **Barrera contra duplicados:** al crear, si ya hay fichas con alguna palabra del nombre en
+  comun, no guarda y avisa con sus nombres. Si de verdad es otra persona, se marca "Es una
+  figura distinta" y se guarda de nuevo.
+- **Fuentes:** se anaden al crear o al ampliar, y se listan y quitan en la edicion. Debajo del
+  listado, "Fuentes ya procesadas" muestra de que libros y paginas han salido ya fichas.
+- **Listado** con buscador por nombre, filtro por estado, lo que le falta a cada ficha
+  (imagen, ano, fuentes, datos por verificar), visitas y boton de publicar.
+- **Publicar** exige resumen y trayectoria. No se borran fichas: se archivan.
+- El slug no cambia al renombrar al artista; solo si se escribe otro a proposito.
+
 ## Como se trabaja con material nuevo
 
 1. Se reciben las paginas (escaneos, fotos).
@@ -68,7 +87,11 @@ Texto siempre de redaccion propia: de las fuentes se toman hechos, nunca parrafo
 
 ## Consultas
 
-Todas probadas en MariaDB 10.11. Sustituye los valores de ejemplo.
+El dia a dia se hace desde el panel; estas consultas son para phpMyAdmin, para informes o para
+cargas en bloque. Todas probadas en MariaDB 10.11. Sustituye los valores de ejemplo.
+
+Si se ejecuta un fichero `.sql` con tildes desde la consola `mysql`, tiene que empezar por
+`SET NAMES utf8mb4;` (las migraciones ya lo llevan): sin eso los acentos se guardan corrompidos.
 
 ### A. Existe ya esta figura?
 
@@ -232,7 +255,6 @@ WHERE estado = 'PUBLICADO' ORDER BY vistas DESC LIMIT 20;
 
 ## Pendiente
 
-- **Panel admin:** seccion "Figuras" para crear, editar, subir la foto y publicar sin SQL.
 - **Parte publica:** listado con filtros por disciplina y provincia, y ficha con URL propia
   (propuesta: `/figura/{slug}`) con Open Graph (imagen + resumen) para que se vea bien al
   compartir en redes.

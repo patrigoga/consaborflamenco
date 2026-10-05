@@ -12770,3 +12770,28 @@ summary.admin-sidebar-group-label:focus-visible {
 .csf-panel-aviso:hover { background: rgba(201, 164, 90, 0.2); }
 .csf-panel-aviso span { color: var(--color-muted); }
 .csf-panel-aviso:hover span { color: var(--color-black); }
+
+/* Panel admin: grupo de campos dentro de un formulario (figuras del flamenco). */
+.admin-fieldset {
+    margin: 0;
+    padding: 14px 16px;
+    border: 1px solid rgba(17, 17, 20, 0.12);
+    border-radius: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 20px;
+}
+
+.admin-fieldset > legend {
+    padding: 0 6px;
+    font-weight: 600;
+}
+
+.admin-fieldset > .form-grid-three {
+    flex: 1 1 100%;
+}
+
+/* Panel admin: avisos del ultimo guardado, encima de la seccion activa. */
+.admin-flash {
+    margin: 0 0 18px;
+}

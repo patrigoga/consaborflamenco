@@ -541,3 +541,11 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Carga inicial: 10 guitarristas en `BORRADOR` (Sabicas, Serranito, Manuel Cano, Andres Batista, Luis Maravilla, Mario Escudero, Juan y Pepe Habichuela, Enrique de Melchor, Pedro Bacan). Salen de los 9 articulos de artista de la entrada anterior, que dejan de ser articulos; la migracion de la revista queda en 2 articulos y sin la categoria Artistas.
 - `tools/filtro_artistico.php` acepta `--figura=slug` para enlazar la foto filtrada a la ficha.
 - Documentado en `docs/23_FIGURAS_FLAMENCO.md`, con el flujo de trabajo y las consultas de uso (duplicados, fuentes procesadas, alta, ampliacion, publicacion, listado, efemerides, pendientes y visitas).
+
+### 2026-10-05 - Panel admin - Seccion Figuras del flamenco
+
+- Nueva seccion Contenido > Figuras del flamenco para crear, editar y publicar fichas sin SQL, con subida de imagen y credito, disciplinas, fuentes y listado con buscador, filtro por estado y lo que le falta a cada ficha. Logica en `app/figuras_repository.php`.
+- Barrera contra duplicados al crear: si hay fichas con nombre parecido no guarda y avisa; se confirma con "Es una figura distinta". Tabla "Fuentes ya procesadas" para saber de que libros y paginas han salido ya fichas.
+- Los avisos de guardado del panel (exito y error) salen ahora encima de la seccion activa. Estaban dentro de "Vista general" y no se veian al guardar desde ninguna otra seccion (servicios, legal, contacto...).
+- Las dos migraciones de la revista empiezan por `SET NAMES utf8mb4`: ejecutadas con el cliente `mysql` de consola guardaban las tildes corrompidas.
+- Detectado, sin tocar: `panel-admin.php` usa `$pdo` en las secciones de eventos, reservas de tablao, tienda y puntos sin definirla nunca, asi que esas cuatro secciones salen siempre vacias y PHP lanza un aviso por cada uso.

@@ -27,6 +27,10 @@
 -- Carga inicial: 10 guitarristas del capitulo "Los grandes maestros de la
 -- guitarra flamenca" (Arte Flamenco, pp. 105-108), en BORRADOR. Texto propio.
 
+-- SET NAMES: el fichero esta en UTF-8. Sin esto, el cliente mysql de consola
+-- lo lee como latin1 y guarda las tildes y enes corrompidas.
+SET NAMES utf8mb4;
+
 CREATE TABLE IF NOT EXISTS figuras_flamenco (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     slug VARCHAR(180) NOT NULL UNIQUE,
