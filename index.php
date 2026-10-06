@@ -63,10 +63,15 @@ $stylesVersion = $assetVersion('assets/css/styles.css');
                     <div class="story-slider" data-story-slider>
                         <div class="story-slider-track" data-story-track>
                             <?php require __DIR__ . '/slider/slider01.php'; ?>
-                            <?php require __DIR__ . '/slider/slider02.php'; ?>
-                            <?php require __DIR__ . '/slider/slider03.php'; ?>
+                            <?php
+                            // Slides 2 y 3 desactivados temporalmente: solo el primero está definido.
+                            // Para reactivarlos, descomenta estas líneas y el bloque de controles de abajo.
+                            // require __DIR__ . '/slider/slider02.php';
+                            // require __DIR__ . '/slider/slider03.php';
+                            ?>
                         </div>
 
+                        <?php /* Controles ocultos mientras solo haya un slide activo.
                         <div class="story-slider-controls" aria-label="Controles del slider">
                             <button class="story-slider-arrow" type="button" data-story-prev aria-label="Slide anterior">‹</button>
                             <div class="story-slider-dots" data-story-dots>
@@ -76,6 +81,7 @@ $stylesVersion = $assetVersion('assets/css/styles.css');
                             </div>
                             <button class="story-slider-arrow" type="button" data-story-next aria-label="Slide siguiente">›</button>
                         </div>
+                        */ ?>
                     </div>
                 </div>
             </div>

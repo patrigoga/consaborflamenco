@@ -525,3 +525,9 @@ Mantener una trazabilidad clara de decisiones, avances y entregas relevantes del
 - Por debajo de 1480 px la cabecera es de una columna, asi que las acciones van en fila pegadas a la izquierda; en movil, a ancho completo.
 - Documentado en `docs/21_PANEL_MIEMBRO_CABECERA.md`.
 
+
+### 2026-10-06 - Portada - Slider reducido a un slide
+
+- Desactivados temporalmente los slides 2 y 3 del slider de portada (`slider/slider02.php` y `slider/slider03.php`): solo el primero esta definido. Los ficheros no se borran; en `index.php` sus `require` quedan comentados.
+- Con un unico slide las flechas y los puntos no hacen nada, asi que el bloque de controles queda tambien comentado en `index.php`. El primer slide ya viene marcado como activo en su propio marcado, por lo que no depende del JavaScript para mostrarse.
+- Para reactivarlos: descomentar los dos `require` y el bloque de controles.
